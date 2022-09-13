@@ -1,0 +1,8 @@
+import @io;
+
+module HelloWorld is Entry{
+    int main(){
+        io.println("Hello, World!");
+        return 0;
+    }
+}

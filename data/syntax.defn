@@ -1,0 +1,136 @@
+############################
+## This file defines the tokens and other related
+## things about the quinoa programming language
+## Desgined to be ran by the custom generator
+##
+## To update the definitions used by the program
+## run `./scripts/generateTokenDefinitions.py`
+## from the root directory
+############################
+
+###########################################
+## each token can have various directives associated with it
+## A Directive is prefixed by an @ symbol
+## A Directive Followed By a value is interpreted as a Property
+## A Directive with no value is associated with a boolean
+###########################################
+
+###############################
+##         DIRECTIVES        ##
+###############################
+## alias: Source-Code Representation of the token, may have multiple (i.e byte, u8)
+## infix: Used with operator to specify an infix operator
+## prefix: Used with operator to specify an prefix operator
+## type: Used to specify that a token is also a type
+## ind: Specify that a token is used as a form of indentation
+## dind: Specify that a token is used as a form of de-indentation
+#################################
+
+eof
+
+comment
+
+@prefix
+@alias !
+bang
+
+@alias "
+double_quote
+
+@alias \#
+hashtag
+
+@infix
+@alias %
+percent
+
+@infix
+@alias &
+bitwise_and
+
+@alias '
+quote
+
+@alias (
+@ind
+l_paren
+
+@alias )
+@dind
+r_paren
+
+@alias *
+@infix
+star
+
+@alias +
+@infix
+plus
+
+@alias ,
+comma
+
+@alias -
+@infix
+minus
+
+# Property Access will be treated as an expression
+@alias .
+@infix
+dot
+
+@alias /
+@infix
+slash
+
+@alias :
+colon
+
+@alias ;
+semicolon
+
+@alias <
+@infix
+lesser
+
+@alias >
+@infix
+greater
+
+@alias =
+@infix
+assignment
+
+@alias ?
+question_mark
+
+@alias @
+at_symbol
+
+@alias \
+backslash
+
+@alias [
+@ind
+l_square_bracket
+
+
+@alias ]
+@dind
+r_square_bracket
+
+@alias ^
+@infix
+bitwise_xor
+
+@alias _
+@infix
+underscore
+
+@alias {
+@ind
+l_brace
+
+@alias }
+@dind
+r_brace
