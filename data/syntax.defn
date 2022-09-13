@@ -18,7 +18,7 @@
 ###############################
 ##         DIRECTIVES        ##
 ###############################
-## alias: Source-Code Representation of the token, may have multiple (i.e byte, u8)
+## alias: Source-Code Representation of the token, may have multiple (i.e @alias byte u8)
 ## infix: Used with operator to specify an infix operator
 ## prefix: Used with operator to specify an prefix operator
 ## type: Used to specify that a token is also a type
@@ -30,9 +30,64 @@ eof
 
 comment
 
-@prefix
-@alias !
-bang
+identifier
+
+
+# Type Definitions
+
+@alias void
+@type
+void
+
+@alias string
+@type
+string
+
+@alias i8 char
+@type
+int8
+
+@alias i16
+@type
+int16
+
+@alias i32 int
+@type
+int32
+
+@alias i64
+@type
+int64
+
+@alias u8 byte
+@type
+uint8
+
+@alias u16
+@type
+uint16
+
+@alias u32 uint
+@type
+uint32
+
+@alias u64
+@type
+uint64
+
+@alias f16
+@type
+float16
+
+@alias f32
+@type
+float32
+
+@alias f64 float
+@type
+float64
+
+
 
 @alias "
 double_quote
@@ -40,16 +95,12 @@ double_quote
 @alias \#
 hashtag
 
-@infix
-@alias %
-percent
 
-@infix
-@alias &
-bitwise_and
 
 @alias '
 quote
+
+### Scoping Symbols
 
 @alias (
 @ind
@@ -59,29 +110,27 @@ l_paren
 @dind
 r_paren
 
-@alias *
-@infix
-star
+@alias {
+@ind
+l_brace
 
-@alias +
-@infix
-plus
+@alias }
+@dind
+r_brace
+
+@alias [
+@ind
+l_square_bracket
+
+@alias ]
+@dind
+r_square_bracket
+
+## Symbols And Stuff
 
 @alias ,
 comma
 
-@alias -
-@infix
-minus
-
-# Property Access will be treated as an expression
-@alias .
-@infix
-dot
-
-@alias /
-@infix
-slash
 
 @alias :
 colon
@@ -89,17 +138,7 @@ colon
 @alias ;
 semicolon
 
-@alias <
-@infix
-lesser
 
-@alias >
-@infix
-greater
-
-@alias =
-@infix
-assignment
 
 @alias ?
 question_mark
@@ -110,27 +149,99 @@ at_symbol
 @alias \
 backslash
 
-@alias [
-@ind
-l_square_bracket
+@infix
+@alias %
+percent
 
 
-@alias ]
-@dind
-r_square_bracket
+# Unary Operators
+
+@prefix
+@alias !
+bang
+
+# Binary Operators
+
+
+
+@alias *
+@infix
+star
+
+@alias +
+@infix
+plus
+
+@alias -
+@infix
+minus
+
+@alias ||
+@infix
+bool_or
+
+@alias &&
+@infix
+bool_and
+
+
+
+# Property Access will be treated as an expression
+@alias .
+@infix
+dot
+
+@alias /
+@infix
+slash
+
+@alias <
+@infix
+lesser
+
+@alias >
+@infix
+greater
+
+@alias <=
+@infix
+lesser_eq
+
+@alias >=
+@infix
+greater_eq
+
+@alias =
+@infix
+assignment
+
+@infix
+@alias &
+bitwise_and
+
+@alias |
+@infix
+bitiwse_or
+
+@alias ~
+@infix
+bitwise_not
 
 @alias ^
 @infix
 bitwise_xor
 
-@alias _
+@alias <<
 @infix
+bitwise_shl
+
+@alias >>
+@infix
+bitwise_shr
+
+@alias _
 underscore
 
-@alias {
-@ind
-l_brace
 
-@alias }
-@dind
-r_brace
+
+
