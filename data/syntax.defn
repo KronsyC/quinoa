@@ -92,7 +92,7 @@ float64
 @alias "
 double_quote
 
-@alias \#
+@alias #
 hashtag
 
 
