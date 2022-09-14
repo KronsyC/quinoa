@@ -149,14 +149,14 @@ at_symbol
 @alias \
 backslash
 
-@infix
+@infix 5
 @alias %
 percent
 
 
 # Unary Operators
 
-@prefix
+@prefix 3
 @alias !
 bang
 
@@ -165,78 +165,78 @@ bang
 
 
 @alias *
-@infix
+@infix 5
 star
 
 @alias +
-@infix
+@infix 6
 plus
 
 @alias -
-@infix
+@infix 6
 minus
 
 @alias ||
-@infix
-bool_or
+@infix 15
+bool_or 15
 
 @alias &&
-@infix
-bool_and
+@infix 14
+bool_and 14
 
 
 
 # Property Access will be treated as an expression
 @alias .
-@infix
+@infix 4
 dot
 
 @alias /
-@infix
+@infix 5
 slash
 
 @alias <
-@infix
+@infix 9
 lesser
 
 @alias >
-@infix
+@infix 9
 greater
 
 @alias <=
-@infix
+@infix 9
 lesser_eq
 
 @alias >=
-@infix
+@infix 9
 greater_eq
 
 @alias =
-@infix
+@infix 16
 assignment
 
-@infix
+@infix 11
 @alias &
 bitwise_and
 
 @alias |
-@infix
+@infix 13
 bitiwse_or
 
 @alias ~
-@infix
+@infix 3
 bitwise_not
 
 @alias ^
-@infix
+@infix 13
 bitwise_xor
 
 @alias <<
-@infix
+@infix 7
 bitwise_shl
 
 @alias >>
-@infix
+@infix 7
 bitwise_shr
 
 @alias _
