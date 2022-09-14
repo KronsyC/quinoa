@@ -99,15 +99,14 @@ hashtag
 
 @alias '
 quote
-
-### Scoping Symbols
+# Scoping Symbols
 
 @alias (
 @ind
 l_paren
 
 @alias )
-@dind
+@dind 
 r_paren
 
 @alias {
@@ -126,7 +125,7 @@ l_square_bracket
 @dind
 r_square_bracket
 
-## Symbols And Stuff
+# Symbols And Stuff
 
 @alias ,
 comma
@@ -137,8 +136,6 @@ colon
 
 @alias ;
 semicolon
-
-
 
 @alias ?
 question_mark
@@ -153,8 +150,30 @@ backslash
 @alias %
 percent
 
+@postfix 3
+@alias ++
+postfix_inc
+
+@postfix 3
+@alias --
+postfix_dec
+
+@postfix 2
+subscript
+
+@prefix 3
+@alias ++
+prefix_inc
+
+@prefix 3
+@alias --
+prefix_dec
 
 # Unary Operators
+
+@prefix 3
+@alias create
+instantiate_object
 
 @prefix 3
 @alias !
@@ -178,11 +197,11 @@ minus
 
 @alias ||
 @infix 15
-bool_or 15
+bool_or
 
 @alias &&
 @infix 14
-bool_and 14
+bool_and
 
 
 
@@ -214,6 +233,14 @@ greater_eq
 @alias =
 @infix 16
 assignment
+
+@alias ==
+@infix 10
+equals
+
+@alias !=
+@infix 10
+not_equals
 
 @infix 11
 @alias &

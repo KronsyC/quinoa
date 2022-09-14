@@ -4,6 +4,7 @@ import os
 import time
 from typing import List
 __DEFPATH__ =  os.path.abspath("data/syntax.defn")
+__TGTPATH__ = os.path.abspath("quinoa/compiler/generated/TokenDef.h")
 
 class Definition:
     id:str
@@ -83,5 +84,38 @@ for defi in ALL_DEFINITIONS:
                 else:
                     raise Exception("Failed to get type for property: "+ k)
         STRUCTURE[k] = TARGET_TYPE
-print(STRUCTURE)
-print("")
+
+definitions_str = ""
+for k, v in STRUCTURE.items():
+    val = ""
+    if v == PROPTYPE_BOOL: val = f"bool {k} = false"
+    if v == PROPTYPE_NUMBER: val = f"int {k} = 0"
+    if v == PROPTYPE_STR: val = f"std::string {k} = \"\""
+    if v == PROPTYPE_STRLIST: val = f"std::vector<std::string> {k}"
+    definitions_str+="\n\t"+val+";"
+
+token_type_def = ""
+for defi in ALL_DEFINITIONS:
+    token_type_def+=f"\n\t\tTT_{defi.id},"
+
+
+
+TEMPLATE_CLASS_DEFN = f"""
+#pragma once
+
+#include<string>
+#include<vector>
+
+enum TokenType{{
+    {token_type_def}
+}};
+
+class TokenDefinition{{
+    TokenType type;
+    {definitions_str}
+}};
+"""
+print("Generated Source Content Successfully")
+tgtfile = open(__TGTPATH__, "w")
+tgtfile.write(TEMPLATE_CLASS_DEFN)
+print("Wrote to file, exiting....")

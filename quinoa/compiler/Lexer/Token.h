@@ -1,21 +1,21 @@
 #pragma once
 #include<string>
-#include "../generated/TokenInfo.h"
+#include "../generated/TokenDef.h"
 class Token{
 public:
     int col;
     int line;
-    TokenType::TT type;
+    TokenType type;
     std::string value;
 
-    Token(TokenType::TT type, std::string value="", int line=0, int col=0){
+    Token(TokenType type, std::string value="", int line=0, int col=0){
         this->type = type;
         this->value = value;
         this->line=line;
         this->col=col;
     }
 
-    bool is(TokenType::TT type){
+    bool is(TokenType type){
         return this->type == type;
     }
 
