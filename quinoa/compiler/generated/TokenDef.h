@@ -101,7 +101,7 @@ public:
 };
 
 
-std::vector<TokenDefinition*> defs{
+const std::vector<TokenDefinition*> defs{
     
 	new TokenDefinition(TT_eof, {}, false, false, false, 0, 0, 0),
 	new TokenDefinition(TT_comment, {}, false, false, false, 0, 0, 0),

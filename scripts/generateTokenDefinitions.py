@@ -100,6 +100,7 @@ def toArrayLiteral(val: List):
     for v in val:
         if not first: ret+=", "
         ret+= json.dumps(v)
+        first = False
     return ret + "}"
 
 definitions_str = ""

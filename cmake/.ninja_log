@@ -1,8 +1,10 @@
 # ninja log v5
 2	213	1663088284425433425	CMakeFiles/quinoa.dir/quinoa/lib/list.cc.o	25ef83e84bd1067b
-1628	2007	1663187496957755611	quinoa	cebe5e045ed29731
-3	1628	1663187496577748246	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
+1603	2015	1663187697318295406	quinoa	cebe5e045ed29731
+3	1603	1663187696904954099	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
 1	214	1662894166271020654	CMakeFiles/quinoa.dir/quinoa/lib/List/list.cc.o	3cda9c58375ddb45
 2	488	1662843783081145769	CMakeFiles/quinoa.dir/quinoa/logger/logger.cc.o	b70118d2daf1f91a
 1	340	1663088509840873514	CMakeFiles/quinoa.dir/quinoa/lib/error.cc.o	6da7ff07efe8d751
 1	537	1663088510037539016	CMakeFiles/quinoa.dir/quinoa/lib/logger.cc.o	3cc257593e279450
+2	1591	1663187721655431317	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
+1591	1934	1663187721998771269	quinoa	cebe5e045ed29731
