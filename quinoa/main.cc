@@ -3,6 +3,7 @@
 #include "./lib/error.h"
 #include "./lib/logger.h"
 #include "./compiler/AST/ast.hh"
+#include "./compiler/compiler.hh"
 #include<string>
 class Thing{
 public:
