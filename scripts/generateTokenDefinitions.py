@@ -20,7 +20,7 @@ class Definition:
         return self.id + " -> " + str(self.properties)
 
 
-print("------- Quinoa Tokengen  -------")
+print("------- Quinoa Tokengen -------")
 print(f"Searching for {__DEFPATH__}")
 def_file = open(__DEFPATH__, "r")
 print("Located the file Successfully")
@@ -104,8 +104,8 @@ def toArrayLiteral(val: List):
     return ret + "}"
 
 definitions_str = ""
-definitions_args = "TokenType ttype"
-definitions_default_assignments="this->ttype = ttype;"
+definitions_args = "TokenType ttype, std::string name"
+definitions_default_assignments="this->ttype = ttype;\nthis->name=name;"
 for k, v in STRUCTURE.items():
     val = ""
     if v == PROPTYPE_BOOL: val = f"bool {k} = false"
@@ -124,7 +124,7 @@ for defi in ALL_DEFINITIONS:
 
     definitions_initializers+="\n\tnew "
     definitions_initializers+="TokenDefinition("
-    definitions_initializers+=defname
+    definitions_initializers+=defname + ", " + json.dumps("__"+defi.id)
 
     for k, v in STRUCTURE.items():
         definitions_initializers+=", "
@@ -165,6 +165,7 @@ enum TokenType{{
 class TokenDefinition{{
 public:
     TokenType ttype;
+    std::string name;
     {definitions_str}
 
     TokenDefinition({definitions_args}){{

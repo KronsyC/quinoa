@@ -18,5 +18,8 @@ int main(int argc, char** argv){
     Thing th;
     stuff.push(th);
     auto execPath = argv[0];
+    for(auto t:defs){
+        printf("%s\n", t->name.c_str());
+    }
     return 0;
 };
