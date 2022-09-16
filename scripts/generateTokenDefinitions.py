@@ -1,6 +1,4 @@
 #!/bin/python
-from ctypes import cast
-from operator import truediv
 import os
 import time
 from typing import List
