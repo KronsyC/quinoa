@@ -65,5 +65,6 @@
         "iomanip": "cpp",
         "any": "cpp",
         "bitset": "cpp"
-    }
+    },
+    "discord.enabled": true
 }
