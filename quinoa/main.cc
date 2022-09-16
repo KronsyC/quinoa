@@ -5,21 +5,21 @@
 #include "./compiler/AST/ast.hh"
 #include "./compiler/compiler.hh"
 #include<string>
-class Thing{
-public:
-    Thing() = default;
-};
+#include<fstream>
+
 using namespace std;
 int main(int argc, char** argv){
     if(argc < 2)error("You Must Pass the File Path to the compiler");
     string filePath = argv[1];
     Logger::log("Compiling file '"+filePath+"'");
-    Block<Thing> stuff;
-    Thing th;
-    stuff.push(th);
-    auto execPath = argv[0];
-    for(auto t:defs){
-        printf("%s\n", t->name.c_str());
-    }
+    
+    // Read the file into a string
+    std::ifstream file(filePath);
+    file.seekg(0, std::ios::end);
+    size_t filesize = file.tellg();
+    std::string fileContent(filesize, ' ');
+    file.seekg(0);
+    file.read(&fileContent[0], filesize);
+    compile(fileContent);
     return 0;
 };

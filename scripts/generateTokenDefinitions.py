@@ -174,7 +174,7 @@ public:
 }};
 
 
-std::vector<TokenDefinition*> defs{{
+static std::vector<TokenDefinition*> defs{{
     {definitions_initializers}
 }};
 """

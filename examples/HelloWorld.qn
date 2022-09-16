@@ -1,3 +1,5 @@
+"Some Epic \"String\""
+
 import @io;
 
 module HelloWorld is Entry{

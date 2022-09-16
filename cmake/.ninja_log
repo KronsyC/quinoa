@@ -3,8 +3,10 @@
 1	340	1663088509840873514	CMakeFiles/quinoa.dir/quinoa/lib/error.cc.o	6da7ff07efe8d751
 2	488	1662843783081145769	CMakeFiles/quinoa.dir/quinoa/logger/logger.cc.o	b70118d2daf1f91a
 1	214	1662894166271020654	CMakeFiles/quinoa.dir/quinoa/lib/List/list.cc.o	3cda9c58375ddb45
-2	1591	1663187721655431317	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
-1591	1934	1663187721998771269	quinoa	cebe5e045ed29731
-2	213	1663088284425433425	CMakeFiles/quinoa.dir/quinoa/lib/list.cc.o	25ef83e84bd1067b
-3	1778	1663270364203848666	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
-1778	2103	1663270364530520857	quinoa	cebe5e045ed29731
+1	1678	1663360001754981383	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
+415	773	1663359850920147279	quinoa	b88c8bc2d9b96fef
+1	376	1663359760469505544	CMakeFiles/quinoa.dir/quinoa/lib/list.cc.o	25ef83e84bd1067b
+1	579	1663360000658302147	CMakeFiles/quinoa.dir/quinoa/compiler/Lexer/lexer.cc.o	74b759965ab05c2c
+1	552	1663360088922713516	CMakeFiles/quinoa.dir/quinoa/compiler/Lexer/lexer.cc.o	74b759965ab05c2c
+1	1737	1663360090106062165	CMakeFiles/quinoa.dir/quinoa/main.cc.o	f3112428ee9abbf3
+1737	2106	1663360090476066959	quinoa	b88c8bc2d9b96fef

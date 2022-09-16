@@ -1,6 +1,6 @@
 #pragma once
 #include<vector>
-
+#include<string>
 template <typename T>
 std::size_t push(std::vector<T>& vec, T item);
 
@@ -12,4 +12,6 @@ std::size_t pushf(std::vector<T>& vec, T item);
 
 template <typename T>
 T popf(std::vector<T>& vec);
+
+char popf(std::string& str);
 

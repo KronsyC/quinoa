@@ -14,6 +14,7 @@ public:
         this->line=line;
         this->col=col;
     }
+    Token() = default;
 
     bool is(TokenType type){
         return this->type == type;

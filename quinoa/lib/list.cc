@@ -25,3 +25,9 @@ T popf(std::vector<T>& vec){
     return item;
 }
 
+char popf(string& str){
+    auto item = str[0];
+    str.erase(str.begin());
+    return item;
+}
+

@@ -17,6 +17,13 @@ enum TokenType{
 		TT_eof,
 		TT_comment,
 		TT_identifier,
+		TT_literal_str,
+		TT_literal_true,
+		TT_literal_false,
+		TT_literal_int,
+		TT_literal_float,
+		TT_literal_string,
+		TT_literal_char,
 		TT_void,
 		TT_string,
 		TT_int8,
@@ -121,11 +128,18 @@ public:
 };
 
 
-std::vector<TokenDefinition*> defs{
+static std::vector<TokenDefinition*> defs{
     
 	new TokenDefinition(TT_eof, "__eof", {}, false, false, false, 0, 0, 0),
 	new TokenDefinition(TT_comment, "__comment", {}, false, false, false, 0, 0, 0),
 	new TokenDefinition(TT_identifier, "__identifier", {}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_str, "__literal_str", {"l_string"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_true, "__literal_true", {"l_true"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_false, "__literal_false", {"l_false"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_int, "__literal_int", {"l_int"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_float, "__literal_float", {"l_float"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_string, "__literal_string", {"l_string"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_literal_char, "__literal_char", {"l_char"}, false, false, false, 0, 0, 0),
 	new TokenDefinition(TT_void, "__void", {"void"}, true, false, false, 0, 0, 0),
 	new TokenDefinition(TT_string, "__string", {"string"}, true, false, false, 0, 0, 0),
 	new TokenDefinition(TT_int8, "__int8", {"i8", "char"}, true, false, false, 0, 0, 0),

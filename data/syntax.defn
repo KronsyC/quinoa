@@ -32,6 +32,27 @@ comment
 
 identifier
 
+# Literal Definitions
+@alias l_string
+literal_str
+
+@alias l_true
+literal_true
+
+@alias l_false
+literal_false
+
+@alias l_int
+literal_int
+
+@alias l_float
+literal_float
+
+@alias l_string
+literal_string
+
+@alias l_char
+literal_char
 
 # Type Definitions
 
