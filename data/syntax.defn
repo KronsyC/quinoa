@@ -356,3 +356,6 @@ case
 
 @alias fallthrough
 fallthrough
+
+@alias import
+import

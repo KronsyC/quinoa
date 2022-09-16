@@ -1,4 +1,5 @@
 #include "./list.h"
+#include<algorithm>
 using namespace std;
 
 template<typename T>
@@ -30,4 +31,7 @@ char popf(string& str){
     str.erase(str.begin());
     return item;
 }
+
+
+
 

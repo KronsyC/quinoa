@@ -1,10 +1,12 @@
-"Some Epic \"String\""
-
 import @io;
 
 module HelloWorld is Entry{
     int main(){
-        io.println("Hello, World!");
+        greet("Samir");
         return 0;
+    }
+
+    void greet(string person){
+        io.println("Hello, {}", person);
     }
 }

@@ -99,6 +99,7 @@ enum TokenType{
 		TT_switch,
 		TT_case,
 		TT_fallthrough,
+		TT_import,
 };
 
 class TokenDefinition{
@@ -215,4 +216,5 @@ static std::vector<TokenDefinition*> defs{
 	new TokenDefinition(TT_switch, "__switch", {"switch"}, false, false, false, 0, 0, 0),
 	new TokenDefinition(TT_case, "__case", {"case"}, false, false, false, 0, 0, 0),
 	new TokenDefinition(TT_fallthrough, "__fallthrough", {"fallthrough"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_import, "__import", {"import"}, false, false, false, 0, 0, 0),
 };

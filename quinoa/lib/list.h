@@ -1,17 +1,24 @@
 #pragma once
-#include<vector>
-#include<string>
+#include <vector>
+#include <string>
 template <typename T>
-std::size_t push(std::vector<T>& vec, T item);
-
-template <typename T>
-T pop(std::vector<T>& vec);
+std::size_t push(std::vector<T> &vec, T item);
 
 template <typename T>
-std::size_t pushf(std::vector<T>& vec, T item);
+T pop(std::vector<T> &vec);
 
 template <typename T>
-T popf(std::vector<T>& vec);
+std::size_t pushf(std::vector<T> &vec, T item);
 
-char popf(std::string& str);
+template <typename T>
+T popf(std::vector<T> &vec);
 
+char popf(std::string &str);
+
+namespace Util
+{
+    template <typename T>
+    bool includes(std::vector<T> &items, T item){
+        return find(items.begin(), items.end(), item) != items.end();
+    }
+};
