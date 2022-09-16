@@ -158,6 +158,46 @@ postfix_inc
 @alias --
 postfix_dec
 
+@alias +=
+@infix 16
+increment_by
+
+@alias -=
+@infix 16
+decrement_by
+
+@alias *=
+@infix 16
+mul_by
+
+@alias /=
+@infix 16
+div_by
+
+@alias **=
+@infix 16
+pow_of
+
+@alias <<=
+@infix 16
+bitwise_shl_by
+
+@alias >>=
+@infix 16
+bitwise_shr_by
+
+@alias |=
+@infix 16
+bitwise_or_by
+
+@alias &=
+@infix 16
+bitwise_and_by
+
+@alias ^=
+@infix 16
+bitwise_xor_by
+
 @postfix 2
 subscript
 
