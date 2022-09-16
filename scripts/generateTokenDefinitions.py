@@ -105,7 +105,7 @@ def toArrayLiteral(val: List):
 
 definitions_str = ""
 definitions_args = "TokenType ttype, std::string name"
-definitions_default_assignments="this->ttype = ttype;\nthis->name=name;"
+definitions_default_assignments="this->ttype = ttype;\n\t\tthis->name=name;"
 for k, v in STRUCTURE.items():
     val = ""
     if v == PROPTYPE_BOOL: val = f"bool {k} = false"

@@ -311,4 +311,27 @@ underscore
 
 
 
+# Control Flow Shennanigans
+@alias if
+if
 
+@alias while
+while
+
+@alias for
+for
+
+@alias break
+break
+
+@alias continue
+continue
+
+@alias switch
+switch
+
+@alias case
+case
+
+@alias fallthrough
+fallthrough

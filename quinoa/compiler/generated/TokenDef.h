@@ -48,6 +48,16 @@ enum TokenType{
 		TT_percent,
 		TT_postfix_inc,
 		TT_postfix_dec,
+		TT_increment_by,
+		TT_decrement_by,
+		TT_mul_by,
+		TT_div_by,
+		TT_pow_of,
+		TT_bitwise_shl_by,
+		TT_bitwise_shr_by,
+		TT_bitwise_or_by,
+		TT_bitwise_and_by,
+		TT_bitwise_xor_by,
 		TT_subscript,
 		TT_prefix_inc,
 		TT_prefix_dec,
@@ -74,6 +84,14 @@ enum TokenType{
 		TT_bitwise_shl,
 		TT_bitwise_shr,
 		TT_underscore,
+		TT_if,
+		TT_while,
+		TT_for,
+		TT_break,
+		TT_continue,
+		TT_switch,
+		TT_case,
+		TT_fallthrough,
 };
 
 class TokenDefinition{
@@ -91,7 +109,7 @@ public:
 
     TokenDefinition(TokenType ttype, std::string name, std::vector<std::string> alias, bool type = false, bool ind = false, bool dind = false, int infix = 0, int postfix = 0, int prefix = 0){
         this->ttype = ttype;
-this->name=name;
+		this->name=name;
 		this->alias = alias;
 		this->type = type;
 		this->ind = ind;
@@ -139,6 +157,16 @@ std::vector<TokenDefinition*> defs{
 	new TokenDefinition(TT_percent, "__percent", {"%"}, false, false, false, 5, 0, 0),
 	new TokenDefinition(TT_postfix_inc, "__postfix_inc", {"++"}, false, false, false, 0, 3, 0),
 	new TokenDefinition(TT_postfix_dec, "__postfix_dec", {"--"}, false, false, false, 0, 3, 0),
+	new TokenDefinition(TT_increment_by, "__increment_by", {"+="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_decrement_by, "__decrement_by", {"-="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_mul_by, "__mul_by", {"*="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_div_by, "__div_by", {"/="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_pow_of, "__pow_of", {"**="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_bitwise_shl_by, "__bitwise_shl_by", {"<<="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_bitwise_shr_by, "__bitwise_shr_by", {">>="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_bitwise_or_by, "__bitwise_or_by", {"|="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_bitwise_and_by, "__bitwise_and_by", {"&="}, false, false, false, 16, 0, 0),
+	new TokenDefinition(TT_bitwise_xor_by, "__bitwise_xor_by", {"^="}, false, false, false, 16, 0, 0),
 	new TokenDefinition(TT_subscript, "__subscript", {}, false, false, false, 0, 2, 0),
 	new TokenDefinition(TT_prefix_inc, "__prefix_inc", {"++"}, false, false, false, 0, 0, 3),
 	new TokenDefinition(TT_prefix_dec, "__prefix_dec", {"--"}, false, false, false, 0, 0, 3),
@@ -165,4 +193,12 @@ std::vector<TokenDefinition*> defs{
 	new TokenDefinition(TT_bitwise_shl, "__bitwise_shl", {"<<"}, false, false, false, 7, 0, 0),
 	new TokenDefinition(TT_bitwise_shr, "__bitwise_shr", {">>"}, false, false, false, 7, 0, 0),
 	new TokenDefinition(TT_underscore, "__underscore", {"_"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_if, "__if", {"if"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_while, "__while", {"while"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_for, "__for", {"for"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_break, "__break", {"break"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_continue, "__continue", {"continue"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_switch, "__switch", {"switch"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_case, "__case", {"case"}, false, false, false, 0, 0, 0),
+	new TokenDefinition(TT_fallthrough, "__fallthrough", {"fallthrough"}, false, false, false, 0, 0, 0),
 };
