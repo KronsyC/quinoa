@@ -1,3 +1,0 @@
-/home/casey/quinoa-ref/cmake/CMakeFiles/quinoa.dir
-/home/casey/quinoa-ref/cmake/CMakeFiles/edit_cache.dir
-/home/casey/quinoa-ref/cmake/CMakeFiles/rebuild_cache.dir
