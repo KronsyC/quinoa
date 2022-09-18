@@ -3,7 +3,8 @@ import @io;
 module HelloWorld is Entry{
     int main(){
         greet("Samir");
-        return 0;
+        int fork = 1;
+        return fork**2;
     }
 
     void greet(string person){

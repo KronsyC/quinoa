@@ -171,13 +171,19 @@ backslash
 @alias %
 percent
 
-@postfix 3
-@alias ++
-postfix_inc
+@infix 5
+@alias **
+powerOf
 
 @postfix 3
+@prefix 3
+@alias ++
+increment
+
+@postfix 3
+@prefix 3
 @alias --
-postfix_dec
+decrement
 
 @alias +=
 @infix 16
@@ -222,13 +228,6 @@ bitwise_xor_by
 @postfix 2
 subscript
 
-@prefix 3
-@alias ++
-prefix_inc
-
-@prefix 3
-@alias --
-prefix_dec
 
 # Unary Operators
 
@@ -359,3 +358,12 @@ fallthrough
 
 @alias import
 import
+
+@alias module
+module
+
+@alias as
+as
+
+@alias return
+return

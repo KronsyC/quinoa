@@ -1,5 +1,6 @@
 #include "./list.h"
 #include<algorithm>
+#include<vector>
 using namespace std;
 
 template<typename T>
@@ -20,11 +21,7 @@ size_t pushf(vector<T>& items, T item){
     return items.size();
 }
 
-template <typename T>
-T popf(std::vector<T>& vec){
-    auto item = vec.erase(vec.begin());
-    return item;
-}
+
 
 char popf(string& str){
     auto item = str[0];

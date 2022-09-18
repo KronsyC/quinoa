@@ -6,14 +6,15 @@
 #include "./compiler/compiler.hh"
 #include<string>
 #include<fstream>
-
 using namespace std;
+
+
 int main(int argc, char** argv){
     if(argc < 2)error("You Must Pass the File Path to the compiler");
     string filePath = argv[1];
     Logger::log("Compiling file '"+filePath+"'");
-    
     // Read the file into a string
+
     std::ifstream file(filePath);
     file.seekg(0, std::ios::end);
     size_t filesize = file.tellg();

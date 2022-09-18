@@ -1,16 +1,14 @@
-#include "./lexer.hh"
+#include "./lexer.h"
 #include<vector>
 #include<string>
 #include<bits/stdc++.h>
-#include "./Token.h"
+#include "../token/token.h"
 #include "../../lib/logger.h"
 #include "../../lib/list.h"
 using namespace std;
 
 Token make(TokenType type, string value=""){
-    Token tok;
-    tok.type = type;
-    tok.value = value;
+    Token tok(type, value);
     return tok;
 }
 void trimStart(string& str){
@@ -33,6 +31,15 @@ bool isNumber(char c){
 }
 bool isAlphaChar(char c){
     return c >= 'A' && c<='Z' || c>='a' && c<='z';
+}
+bool isSymbol(char c){
+    return !isNumber(c) && !isAlphaChar(c);
+}
+bool isSymbol(string str){
+    for(auto c:str){
+        if(!isSymbol(c))return false;
+    }
+    return true;
 }
 string escapeNextVal(string& str){
     auto first =  popf(str);
@@ -103,10 +110,15 @@ Token readNextToken(string& str){
         // Check for a match
         // printf("Checking %s\n", a.c_str());
         if(startsWith(str, a)){
-            
+            auto symbol = isSymbol(a);
+            if(!symbol){
+                // ensure the character after the keyword isn't an alphachar
+                auto next = str[a.size()];
+                if(isAlphaChar(next))continue;
+            }
             // Locate the appropriate def object and create an appropriate token type
             for(auto d:defs){
-                if(Util::includes(d->alias, a)){
+                if(includes(d->alias, a)){
                     // skip n tokens ahead;
                     for(int i = 0; i<a.size();i++){
                         popf(str);
@@ -126,8 +138,9 @@ Token readNextToken(string& str){
         }
         return make(TT_identifier, ident);
     }
-    
-    Logger::error("Failed To Parse The File, An Unreadable Character was Encountered");
+    string s;
+    s+=str[0];
+    Logger::error("Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
     exit(1);
 }   
 
@@ -136,8 +149,7 @@ vector<Token> Lexer::lexify(string source){
     while(source.length() > 0){
         auto nextToken = readNextToken(source);
         if(nextToken.is(TT_eof))break;
-        toks.push_back(nextToken);
-        
+        toks.push_back(nextToken);    
     }
 
     return toks;

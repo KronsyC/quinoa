@@ -1,6 +1,6 @@
 #pragma once
 #include<string>
-#include "../generated/TokenDef.h"
+#include "./TokenDef.h"
 class Token{
 public:
     int col;
