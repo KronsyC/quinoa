@@ -10,3 +10,4 @@ module HelloWorld{
     void greet(string person){
         io.println("Hello, {}", person);
     }
+}

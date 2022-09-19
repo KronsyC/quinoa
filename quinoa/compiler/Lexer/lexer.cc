@@ -20,7 +20,7 @@ Token make(TokenType type, string value=""){
 }
 void trimStart(string& str){
     // Ascii Table Shennanigans
-    while(str[0] <= 32){
+    while(str.length() && str[0] <= 32){
         if(str[0] == '\n')newline();
         else col++;
         popf(str);
@@ -160,7 +160,7 @@ Token readNextToken(string& str){
 
 vector<Token> Lexer::lexify(string source){
     vector<Token> toks;
-    while(source.length() > 0){
+    while(1){
         auto nextToken = readNextToken(source);
         if(nextToken.is(TT_eof))break;
         toks.push_back(nextToken);    
