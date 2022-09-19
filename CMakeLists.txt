@@ -20,17 +20,7 @@ file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 add_executable(quinoa ${sources})
 
 
-# Get the JSON object representing the macros
-execute_process(COMMAND ./scripts/generateTokenDefinitions.py OUTPUT_VARIABLE json_str)
-foreach(IDX RANGE 2)
-    string(JSON ENTRY GET ${json_str} ${IDX})
-    string(JSON NAME GET ${json_str} "${IDX}" "name")
-    string(JSON VALUE GET ${json_str} "${IDX}" "value")
-    message(STATUS "injecting ${NAME}")
-    set(def ${NAME}=${VALUE})
-    string(REPLACE ";" "\;" def_rep "${def}")
-    target_compile_definitions(quinoa PUBLIC "${def_rep}")
-
-endforeach()
+# Generate Macro Definitions
+execute_process(COMMAND ./scripts/generateTokenDefinitions.py)
 
 target_compile_definitions(quinoa PUBLIC "DEFAGE=int age = 16\; age+=1")

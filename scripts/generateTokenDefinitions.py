@@ -1,10 +1,11 @@
 #!/bin/python
+from importlib.resources import contents
 import os
 from typing import List
 import json
 from urllib.request import pathname2url
 __DEFPATH__ =  os.path.abspath("data/syntax.defn")
-__TGTPATH__ = os.path.abspath("quinoa/compiler/token/TokenDef.h")
+__TGTPATH__ = os.path.abspath("quinoa/GenMacro.h")
 
 class Definition:
     id:str
@@ -143,8 +144,25 @@ MACRO_KVP = [
     {
         "name": "DEFINITIONS_DEFAULT_ASSIGNMENTS",
         "value": definitions_default_assignments
+    },
+    {
+        "name": "DEFINITIONS_INITIALIZERS",
+        "value": definitions_initializers
+    },
+    {
+        "name": "DEFINITIONS_ENUM_MEMBERS",
+        "value": token_type_def
     }
 ]
-print(json.dumps( MACRO_KVP))
 
+CONTENTS = ""
+
+for entry in MACRO_KVP:
+    MACRO=f"#define { entry['name'] } { entry['value'] }"
+    CONTENTS+=MACRO+"\n\n"
+
+
+tgtfile = open(__TGTPATH__, "w")
+tgtfile.write(CONTENTS)
+tgtfile.close()
 
