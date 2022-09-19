@@ -1,37 +1,35 @@
 #include "./parser.h"
 #include "../../lib/list.h"
 #include "../token/token.h"
+#include "./util.hh"
 #include<vector>
 using namespace std;
 
-// Token popf(vector<Token>& toks);
-
-vector<Token> readUntil(vector<Token>& toks, TokenType type, bool removeEnding=false){
-    vector<Token> retval;
-    while(toks.size()){
-        if(toks[0].is(type))break;
-        retval.push_back(popf(toks));
-    }
-    if(removeEnding)popf(toks);
-    return retval;
-}
-void printToks(vector<Token> toks){
+void printToks(std::vector<Token> toks){
     for(auto t : toks){
         printf("-> %s\n", t.value.c_str());
     }
 }
+
+
 void* Parser::makeAst(vector<Token>& toks){
 
     while(toks.size() > 0){
         auto c = popf(toks);
 
-
+        // Top-Level Parsing
         switch(c.type){
             case TT_import:{
-                printf("Import\n");
                 auto importExprToks = readUntil(toks, TT_semicolon, true);
-                printToks(toks);
+                break;
             }
+            case TT_module:{
+                auto name = popf(toks);
+                printf("module %s\n", name.value.c_str());
+                auto moduleToks = readBlock(toks, IND_braces);
+                break;
+            }
+            default:error("Failed to parse Token '"+c.value+"'");
         }
     }
     return nullptr;

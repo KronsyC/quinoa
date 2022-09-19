@@ -1,6 +1,7 @@
 #!/bin/python
 from importlib.resources import contents
 import os
+from textwrap import indent
 from typing import List
 import json
 from urllib.request import pathname2url
@@ -130,8 +131,21 @@ for defi in ALL_DEFINITIONS:
         else:
             definitions_initializers+=json.dumps(value)
     definitions_initializers+="),"
-    
 
+
+indentation_types = ""
+indentation_mappings = ""
+for defi in ALL_DEFINITIONS:
+    if "ind" in defi.properties:
+        generic_name = defi.id[2:]
+        enum_name = "IND_"+generic_name+"s"
+        indentation_types+=enum_name + ", "
+        indentation_mappings+=f"{{{enum_name}, {{TT_l_{generic_name}, TT_r_{generic_name}}}}},"
+
+
+# To add a new macro to the source code
+# Simply Write it's generator above
+# and add it to the list of macros
 MACRO_KVP = [
     {
         "name": "DEFINITIONS_STR",
@@ -152,6 +166,14 @@ MACRO_KVP = [
     {
         "name": "DEFINITIONS_ENUM_MEMBERS",
         "value": token_type_def
+    },
+    {
+        "name": "INDENTATION_TYPES",
+        "value": indentation_types
+    },
+    {
+        "name": "INDENTATION_MAPPINGS",
+        "value": indentation_mappings
     }
 ]
 

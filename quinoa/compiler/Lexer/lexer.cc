@@ -4,16 +4,27 @@
 #include<bits/stdc++.h>
 #include "../token/token.h"
 #include "../../lib/logger.h"
+#include "../../lib/error.h"
 #include "../../lib/list.h"
 using namespace std;
+int row = 1;
+int col = 1;
 
+void newline(){
+    row++;
+    col=1;
+}
 Token make(TokenType type, string value=""){
-    Token tok(type, value);
+    Token tok(type, value, row, col);
     return tok;
 }
 void trimStart(string& str){
     // Ascii Table Shennanigans
-    while(str[0] <= 32)popf(str);
+    while(str[0] <= 32){
+        if(str[0] == '\n')newline();
+        else col++;
+        popf(str);
+    }
 }
 bool startsWith(string str, string substr){
     if(substr.size() > str.size())return false;
@@ -84,6 +95,8 @@ Token readNextToken(string& str){
                 val+=popf(str);
             }
         }
+        //TODO: This isn't actually accurate due to the width of escaped characters being smaller than their source-code variants
+        col+=val.size()+2;
         return make(TT_literal_str, val);
     }
     
@@ -94,6 +107,7 @@ Token readNextToken(string& str){
             constructedNumber+=str[0];
             popf(str);
         }
+        col+=constructedNumber.size();
         return make(TT_literal_int, constructedNumber);
     }
 
@@ -108,7 +122,6 @@ Token readNextToken(string& str){
     sort(aliases.begin(), aliases.end(), compareLength);
     for(auto a:aliases){
         // Check for a match
-        // printf("Checking %s\n", a.c_str());
         if(startsWith(str, a)){
             auto symbol = isSymbol(a);
             if(!symbol){
@@ -123,7 +136,8 @@ Token readNextToken(string& str){
                     for(int i = 0; i<a.size();i++){
                         popf(str);
                     }
-                    return make(d->ttype, d->name);
+                    col+=a.size();
+                    return make(d->ttype, a);
                 }
             }
 
@@ -136,12 +150,12 @@ Token readNextToken(string& str){
         while(str.length()&& (isAlphaChar(str[0]) || isNumber(str[0]))){
             ident+=popf(str);
         }
+        col+=ident.size();
         return make(TT_identifier, ident);
     }
     string s;
     s+=str[0];
-    Logger::error("Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
-    exit(1);
+    error("Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
 }   
 
 vector<Token> Lexer::lexify(string source){
@@ -151,6 +165,5 @@ vector<Token> Lexer::lexify(string source){
         if(nextToken.is(TT_eof))break;
         toks.push_back(nextToken);    
     }
-
     return toks;
 }  

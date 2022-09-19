@@ -1,6 +1,8 @@
 #pragma once
 #include<string>
+#include<vector>
 #include "./TokenDef.h"
+
 class Token{
 public:
     int col;
@@ -19,5 +21,14 @@ public:
     bool is(TokenType type){
         return this->type == type;
     }
+    std::string pos(){
+        return "["+std::to_string(line) + ":" + std::to_string(col) + "]";
+    }
+
+    std::string afterpos(){
+        return "["+std::to_string(line) + ":" + std::to_string(col+value.size()) + "]";
+
+    }
 
 };
+

@@ -8,3 +8,7 @@
 
 #define DEFINITIONS_ENUM_MEMBERS TT_eof,TT_comment,TT_identifier,TT_literal_str,TT_literal_true,TT_literal_false,TT_literal_int,TT_literal_float,TT_literal_string,TT_literal_char,TT_void,TT_string,TT_int8,TT_int16,TT_int32,TT_int64,TT_uint8,TT_uint16,TT_uint32,TT_uint64,TT_float16,TT_float32,TT_float64,TT_double_quote,TT_hashtag,TT_quote,TT_l_paren,TT_r_paren,TT_l_brace,TT_r_brace,TT_l_square_bracket,TT_r_square_bracket,TT_comma,TT_colon,TT_semicolon,TT_question_mark,TT_at_symbol,TT_backslash,TT_percent,TT_powerOf,TT_increment,TT_decrement,TT_increment_by,TT_decrement_by,TT_mul_by,TT_div_by,TT_pow_of,TT_bitwise_shl_by,TT_bitwise_shr_by,TT_bitwise_or_by,TT_bitwise_and_by,TT_bitwise_xor_by,TT_subscript,TT_instantiate_object,TT_bang,TT_star,TT_plus,TT_minus,TT_bool_or,TT_bool_and,TT_dot,TT_slash,TT_lesser,TT_greater,TT_lesser_eq,TT_greater_eq,TT_assignment,TT_equals,TT_not_equals,TT_bitwise_and,TT_bitiwse_or,TT_bitwise_not,TT_bitwise_xor,TT_bitwise_shl,TT_bitwise_shr,TT_underscore,TT_if,TT_while,TT_for,TT_break,TT_continue,TT_switch,TT_case,TT_fallthrough,TT_import,TT_module,TT_as,TT_return,
 
+#define INDENTATION_TYPES IND_parens, IND_braces, IND_square_brackets, 
+
+#define INDENTATION_MAPPINGS {IND_parens, {TT_l_paren, TT_r_paren}},{IND_braces, {TT_l_brace, TT_r_brace}},{IND_square_brackets, {TT_l_square_bracket, TT_r_square_bracket}},
+

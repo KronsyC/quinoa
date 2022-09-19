@@ -23,4 +23,3 @@ add_executable(quinoa ${sources})
 # Generate Macro Definitions
 execute_process(COMMAND ./scripts/generateTokenDefinitions.py)
 
-target_compile_definitions(quinoa PUBLIC "DEFAGE=int age = 16\; age+=1")

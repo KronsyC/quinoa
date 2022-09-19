@@ -1,6 +1,6 @@
 import @io;
 
-module HelloWorld is Entry{
+module HelloWorld{
     int main(){
         greet("Samir");
         int fork = 1;
@@ -10,4 +10,3 @@ module HelloWorld is Entry{
     void greet(string person){
         io.println("Hello, {}", person);
     }
-}
