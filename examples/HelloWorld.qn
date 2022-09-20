@@ -1,13 +1,15 @@
 import @io;
 
 module HelloWorld{
+
+
     int main(){
         greet("Samir");
-        int fork = 1;
-        return fork**2;
+        return 0 + 11 / 3;
     }
-
     void greet(string person){
         io.println("Hello, {}", person);
     }
 }
+
+

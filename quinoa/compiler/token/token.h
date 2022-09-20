@@ -2,7 +2,7 @@
 #include<string>
 #include<vector>
 #include "./TokenDef.h"
-
+#include "../../lib/error.h"
 class Token{
 public:
     int col;
@@ -20,6 +20,12 @@ public:
 
     bool is(TokenType type){
         return this->type == type;
+    }
+    bool isTypeTok(){
+        for(auto t:defs){
+            if(t->ttype == type)return t->type;
+        }
+        error("Failed To Locate Token Entry");
     }
     std::string pos(){
         return "["+std::to_string(line) + ":" + std::to_string(col) + "]";

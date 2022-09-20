@@ -51,10 +51,10 @@ vector<Token> readBlock(vector<Token>& toks, IndType typ){
     Token t;
     while(toks.size()){
         t = popf(toks);
-        ret.push_back(t);
         if(t.is(i))ind++;
         if(t.is(u))ind--;
         if(ind==0)break;
+        ret.push_back(t);
     }
     if(ind!=0)error("Expected '" + getTokenTypeName(u) + "' at " + t.afterpos());
     return ret;

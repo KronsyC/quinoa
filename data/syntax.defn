@@ -362,6 +362,9 @@ import
 @alias module
 module
 
+@alias is
+is
+
 @alias as
 as
 

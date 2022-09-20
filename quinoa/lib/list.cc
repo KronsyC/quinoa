@@ -24,6 +24,8 @@ size_t pushf(vector<T>& items, T item){
 
 
 char popf(string& str){
+    if(str.size() == 0)error("Cannot remove character from empty string");
+
     auto item = str[0];
     str.erase(str.begin());
     return item;
