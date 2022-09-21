@@ -25,7 +25,19 @@ public:
         for(auto t:defs){
             if(t->ttype == type)return t->type;
         }
-        error("Failed To Locate Token Entry");
+        return false;
+    }
+    bool isIndentationTok(){
+        for(auto d:defs){
+            if(d->ttype == type)return d->ind;
+        }
+        return false;
+    }
+    bool isDeIndentationTok(){
+        for(auto d:defs){
+            if(d->ttype == type)return d->dind;
+        }
+        return false;
     }
     std::string pos(){
         return "["+std::to_string(line) + ":" + std::to_string(col) + "]";

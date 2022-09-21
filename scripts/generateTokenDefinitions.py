@@ -142,47 +142,36 @@ for defi in ALL_DEFINITIONS:
         indentation_types+=enum_name + ", "
         indentation_mappings+=f"{{{enum_name}, {{TT_l_{generic_name}, TT_r_{generic_name}}}}},"
 
+infix_enum_members = ""
+infix_enum_mappings = ""
+for defi in ALL_DEFINITIONS:
+    if "infix" in defi.properties:
+        ename = "BIN_"+defi.id
+        infix_enum_members+=ename+", "
+        infix_enum_mappings+="{ TT_"+defi.id+", "+ ename +"}, "
+
 
 # To add a new macro to the source code
 # Simply Write it's generator above
 # and add it to the list of macros
-MACRO_KVP = [
-    {
-        "name": "DEFINITIONS_STR",
-        "value": definitions_str
-    },
-    {
-        "name": "DEFINITIONS_ARGS",
-        "value": definitions_args
-    },
-    {
-        "name": "DEFINITIONS_DEFAULT_ASSIGNMENTS",
-        "value": definitions_default_assignments
-    },
-    {
-        "name": "DEFINITIONS_INITIALIZERS",
-        "value": definitions_initializers
-    },
-    {
-        "name": "DEFINITIONS_ENUM_MEMBERS",
-        "value": token_type_def
-    },
-    {
-        "name": "INDENTATION_TYPES",
-        "value": indentation_types
-    },
-    {
-        "name": "INDENTATION_MAPPINGS",
-        "value": indentation_mappings
-    }
-]
+MACRO_KVP = {
+    "DEFINITIONS_STR": definitions_str,
+    "DEFINITIONS_ARGS": definitions_args,
+    "DEFINITIONS_DEFAULT_ASSIGNMENTS": definitions_default_assignments,
+    "DEFINITIONS_INITIALIZERS": definitions_initializers,
+    "DEFINITIONS_ENUM_MEMBERS": token_type_def,
+    
+    "INDENTATION_TYPES": indentation_types,
+    "INDENTATION_MAPPINGS": indentation_mappings,
 
+    "INFIX_ENUM_MEMBERS": infix_enum_members,
+    "INFIX_ENUM_MAPPINGS": infix_enum_mappings
+}
 CONTENTS = ""
 
-for entry in MACRO_KVP:
-    MACRO=f"#define { entry['name'] } { entry['value'] }"
+for entry in MACRO_KVP.keys():
+    MACRO=f"#define { entry } { MACRO_KVP[entry] }"
     CONTENTS+=MACRO+"\n\n"
-
 
 tgtfile = open(__TGTPATH__, "w")
 tgtfile.write(CONTENTS)

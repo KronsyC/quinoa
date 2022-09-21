@@ -1,3 +1,10 @@
+#pragma once
+template<typename Base, typename T>
+inline bool instanceof(T* item){
+    return dynamic_cast<Base*>(item) != nullptr;
+}
+
+
 #include "./base.hh"
 #include "./constant.hh"
 #include "./operations.hh"

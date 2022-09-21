@@ -14,13 +14,14 @@ int main(int argc, char** argv){
     string filePath = argv[1];
     Logger::log("Compiling file '"+filePath+"'");
     // Read the file into a string
-
     std::ifstream file(filePath);
     file.seekg(0, std::ios::end);
     size_t filesize = file.tellg();
     std::string fileContent(filesize, ' ');
     file.seekg(0);
     file.read(&fileContent[0], filesize);
+
+    
     compile(fileContent);
     return 0;
 };

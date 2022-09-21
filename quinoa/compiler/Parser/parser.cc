@@ -2,16 +2,66 @@
 #include "../../lib/list.h"
 #include "../token/token.h"
 #include "./util.hh"
+#include "../../lib/logger.h"
 #include "../AST/ast.hh"
 #include<vector>
 using namespace std;
 
 void printToks(std::vector<Token> toks){
     for(auto t : toks){
-        printf("-> %s\n", t.value.c_str());
+        printf("-> [%s] %s\n", getTokenTypeName(t.type).c_str(), t.value.c_str());
     }
 }
+Identifier* parseIdentifier(vector<Token>& toks){
+    expects(toks[0], TT_identifier);
+    // Simplest Case (single-part)
+    if(toks.size() <3 || !(toks[1].is(TT_dot) && toks[2].is(TT_identifier)))return new Ident(popf(toks).value);
+    vector<Identifier*> parts;
+    bool expectDot = false;
+    for(auto t:toks){
+        if(expectDot){
+            if(!t.is(TT_dot))break;
+            expectDot = false;
+            continue;
+        }
+        if(t.is(TT_identifier)){
+            parts.push_back(new Ident(t.value));
+            expectDot = true;
+            continue;
+        }
+        break;
+    }
+    for(int i = 0;i<parts.size()*2 - 1;i++)popf(toks);
+    return new CompoundIdentifier(parts);
+}
 
+vector<vector<Token>> parseCommaSeparatedValues(vector<Token>& toks){
+    vector<TokenType> indt;
+    vector<TokenType> dindt;
+    for(auto d:defs){
+        if(d->ind)indt.push_back(d->ttype);
+        else if(d->dind)dindt.push_back(d->ttype);
+    }
+    vector<vector<Token>> retVal;
+    vector<Token> temp;
+    int ind = 0;
+    while(toks.size()){
+        auto t = popf(toks);
+        if(includes(indt, t.type))ind++;
+        if(includes(dindt, t.type))ind--;
+
+        if(ind == 0 && t.is(TT_comma)){
+            retVal.push_back(temp);
+            temp.clear();
+        }
+        else{
+            temp.push_back(t);
+        }
+        
+    }
+    retVal.push_back(temp);
+    return retVal;
+}
 Expression* parseExpression(vector<Token>& toks){
     if(toks.size() == 0)error("Cannot Generate an Expression from no tokens");
     if(toks.size() == 1){
@@ -21,12 +71,98 @@ Expression* parseExpression(vector<Token>& toks){
             case TT_literal_false: return new Boolean(false);
             case TT_literal_str: return new String(toks[0].value);
             case TT_literal_float: return new Float(stold(toks[0].value));
-            case TT_identifier: return new Identifier(toks[0].value);
+            case TT_identifier: return new Ident(toks[0].value);
             default: error("Failed To Generate an Appropriate Constant Value for '"+getTokenTypeName(toks[0].type)+"'");
         }
     }
-    printToks(toks);
-    return nullptr;
+
+    auto c = toks[0];
+
+    if(c.is(TT_identifier)){
+        auto initial = toks;
+        auto target = parseIdentifier(toks);
+        if(toks[0].is(TT_l_paren)){
+            auto params = readBlock(toks, IND_parens);
+            if(toks.size() == 0 ){
+                auto paramsList = parseCommaSeparatedValues(params);
+                vector<Expression*> params;
+                for(auto p:paramsList){
+                    auto expr = parseExpression(p);
+                    params.push_back(expr);
+                }
+
+                MethodCall call;
+                call.target = target;
+                call.params = params;
+                return new MethodCall(call);
+            }
+
+        }
+        toks = initial;
+    }
+    
+    if(c.is(TT_l_paren)){
+        auto initial = toks;
+        auto block = readBlock(toks, IND_parens);
+        if(toks.size() == 0)return parseExpression(block);
+        
+        toks = initial;
+    }
+    // Build a Table of Operator Precedences
+    std::map<TokenType, int> precedences;
+    for(auto d:defs){
+        if(d->infix){
+            precedences[d->ttype] = d->infix;
+        }
+    }
+
+        vector<vector<int>> weightMap;
+    int depth=0;
+    for(int i = 0; i<toks.size(); i++){
+        auto t = toks[i];
+
+        // parenthesis are unwrapped at the end, it's counter-intuitive to BIMDAS
+        // but thats how it works in trees
+        if(t.isIndentationTok())depth++;
+        if(t.isDeIndentationTok())depth--;
+    
+        if(depth>0)continue;
+
+        int weight = precedences[t.type];
+        if(weight == 0)continue;
+        vector<int> entry = {i, weight};
+        weightMap.push_back(entry);
+    }
+
+    // find the best place to split the expression
+    int splitPoint = -1;
+    int splitWeight = 0;
+    for(int i = 0; i<weightMap.size();i++){
+        auto pair = weightMap[i];
+        int index = pair[0];
+        int weight = pair[1];
+        if(splitPoint == -1 || (splitWeight <= weight)){
+            splitPoint = index;
+            splitWeight = weight;
+        }
+    }
+    if(splitPoint == -1){
+        printToks(toks);
+        error("Failed To Parse Expression");
+    }
+    auto op = toks[splitPoint];
+    auto [left, right] = split(toks, splitPoint);
+    auto l = left;
+    auto r = right;
+    auto leftAST = parseExpression(left);
+    auto rightAST = parseExpression(right);
+    printf("LEFT:\n");
+    printToks(l);
+    printf("RIGHT:\n");
+    printToks(r);
+    printf("Operation: %s\n", getTokenTypeName(op.type).c_str());
+    auto optype = binary_op_mappings[op.type];
+    return new BinaryOperation(leftAST, rightAST, optype);
 }
 
 void* parseSourceBlock(vector<Token>& toks){
@@ -93,7 +229,6 @@ void* Parser::makeAst(vector<Token>& toks){
                 printf("module %s\n", name.value.c_str());
                 auto moduleToks = readBlock(toks, IND_braces);
                 auto content = parseModuleContent(moduleToks);
-                printToks(moduleToks);
                 break;
             }
             default:error("Failed to parse Token '"+c.value+"'");

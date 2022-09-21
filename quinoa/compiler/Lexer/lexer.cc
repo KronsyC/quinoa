@@ -156,6 +156,7 @@ Token readNextToken(string& str){
     string s;
     s+=str[0];
     error("Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
+    throw exception();
 }   
 
 vector<Token> Lexer::lexify(string source){

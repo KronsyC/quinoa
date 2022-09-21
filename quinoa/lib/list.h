@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "./error.h"
+#include<algorithm>
 template <typename T>
 std::size_t push(std::vector<T> &vec, T item);
 
@@ -27,5 +28,13 @@ char popf(std::string &str);
 template <typename T>
 bool includes(std::vector<T> &items, T item){
     return find(items.begin(), items.end(), item) != items.end();
+}
+
+template<typename T>
+std::pair<std::vector<T>, std::vector<T>> split(std::vector<T> vec, int index){
+    if(index >= vec.size())error("Cannot Split a List at an index larger than it's size");
+    std::vector<T> v1(vec.begin(), vec.begin()+index);
+    std::vector<T> v2(vec.begin()+index+1, vec.end());
+    return {v1, v2};
 }
 
