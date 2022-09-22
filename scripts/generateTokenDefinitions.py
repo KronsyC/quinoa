@@ -104,15 +104,15 @@ for k, v in STRUCTURE.items():
     if v == PROPTYPE_NUMBER: val = f"int {k} = 0"
     if v == PROPTYPE_STR: val = f"std::string {k} = \"\""
     if v == PROPTYPE_STRLIST: val = f"std::vector<std::string> {k}"
-    definitions_str+=val+";"
-    definitions_args+=", "+val
-    definitions_default_assignments+=f"this->{k} = {k};"
+    definitions_str+=val+";\n"
+    definitions_args+="\n, "+val
+    definitions_default_assignments+=f"this->{k} = {k};\n"
 
 token_type_def = ""
 definitions_initializers = ""
 for defi in ALL_DEFINITIONS:
     defname = "TT_"+defi.id
-    token_type_def+=f"{defname},"
+    token_type_def+=f"{defname},\n"
 
     definitions_initializers+="new "
     definitions_initializers+="TokenDefinition("
@@ -130,7 +130,7 @@ for defi in ALL_DEFINITIONS:
             definitions_initializers+=toArrayLiteral(value)
         else:
             definitions_initializers+=json.dumps(value)
-    definitions_initializers+="),"
+    definitions_initializers+="),\n"
 
 
 indentation_types = ""
@@ -139,18 +139,21 @@ for defi in ALL_DEFINITIONS:
     if "ind" in defi.properties:
         generic_name = defi.id[2:]
         enum_name = "IND_"+generic_name+"s"
-        indentation_types+=enum_name + ", "
-        indentation_mappings+=f"{{{enum_name}, {{TT_l_{generic_name}, TT_r_{generic_name}}}}},"
+        indentation_types+=enum_name + ",\n "
+        indentation_mappings+=f"{{{enum_name}, {{TT_l_{generic_name}, TT_r_{generic_name}}}}},\n"
 
 infix_enum_members = ""
 infix_enum_mappings = ""
 for defi in ALL_DEFINITIONS:
     if "infix" in defi.properties:
         ename = "BIN_"+defi.id
-        infix_enum_members+=ename+", "
-        infix_enum_mappings+="{ TT_"+defi.id+", "+ ename +"}, "
+        infix_enum_members+=ename+", \n"
+        infix_enum_mappings+="{ TT_"+defi.id+", "+ ename +"}, \n"
 
-
+primitives_enum_members = ""
+for defi in ALL_DEFINITIONS:
+    if "type" in defi.properties:
+        primitives_enum_members+="PR_"+defi.id+",\n"
 # To add a new macro to the source code
 # Simply Write it's generator above
 # and add it to the list of macros
@@ -165,12 +168,15 @@ MACRO_KVP = {
     "INDENTATION_MAPPINGS": indentation_mappings,
 
     "INFIX_ENUM_MEMBERS": infix_enum_members,
-    "INFIX_ENUM_MAPPINGS": infix_enum_mappings
+    "INFIX_ENUM_MAPPINGS": infix_enum_mappings,
+
+    "PRIMITIVES_ENUM_MEMBERS": primitives_enum_members
 }
 CONTENTS = ""
 
 for entry in MACRO_KVP.keys():
-    MACRO=f"#define { entry } { MACRO_KVP[entry] }"
+    e = MACRO_KVP[entry].replace("\n", "\\\n")
+    MACRO=f"#define { entry } \\\n{ e }"
     CONTENTS+=MACRO+"\n\n"
 
 tgtfile = open(__TGTPATH__, "w")

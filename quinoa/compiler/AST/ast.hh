@@ -6,6 +6,8 @@ inline bool instanceof(T* item){
 
 
 #include "./base.hh"
+#include "./type.hh"
+#include "./module.hh"
 #include "./constant.hh"
 #include "./operations.hh"
 #include "./control_flow.hh"

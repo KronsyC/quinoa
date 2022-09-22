@@ -237,7 +237,7 @@ Block<Statement> *parseSourceBlock(vector<Token> &toks)
     return new Block<Statement>(block);
 }
 
-void *parseModuleContent(vector<Token> &toks)
+void parseModuleContent(vector<Token> &toks, Module* mod)
 {
     while (toks.size())
     {
@@ -249,7 +249,6 @@ void *parseModuleContent(vector<Token> &toks)
             expects(nameTok, TT_identifier);
             if (toks[0].is(TT_l_paren))
             {
-                printf("function:: %s %s\n", c.value.c_str(), nameTok.value.c_str());
                 auto argsTokens = readBlock(toks, IND_parens);
                 auto contentToks = readBlock(toks, IND_braces);
 
@@ -259,7 +258,6 @@ void *parseModuleContent(vector<Token> &toks)
         }
         error("Functions are the only module members currently supported");
     }
-    return nullptr;
 }
 
 CompilationUnit* Parser::makeAst(vector<Token> &toks)
@@ -283,13 +281,13 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
                 isStd = true;
             }
             auto target = parseIdentifier(importExprToks);
-            Ident* alias = instanceof<Ident>(target)?dynamic_cast<Ident*>(target):dynamic_cast<CompoundIdentifier*>(target)->last();
+            auto alias = target;
             if(importExprToks.size()){
                 auto as = popf(importExprToks);
                 expects(as, TT_as);
                 if(importExprToks.size() == 0)error("Expected An Import Alias at " + as.afterpos());
                 expects(importExprToks[0], TT_identifier);
-                auto alias = new Ident(popf(importExprToks).value);
+                alias = new Ident(popf(importExprToks).value);
                 if(importExprToks.size())error("An Import Alias may only be a single identifier");
             }
             unit->push(new Import(target, isStd, alias));
@@ -305,7 +303,11 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
             }
             printf("module %s\n", name.value.c_str());
             auto moduleToks = readBlock(toks, IND_braces);
-            auto content = parseModuleContent(moduleToks);
+            auto mod = new Module();
+            parseModuleContent(moduleToks, mod);
+
+            mod->name = new Ident(name.value);
+            unit->push(mod);
             break;
         }
         default:

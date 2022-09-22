@@ -28,7 +28,7 @@ public:
 };
 
 class TopLevelExpression:public AstNode{};
-
+class ModuleMember:public AstNode{};
 class CompilationUnit:public Block<TopLevelExpression>{
 
 };
@@ -89,19 +89,5 @@ public:
         // guaranteed to be an Ident after flattening
         auto p = (Ident*)parts.at(-1);
         return p;
-    }
-};
-
-
-class Import:public TopLevelExpression{
-public:
-    Identifier* target;
-    bool isStdLib = false;
-    Ident* alias;
-
-    Import(Identifier* tgt, bool std, Ident*alias){
-        target = tgt;
-        isStdLib = std;
-        this->alias = alias;
     }
 };
