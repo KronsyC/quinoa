@@ -11,6 +11,14 @@ public:
     std::vector<Expression*> params;
 };
 
+class Return: public Statement{
+public:
+    Expression* retValue;
+    Return(Expression* value){
+        this->retValue = value;
+    }
+};
+
 enum BinaryOp{
     INFIX_ENUM_MEMBERS
 };

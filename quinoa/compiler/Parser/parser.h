@@ -1,7 +1,7 @@
 #pragma once
 #include<vector>
 #include "../token/token.h"
-
+#include "../AST/ast.hh"
 namespace Parser{
-    void* makeAst(std::vector<Token>& tokens);
+    CompilationUnit* makeAst(std::vector<Token>& tokens);
 }

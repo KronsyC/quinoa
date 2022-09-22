@@ -6,21 +6,6 @@
 #include<map>
 #include "../../lib/error.h"
 using namespace std;
-
-vector<Token> readUntil(vector<Token>& toks, TokenType type, bool removeEnding=false){
-    vector<Token> retval;
-    while(toks.size()){
-        if(toks[0].is(type))break;
-        retval.push_back(popf(toks));
-    }
-    if(removeEnding)popf(toks);
-    return retval;
-}
-void expects(Token tok, TokenType expected){
-    if(!tok.is(expected)){
-        error("Unexpected Token");
-    }
-}
 std::string getTokenTypeName(TokenType t){
     for(auto def:defs){
         if(def->ttype == t){
@@ -32,6 +17,21 @@ std::string getTokenTypeName(TokenType t){
     }
     return "Unknown";
 }
+vector<Token> readUntil(vector<Token>& toks, TokenType type, bool removeEnding=false){
+    vector<Token> retval;
+    while(toks.size()){
+        if(toks[0].is(type))break;
+        retval.push_back(popf(toks));
+    }
+    if(removeEnding)popf(toks);
+    return retval;
+}
+void expects(Token tok, TokenType expected){
+    if(!tok.is(expected)){
+        error("Unexpected Token '"+tok.value+"' ["+getTokenTypeName(tok.type)+"] @ "+ tok.pos());
+    }
+}
+
 enum IndType{
     INDENTATION_TYPES
 };

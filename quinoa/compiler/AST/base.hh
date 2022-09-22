@@ -6,14 +6,18 @@ public:
     virtual ~AstNode() = default;
 };
 
-class Expression: public AstNode{};
+
+
+class Statement:public AstNode{
+
+};
+class Expression: public Statement{};
 template<typename T>
 class Block: public AstNode{
 public:
     std::vector<T*> items;
-    size_t push(T& item){
-        auto alloc = new T(item);
-        items.push_back(alloc);
+    size_t push(T* item){
+        items.push_back(item);
         return items.size();
     }
     ~Block(){
@@ -23,7 +27,16 @@ public:
     }
 };
 
+class TopLevelExpression:public AstNode{};
+
+class CompilationUnit:public Block<TopLevelExpression>{
+
+};
 class Identifier:public Expression{
+public:
+    virtual std::string str(){
+        return "";
+    }
 
 };
 class Ident:public Identifier{
@@ -33,6 +46,9 @@ public:
         this->name = name;
     }
     Ident() = default;
+    std::string str(){
+        return this->name;
+    }
 };
 class CompoundIdentifier:public Ident{
 public:
@@ -56,5 +72,36 @@ public:
             }
         }
         this->parts = flattened;
+    }
+    std::string str(){
+        std::string name;
+        bool first = true;
+        for(auto p:parts){
+            if(!first)name+=".";
+            name+=p->str();
+            first = false;
+        }
+        return name;
+    }
+
+    Ident* last(){
+        flatten();
+        // guaranteed to be an Ident after flattening
+        auto p = (Ident*)parts.at(-1);
+        return p;
+    }
+};
+
+
+class Import:public TopLevelExpression{
+public:
+    Identifier* target;
+    bool isStdLib = false;
+    Ident* alias;
+
+    Import(Identifier* tgt, bool std, Ident*alias){
+        target = tgt;
+        isStdLib = std;
+        this->alias = alias;
     }
 };
