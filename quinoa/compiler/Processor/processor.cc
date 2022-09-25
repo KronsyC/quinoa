@@ -56,7 +56,6 @@ void hoistDefinitions(CompilationUnit &unit)
     vector<TopLevelExpression*> items;
     for (auto child : unit.items)
     {
-        printf("top-level child\n");
         if (instanceof <Module>(child))
         {
             auto mod = (Module *)child;
@@ -70,7 +69,6 @@ void hoistDefinitions(CompilationUnit &unit)
                     def->params = method->params;
                     def->returnType = method->returnType;
                     items.push_back(def);
-                    printf("Generated Definition for %s\n", def->name->c_str());
                 }
             }
         }
@@ -81,7 +79,6 @@ void hoistDefinitions(CompilationUnit &unit)
 }
 void Processor::process(CompilationUnit &unit)
 {
-    printf("Processing\n\n");
     /**
      * Preprocess the tree via various different processes
      * Import resolution

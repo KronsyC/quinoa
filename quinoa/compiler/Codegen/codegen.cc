@@ -238,7 +238,6 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<Method> in
 
     auto m = llmod.get();
     for(auto d:injectedDefinitions){
-        printf("Injecting %s\n", d.name->c_str());
         createFunction(d, m);
     }
     for (auto child : mod.items)

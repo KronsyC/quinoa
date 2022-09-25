@@ -3,7 +3,7 @@ source_filename = "Quinoa Program"
 
 @str = private unnamed_addr constant [14 x i8] c"Hello, World!\00", align 1
 
-define i32 @main(i32 %argc, i8** %argv) {
+define i32 @HelloWorld.main(i32 %argc, i8** %argv) {
 entry_block:
   %"param argc" = alloca i32, align 4
   store i32 %argc, i32* %"param argc", align 4

@@ -35,3 +35,13 @@ public:
         to = type;
     }
 };
+
+class List:public Type{
+public:
+    Type* elements;
+    Expression* size;
+    List(Type* eT, Expression* n){
+        elements = eT;
+        size = n;
+    }
+};
