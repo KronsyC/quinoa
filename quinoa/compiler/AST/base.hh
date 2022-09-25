@@ -71,6 +71,7 @@ public:
     std::vector<Identifier*> parts;
     CompoundIdentifier(std::vector<Identifier*> parts){
         this->parts = parts;
+        flatten();
     }
     CompoundIdentifier() = default;
     void flatten(){
@@ -100,7 +101,8 @@ public:
         return name;
     }
     const char* c_str(){
-        return std::move(str().c_str());
+        auto s = str();
+        return std::move(s.c_str());
     }
     Ident* last(){
         flatten();

@@ -11,11 +11,10 @@ using namespace std;
 
 #define TVars std::map<std::string, llvm::AllocaInst *>
 
-static llvm::LLVMContext ctx;
-static llvm::IRBuilder<> builder(ctx);
-
 llvm::Type *getType(Type *type)
 {
+    if (type == nullptr)
+        error("Failed to generate a type as a nullptr was provided");
     if (instanceof <Primitive>(type))
     {
         auto prim = (Primitive *)type;
@@ -49,9 +48,11 @@ llvm::Type *getType(Type *type)
         case PR_boolean:
             return llvm::Type::getInt1Ty(ctx);
         case PR_string:
-            return llvm::Type::getInt8PtrTy(ctx); // This type is just temporary //TODO: implement string within the language
+            return llvm::Type::getInt8PtrTy(ctx); // This type is just temporary //TODO: implement string module within the language
         case PR_void:
             return llvm::Type::getVoidTy(ctx);
+        default:
+            error("Failed to generate primitive for " + to_string(prim->type));
         }
     }
     else if (instanceof <TPtr>(type))
@@ -143,7 +144,8 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         auto self = builder.GetInsertBlock()->getParent();
         auto mod = self->getParent();
         auto tgtFn = mod->getFunction(call->target->str());
-        if(tgtFn == nullptr)tgtFn = mod->getFunction(mod->getName().str()+"."+call->target->str());
+        if (tgtFn == nullptr)
+            tgtFn = mod->getFunction(mod->getName().str() + "." + call->target->str());
         if (tgtFn == nullptr)
             error("Failed to call function '" + call->target->str() + "' (doesn't exist)");
         vector<llvm::Value *> params;
@@ -231,13 +233,27 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars)
             error("Failed Generate IR for statement");
     }
 }
+TVars varifyArgs(llvm::Function* fn)
+{
+    TVars vars;
 
+    // Inject the args as variables
+    for (int i = 0; i < fn->arg_size(); i++)
+    {
+        auto arg = fn->getArg(i);
+        auto alloc = builder.CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
+        builder.CreateStore(arg, alloc);
+        vars[arg->getName().str()] = alloc;
+    }
+    return vars;
+}
 std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<Method> injectedDefinitions)
 {
     auto llmod = std::make_unique<llvm::Module>(mod.name->str(), ctx);
 
     auto m = llmod.get();
-    for(auto d:injectedDefinitions){
+    for (auto d : injectedDefinitions)
+    {
         createFunction(d, m);
     }
     for (auto child : mod.items)
@@ -245,25 +261,20 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<Method> in
         if (instanceof <Method>(child))
         {
             auto method = (Method *)child;
-            auto fn = m->getFunction(m->getName().str()+"."+method->name->str());
-            // fn->setName(mod.name->str()+"."+fn->getName());
+
+            // auto fn = m->getFunction(method->fullname->str());
+            auto fn = m->getFunction(mod.name->str() + "." + method->name->str());
             auto entry_block = llvm::BasicBlock::Create(ctx, "entry_block", fn);
+
             builder.SetInsertPoint(entry_block);
-            TVars vars;
 
-            // Inject the args as variables
-            for (int i = 0; i < fn->arg_size(); i++)
-            {
-                auto arg = fn->getArg(i);
-                auto alloc = builder.CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
-                builder.CreateStore(arg, alloc);
-                vars[arg->getName().str()] = alloc;
-            }
-
-            genSource(method->items, fn, vars);
+            genSource(method->items, fn, varifyArgs(fn));
             if (fn->getReturnType()->isVoidTy())
                 builder.CreateRetVoid();
+            continue;
         }
+        else
+            error("Failed to do the stuff");
     }
 
     return std::move(llmod);
@@ -283,13 +294,30 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
-        else if(instanceof<MethodDefinition>(unit)){
-            auto def = (MethodDefinition*)unit;
+        else if (instanceof <MethodDefinition>(unit))
+        {
+            auto def = (MethodDefinition *)unit;
             Method fn;
-            fn.name = def->name;
+            if (instanceof <Ident>(def->name))
+                fn.name = (Ident *)def->name;
+            else
+                fn.name = ((CompoundIdentifier *)def->name)->last();
             fn.params = def->params;
             fn.returnType = def->returnType;
             defs.push_back(fn);
+        }
+        else if (instanceof <Entrypoint>(unit))
+        {
+            auto entry = (Entrypoint *)unit;
+            auto tgt = entry->calls;
+            auto fn = rootmod->getFunction(tgt->str());
+            if (fn == nullptr)
+                error("Failed to locate entrypoint function");
+            // Construct the entrypoint method
+            auto efn = createFunction(*((Method *)entry), rootmod);
+            auto block = llvm::BasicBlock::Create(ctx, "main_entry", efn);
+            builder.SetInsertPoint(block);
+            genSource(entry->items, efn, varifyArgs(efn));
         }
         else
             error("An Unknown top-level entity was encountered");

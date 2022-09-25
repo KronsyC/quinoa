@@ -1,11 +1,9 @@
 import @io;
 
-module HelloWorld{
+module HelloWorld is Entry{
 
-    int main(int argc, string* argv){
-        string execpath = argv[0];
+    void main(int argc, string* argv){
         io.println("Hello, World!");
-        return 0;
     }
 }
 

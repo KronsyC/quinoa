@@ -14,15 +14,10 @@ public:
     }
 };
 class ModuleReference:public Block<Expression>{
-    Identifier* name;
-
-};
-class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
     Identifier* name;
-    std::vector<ModuleReference*> compositors;    
-};
 
+};
 class Param : public AstNode{
 public:
     Type* type;
@@ -35,10 +30,46 @@ public:
 
 class Method:public ModuleMember, public Block<Statement>{
 public:
-    Identifier* name;
+    // Used to locally identify the method
+    Ident* name;
+    Identifier* fullname;
     std::vector<Param*> params;
     Type* returnType;
 };
+class Entrypoint:public TopLevelExpression, public Method{
+public:
+    Identifier* calls;
+    Entrypoint(Identifier* calls){
+        this->calls = calls;
+    }
+
+};
+class Module:public TopLevelExpression, public Block<ModuleMember>{
+public:
+    Identifier* name;
+    std::vector<ModuleReference*> compositors; 
+
+
+    bool is(std::string comp){
+        for(auto c:compositors){
+            if(c->name->str() == comp)return true;
+        }
+        return false;
+    }  
+    Method* getMethod(std::string name){
+        for(auto m:this->items){
+            auto mt = (Method*)m;
+            if(instanceof<Method>(m) && mt->name->str() == name)return mt;
+
+        }
+        return nullptr;
+    }
+    bool hasMethod(std::string name){
+        return this->getMethod(name) != nullptr;
+    } 
+};
+
+
 
 // Method definitions are methods without implementations
 // used primarily for hoisting

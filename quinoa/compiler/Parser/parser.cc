@@ -298,7 +298,11 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 auto contentToks = readBlock(toks, IND_braces);
                 Method method;
                 parseSourceBlock(contentToks, method);
-                method.name = new Ident(nameTok.value);
+                auto name = new Ident(nameTok.value);
+                auto fullname = new CompoundIdentifier({mod->name, name});
+                printf("Method with name %s\n", fullname->c_str());
+                method.name = name;
+                method.fullname = fullname;
                 method.params = params;
                 method.returnType = new Primitive(primitive_mappings[c.type]);
                 mod->push(new Method(method));
@@ -308,6 +312,14 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
         }
         error("Functions are the only module members currently supported");
     }
+}
+
+ModuleReference* parseCompositor(vector<Token>& toks){
+    auto name = parseIdentifier(toks);
+    if(toks.size())error("Complex Compositor Support is WIP");
+    auto c = new ModuleReference;
+    c->name = name;
+    return c;
 }
 
 CompilationUnit Parser::makeAst(vector<Token> &toks)
@@ -347,15 +359,21 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
         case TT_module:
         {
             auto name = popf(toks);
+            vector<ModuleReference*> compositors;
             if (toks[0].is(TT_is))
             {
-                error("Composition Syntax is yet to be supported (WIP)");
+                popf(toks);
+                auto compositorToks = readUntil(toks, TT_l_brace, false);
+                auto csv = parseCommaSeparatedValues(compositorToks);
+                for(auto member:csv){
+                    compositors.push_back(parseCompositor(member));
+                }
             }
             auto moduleToks = readBlock(toks, IND_braces);
             auto mod = new Module();
-            parseModuleContent(moduleToks, mod);
-
             mod->name = new Ident(name.value);
+            mod->compositors = compositors;
+            parseModuleContent(moduleToks, mod);
             unit.push(mod);
             break;
         }

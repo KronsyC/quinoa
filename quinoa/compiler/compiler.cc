@@ -9,7 +9,7 @@
 CompilationUnit makeAst(std::string sourceCode){
     auto toks = Lexer::lexify(sourceCode);
     auto ast = Parser::makeAst(toks);
-    Processor::process(ast);
+    Processor::process(ast, false);
     return ast;
 }
 std::string readFile(std::string path){
@@ -31,7 +31,7 @@ llvm::Module* createModule(std::string sourceCode, bool log){
     // Assemble an AST from the tokens
     auto ast = Parser::makeAst(tokens);
     if(log)Logger::log("Generated the AST");
-    Processor::process(ast);
+    Processor::process(ast, true);
     if(log)Logger::log("Processed the AST");
     auto mod = Codegen::codegen(ast);
     if(log)Logger::log("Generated LLVM IR Code");

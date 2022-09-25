@@ -3,7 +3,7 @@ cmake_minimum_required( VERSION 3.16 )
 project( quinoa-compiler )
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_COMPILER g++)
 execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE SYS_LIBS )
 execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE LIBS )
 execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LDF )
