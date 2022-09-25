@@ -300,7 +300,6 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 parseSourceBlock(contentToks, method);
                 auto name = new Ident(nameTok.value);
                 auto fullname = new CompoundIdentifier({mod->name, name});
-                printf("Method with name %s\n", fullname->c_str());
                 method.name = name;
                 method.fullname = fullname;
                 method.params = params;

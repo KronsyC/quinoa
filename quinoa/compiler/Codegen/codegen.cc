@@ -136,6 +136,7 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         auto e = (Ident *)expr;
         auto var = loadVar(e, vars);
         auto loaded = builder.CreateLoad(var->getType()->getPointerElementType(), var, "loaded var '" + e->str() + "'");
+        if(expectedType != nullptr && loaded->getType() != expectedType)error("Types dont match");
         return loaded;
     }
     if (instanceof <MethodCall>(expr))

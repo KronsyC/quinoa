@@ -2,8 +2,9 @@ import @io;
 
 module HelloWorld is Entry{
 
-    void main(int argc, string* argv){
+    int main(int argc, string* argv){
         io.println("Hello, World!");
+        return argc;
     }
 }
 
