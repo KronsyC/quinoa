@@ -16,15 +16,25 @@ template<typename T>
 class Block: public AstNode{
 public:
     std::vector<T*> items;
+
     size_t push(T* item){
         items.push_back(item);
         return items.size();
     }
     ~Block(){
-        for(auto item:items){
-            delete item;
+        if(destroy){
+            for(auto item:items){
+                // delete item;
+            }
         }
+
     }
+    std::vector<T*> take(){
+        destroy = false;
+        return this->items;
+    }
+private:
+    bool destroy = true;
 };
 
 class TopLevelExpression:public AstNode{};
@@ -35,6 +45,9 @@ class CompilationUnit:public Block<TopLevelExpression>{
 class Identifier:public Expression{
 public:
     virtual std::string str(){
+        return "";
+    }
+    virtual const char* c_str(){
         return "";
     }
 
@@ -48,6 +61,9 @@ public:
     Ident() = default;
     std::string str(){
         return this->name;
+    }
+    const char* c_str(){
+        return std::move(str().c_str());
     }
 };
 class CompoundIdentifier:public Ident{
@@ -83,7 +99,9 @@ public:
         }
         return name;
     }
-
+    const char* c_str(){
+        return std::move(str().c_str());
+    }
     Ident* last(){
         flatten();
         // guaranteed to be an Ident after flattening

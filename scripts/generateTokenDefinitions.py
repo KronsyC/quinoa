@@ -151,9 +151,12 @@ for defi in ALL_DEFINITIONS:
         infix_enum_mappings+="{ TT_"+defi.id+", "+ ename +"}, \n"
 
 primitives_enum_members = ""
+primitives_enum_mappings = ""
 for defi in ALL_DEFINITIONS:
     if "type" in defi.properties:
-        primitives_enum_members+="PR_"+defi.id+",\n"
+        name = "PR_"+defi.id
+        primitives_enum_members+=name+",\n"
+        primitives_enum_mappings+="{ TT_"+defi.id+", "+name+"},\n"
 # To add a new macro to the source code
 # Simply Write it's generator above
 # and add it to the list of macros
@@ -170,13 +173,14 @@ MACRO_KVP = {
     "INFIX_ENUM_MEMBERS": infix_enum_members,
     "INFIX_ENUM_MAPPINGS": infix_enum_mappings,
 
-    "PRIMITIVES_ENUM_MEMBERS": primitives_enum_members
+    "PRIMITIVES_ENUM_MEMBERS": primitives_enum_members,
+    "PRIMITIVES_ENUM_MAPPINGS": primitives_enum_mappings
 }
 CONTENTS = ""
 
 for entry in MACRO_KVP.keys():
-    e = MACRO_KVP[entry].replace("\n", "\\\n")
-    MACRO=f"#define { entry } \\\n{ e }"
+    e = MACRO_KVP[entry].replace("\n", "\\\n\t")
+    MACRO=f"#define { entry } \\\n\t{ e }"
     CONTENTS+=MACRO+"\n\n"
 
 tgtfile = open(__TGTPATH__, "w")

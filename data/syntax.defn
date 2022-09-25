@@ -16,7 +16,7 @@
 ###########################################
 
 ###############################
-##         DIRECTIVES        ##
+## DIRECTIVES ##
 ###############################
 ## alias: Source-Code Representation of the token, may have multiple (i.e @alias byte u8)
 ## infix: Used with operator to specify an infix operator
@@ -25,7 +25,7 @@
 ## ind: Specify that a token is used as a form of indentation
 ## dind: Specify that a token is used as a form of de-indentation
 #################################
-
+notoken
 eof
 
 comment
@@ -59,6 +59,10 @@ literal_char
 @alias void
 @type
 void
+
+@alias bool
+@type
+boolean
 
 @alias string
 @type
@@ -108,15 +112,11 @@ float32
 @type
 float64
 
-
-
 @alias "
 double_quote
 
 @alias #
 hashtag
-
-
 
 @alias '
 quote
@@ -127,7 +127,7 @@ quote
 l_paren
 
 @alias )
-@dind 
+@dind
 r_paren
 
 @alias {
@@ -150,7 +150,6 @@ r_square_bracket
 
 @alias ,
 comma
-
 
 @alias :
 colon
@@ -228,7 +227,6 @@ bitwise_xor_by
 @postfix 2
 subscript
 
-
 # Unary Operators
 
 @prefix 3
@@ -240,8 +238,6 @@ instantiate_object
 bang
 
 # Binary Operators
-
-
 
 @alias *
 @infix 5
@@ -262,8 +258,6 @@ bool_or
 @alias &&
 @infix 14
 bool_and
-
-
 
 # Property Access will be treated as an expression
 @alias .
@@ -328,8 +322,6 @@ bitwise_shr
 
 @alias _
 underscore
-
-
 
 # Control Flow Shennanigans
 @alias if

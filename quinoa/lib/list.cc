@@ -15,11 +15,7 @@ T pop(std::vector<T>& vec){
     return item;
 }
 
-template<typename T>
-size_t pushf(vector<T>& items, T item){
-    items.insert(items.begin(), item);
-    return items.size();
-}
+
 
 
 

@@ -2,13 +2,10 @@ import @io;
 
 module HelloWorld{
 
-
-    int main(){
-        greet("Samir");
-        return (13 + 11) / 3;
-    }
-    void greet(string person){
-        io.println("Hello, {}", person);
+    int main(int argc, string* argv){
+        string execpath = argv[0];
+        io.println("Hello, World!");
+        return 0;
     }
 }
 

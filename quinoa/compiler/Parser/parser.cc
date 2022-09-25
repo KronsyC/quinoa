@@ -15,7 +15,6 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
         for(auto t:toks){
             output+=t.value;
         }
-        printf("%s;\n", output.c_str());
     }
     else
     {
@@ -54,9 +53,24 @@ Identifier *parseIdentifier(vector<Token> &toks)
         popf(toks);
     return new CompoundIdentifier(parts);
 }
+Type* parseType(vector<Token>& toks){
+    if(!toks.size())error("Failed To Parse Type");
+    Type* ret = nullptr;
+    if(toks[0].isTypeTok())ret =  new Primitive(primitive_mappings[popf(toks).type]);
+    else{
+        auto references = parseIdentifier(toks);
+        ret = new CustomType(references);
+    }
 
+    while(toks[0].is(TT_star)){
+        popf(toks);
+        ret = new TPtr(ret);
+    }
+    return ret;
+}
 vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
 {
+    if(toks.size() == 0)return {};
     vector<TokenType> indt;
     vector<TokenType> dindt;
     for (auto d : defs)
@@ -140,6 +154,13 @@ Expression *parseExpression(vector<Token> &toks)
                 return new MethodCall(call);
             }
         }
+        else if(toks[0].is(TT_l_square_bracket)){
+            auto etoks = readBlock(toks, IND_square_brackets);
+            if(toks.size() == 0){
+                auto item = parseExpression(etoks);
+                return new Subscript(target, item);
+            }
+        }
         toks = initial;
     }
 
@@ -214,9 +235,8 @@ Expression *parseExpression(vector<Token> &toks)
     return new BinaryOperation(leftAST, rightAST, optype);
 }
 
-Block<Statement> *parseSourceBlock(vector<Token> &toks)
+void parseSourceBlock(vector<Token> &toks, Method& target)
 {
-    Block<Statement> block;
     while (toks.size())
     {
         auto line = readUntil(toks, TT_semicolon, true);
@@ -226,15 +246,35 @@ Block<Statement> *parseSourceBlock(vector<Token> &toks)
         {
             popf(line);
             auto returnValue = parseExpression(line);
-            block.push(new Return(returnValue));
+            target.push(new Return(returnValue));
+            continue;
+        }
+        else if(f.isTypeTok()){
+            // initialization
+            auto type = parseType(line);
+            expects(line[0], TT_identifier);
+            auto name = new Ident(popf(line).value);
+
+            target.push(new InitializeVar(type, name));
+            if(line.size() != 0){
+                expects(popf(line), TT_assignment);
+                auto val = parseExpression(line);
+                target.push(new BinaryOperation(name, val, BIN_assignment));
+            }
             continue;
         }
 
         // Default to expression parsing
         auto expr = parseExpression(line);
-        block.push(expr);
+        target.push(expr);
     }
-    return new Block<Statement>(block);
+}
+
+Param* parseParameter(vector<Token>& toks){
+    auto type = parseType(toks);
+    auto name = popf(toks);
+    if(toks.size())error("Failed to Parse Parameter");
+    return new Param(type, new Ident(name.value));
 }
 
 void parseModuleContent(vector<Token> &toks, Module* mod)
@@ -250,9 +290,19 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             if (toks[0].is(TT_l_paren))
             {
                 auto argsTokens = readBlock(toks, IND_parens);
+                auto argsCSV = parseCommaSeparatedValues(argsTokens);
+                vector<Param*> params;
+                for(auto a:argsCSV){
+                    params.push_back(parseParameter(a));
+                }
                 auto contentToks = readBlock(toks, IND_braces);
+                Method method;
+                parseSourceBlock(contentToks, method);
+                method.name = new Ident(nameTok.value);
+                method.params = params;
+                method.returnType = new Primitive(primitive_mappings[c.type]);
+                mod->push(new Method(method));
 
-                auto srcAst = parseSourceBlock(contentToks);
                 continue;
             }
         }
@@ -260,9 +310,9 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
     }
 }
 
-CompilationUnit* Parser::makeAst(vector<Token> &toks)
+CompilationUnit Parser::makeAst(vector<Token> &toks)
 {
-    auto unit = new CompilationUnit();
+    CompilationUnit unit;
     while (toks.size())
     {
         auto c = popf(toks);
@@ -290,7 +340,7 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
                 alias = new Ident(popf(importExprToks).value);
                 if(importExprToks.size())error("An Import Alias may only be a single identifier");
             }
-            unit->push(new Import(target, isStd, alias));
+            unit.push(new Import(target, isStd, alias));
             // Import Path foo.bar.baz
             break;
         }
@@ -301,13 +351,12 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
             {
                 error("Composition Syntax is yet to be supported (WIP)");
             }
-            printf("module %s\n", name.value.c_str());
             auto moduleToks = readBlock(toks, IND_braces);
             auto mod = new Module();
             parseModuleContent(moduleToks, mod);
 
             mod->name = new Ident(name.value);
-            unit->push(mod);
+            unit.push(mod);
             break;
         }
         default:

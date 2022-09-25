@@ -38,3 +38,23 @@ public:
         this->op = op;
     }
 };
+
+class InitializeVar:public Statement{
+public:
+    Type* type;
+    Identifier* varname;
+    InitializeVar(Type* t, Identifier* name){
+        type = t;
+        varname = name;
+    }
+};
+
+class Subscript:public Expression{
+public:
+    Identifier* tgt;
+    Expression* item;
+    Subscript(Identifier* tgt, Expression* item){
+        this->tgt = tgt;
+        this->item = item;
+    }
+};

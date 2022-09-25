@@ -1,3 +1,4 @@
 #!/bin/bash
-cmake . -B build -G Ninja
+#scripts/generateTokenDefinitions.py
+cmake . -B build -G Ninja > /dev/null
 cmake --build build

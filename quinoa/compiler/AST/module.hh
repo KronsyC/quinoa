@@ -1,7 +1,6 @@
 #pragma once
 #include "./ast.hh"
 
-
 class Import:public TopLevelExpression{
 public:
     Identifier* target;
@@ -25,12 +24,27 @@ public:
 };
 
 class Param : public AstNode{
+public:
     Type* type;
     Ident* name;
+    Param(Type* type, Ident* name){
+        this->type = type;
+        this->name = name;
+    }
 };
 
-class Method:public ModuleMember, Block<Statement>{
+class Method:public ModuleMember, public Block<Statement>{
 public:
-    Ident* name;
+    Identifier* name;
     std::vector<Param*> params;
+    Type* returnType;
+};
+
+// Method definitions are methods without implementations
+// used primarily for hoisting
+class MethodDefinition:public TopLevelExpression{
+public:
+    Identifier* name;
+    std::vector<Param*> params;
+    Type* returnType;
 };
