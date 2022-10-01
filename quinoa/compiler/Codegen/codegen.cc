@@ -3,10 +3,11 @@
 #include "../../lib/error.h"
 #include <string>
 #include <map>
-#include "llvm/LinkAllIR.h"
 #include "llvm/Linker/Linker.h"
 #include "llvm/IR/IRBuilder.h"
-
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Module.h"
+#include "../../lib/logger.h"
 using namespace std;
 
 #define TVars std::map<std::string, llvm::AllocaInst *>
@@ -63,14 +64,13 @@ llvm::Type *getType(Type *type)
     else
     {
         error("Custom type support is not yet implemented");
-        return nullptr;
     }
+        return nullptr;
 }
-llvm::Function *createFunction(Method &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage)
+llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
 {
-
     auto ret = getType(f.returnType);
-    auto name = f.name->str();
+    auto name = mangle?f.sourcename():f.fullname()->str();
     vector<llvm::Type *> args;
     for (auto a : f.params)
         args.push_back(getType(a->type));
@@ -91,8 +91,12 @@ llvm::Constant *createInt(Integer *i, llvm::Type *expected)
         return builder.getInt32(i->value);
     else
     {
-        if (!isInt(expected))
-            error("Expected an Integer");
+        if (!isInt(expected)){
+            expected->print(llvm::outs());
+            error("Expected an Integer type for "+ to_string(i->value));
+
+
+        }
         return builder.getIntN(expected->getPrimitiveSizeInBits(), i->value);
     }
 }
@@ -142,13 +146,12 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
     if (instanceof <MethodCall>(expr))
     {
         auto call = (MethodCall *)expr;
-        auto self = builder.GetInsertBlock()->getParent();
-        auto mod = self->getParent();
-        auto tgtFn = mod->getFunction(call->target->str());
+        if(call->target == nullptr)error("Received an unresolved call for "+call->name->str());
+        auto mod = builder.GetInsertBlock()->getParent()->getParent();
+        auto name = call->target->sourcename();
+        auto tgtFn = mod->getFunction(name);
         if (tgtFn == nullptr)
-            tgtFn = mod->getFunction(mod->getName().str() + "." + call->target->str());
-        if (tgtFn == nullptr)
-            error("Failed to call function '" + call->target->str() + "' (doesn't exist)");
+            error("Failed to call function '" + name + "' (doesn't exist)");
         vector<llvm::Value *> params;
         int i = 0;
         for (auto p : call->params)
@@ -236,6 +239,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars)
 }
 TVars varifyArgs(llvm::Function* fn)
 {
+    if(fn == nullptr)error("Cannot varify the args of a null function", true);
     TVars vars;
 
     // Inject the args as variables
@@ -248,7 +252,7 @@ TVars varifyArgs(llvm::Function* fn)
     }
     return vars;
 }
-std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<Method> injectedDefinitions)
+std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSignature> injectedDefinitions)
 {
     auto llmod = std::make_unique<llvm::Module>(mod.name->str(), ctx);
 
@@ -262,13 +266,12 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<Method> in
         if (instanceof <Method>(child))
         {
             auto method = (Method *)child;
-
-            // auto fn = m->getFunction(method->fullname->str());
-            auto fn = m->getFunction(mod.name->str() + "." + method->name->str());
+            auto fname = method->sig->sourcename();
+            auto fn = llmod->getFunction(fname);
+            if(fn==nullptr)error("Function " + fname +" could not be found");
             auto entry_block = llvm::BasicBlock::Create(ctx, "entry_block", fn);
 
             builder.SetInsertPoint(entry_block);
-
             genSource(method->items, fn, varifyArgs(fn));
             if (fn->getReturnType()->isVoidTy())
                 builder.CreateRetVoid();
@@ -277,14 +280,14 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<Method> in
         else
             error("Failed to do the stuff");
     }
-
+    Logger::debug("Completed Generating the module " + m->getName().str());
     return std::move(llmod);
 }
 
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {
     auto rootmod = new llvm::Module("Quinoa Program", ctx);
-    std::vector<Method> defs;
+    std::vector<MethodSignature> defs;
     // Generate all of the modules, and link them into the root module "Quinoa Program"
     for (auto unit : ast.items)
     {
@@ -295,30 +298,22 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
-        else if (instanceof <MethodDefinition>(unit))
-        {
-            auto def = (MethodDefinition *)unit;
-            Method fn;
-            if (instanceof <Ident>(def->name))
-                fn.name = (Ident *)def->name;
-            else
-                fn.name = ((CompoundIdentifier *)def->name)->last();
-            fn.params = def->params;
-            fn.returnType = def->returnType;
-            defs.push_back(fn);
-        }
-        else if (instanceof <Entrypoint>(unit))
+        else if (instanceof<Entrypoint>(unit))
         {
             auto entry = (Entrypoint *)unit;
-            auto tgt = entry->calls;
-            auto fn = rootmod->getFunction(tgt->str());
+            auto tgt = entry->calls->sourcename();
+            auto fn = rootmod->getFunction(tgt);
             if (fn == nullptr)
-                error("Failed to locate entrypoint function");
+                error("Failed to locate entrypoint function '"+tgt+"'");
             // Construct the entrypoint method
-            auto efn = createFunction(*((Method *)entry), rootmod);
+            auto efn = createFunction(*entry->sig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
             auto block = llvm::BasicBlock::Create(ctx, "main_entry", efn);
             builder.SetInsertPoint(block);
             genSource(entry->items, efn, varifyArgs(efn));
+        }
+        else if(instanceof<MethodPredeclaration>(unit)){
+            auto dec = (MethodPredeclaration*)unit;
+            defs.push_back(*dec->sig);
         }
         else
             error("An Unknown top-level entity was encountered");

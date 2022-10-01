@@ -3,7 +3,6 @@
 #include "../../GenMacro.h"
 #include<map>
 #include "../token/TokenDef.h"
-class Type: public AstNode{};
 
 enum PrimitiveType{
     PRIMITIVES_ENUM_MEMBERS
@@ -12,12 +11,24 @@ enum PrimitiveType{
 static std::map<TokenType, PrimitiveType> primitive_mappings{
   PRIMITIVES_ENUM_MAPPINGS  
 };
-
+static std::map<PrimitiveType, std::string> primitive_names{
+    PRIMITIVES_ENUM_NAMES
+};
 class Primitive:public Type{
 public:
     PrimitiveType type;
     Primitive(PrimitiveType t){
         type = t;
+    }
+    std::string str(){
+        return primitive_names[type];
+    }
+    bool equals(Type* type){
+        if(instanceof<Primitive>(type)){
+            auto typ = (Primitive*)type;
+            return typ->type == this->type;
+        }
+        return false;
     }
 };
 
@@ -33,6 +44,16 @@ public:
     Type* to;
     TPtr(Type* type){
         to = type;
+    }
+    std::string str(){
+        return to->str()+"*";
+    }
+    bool equals(Type* type){
+        if(instanceof<TPtr>(type)){
+            auto typ = (TPtr*)type;
+            return to->equals(typ->to);
+        }
+        return false;
     }
 };
 

@@ -145,9 +145,9 @@ Token readNextToken(string& str){
     }
     
     // Literal Parsing, accepts literally Anything
-    if(isAlphaChar(str[0])){
+    if(isAlphaChar(str[0]) || str[0] == '_'){
         string ident;
-        while(str.length()&& (isAlphaChar(str[0]) || isNumber(str[0]))){
+        while(str.length()&& (isAlphaChar(str[0]) || isNumber(str[0] || str[0] == '_'))){
             ident+=popf(str);
         }
         col+=ident.size();

@@ -1,113 +1,70 @@
 #pragma once
-#include<vector>
-#include<string>
-class AstNode{
+#include <vector>
+#include <string>
+#include "../../lib/error.h"
+class AstNode
+{
 public:
     virtual ~AstNode() = default;
 };
 
-
-
-class Statement:public AstNode{
-
+struct Statement : public AstNode
+{
+    virtual std::vector<Statement *> flatten()
+    {
+        error("Cannot Flatten a raw Statement");
+        return {};
+    }
 };
-class Expression: public Statement{};
-template<typename T>
-class Block: public AstNode{
+struct Type : public AstNode
+{
 public:
-    std::vector<T*> items;
+    virtual std::string str(){
+        error("Cannot stringify base type");
+        return "";
+    }
 
-    size_t push(T* item){
+    virtual bool equals(Type* type){
+        error("Cannot Check Type Equality from base class");
+    }
+};
+struct Expression : public Statement
+{
+public:
+    virtual Type *getType()
+    {
+        error("GetType Fn is not implemented for Expression");
+        return nullptr;
+    };
+};
+template <typename T>
+class Block : public AstNode
+{
+public:
+    std::vector<T *> items;
+
+    size_t push(T *item)
+    {
         items.push_back(item);
         return items.size();
     }
-    ~Block(){
-        if(destroy){
-            for(auto item:items){
-                // delete item;
-            }
-        }
 
-    }
-    std::vector<T*> take(){
+    std::vector<T *> take()
+    {
         destroy = false;
         return this->items;
     }
+
 private:
     bool destroy = true;
 };
 
-class TopLevelExpression:public AstNode{};
-class ModuleMember:public AstNode{};
-class CompilationUnit:public Block<TopLevelExpression>{
-
+struct TopLevelExpression : public AstNode
+{
 };
-class Identifier:public Expression{
-public:
-    virtual std::string str(){
-        return "";
-    }
-    virtual const char* c_str(){
-        return "";
-    }
-
+struct ModuleMember : public AstNode
+{
 };
-class Ident:public Identifier{
-public:
-    std::string name;
-    Ident(std::string name){
-        this->name = name;
-    }
-    Ident() = default;
-    std::string str(){
-        return this->name;
-    }
-    const char* c_str(){
-        return std::move(str().c_str());
-    }
-};
-class CompoundIdentifier:public Ident{
-public:
-    std::vector<Identifier*> parts;
-    CompoundIdentifier(std::vector<Identifier*> parts){
-        this->parts = parts;
-        flatten();
-    }
-    CompoundIdentifier() = default;
-    void flatten(){
-        std::vector<Identifier*> flattened;
-        for(auto p:parts){
-            if(instanceof<CompoundIdentifier>(p)){
-                auto q = dynamic_cast<CompoundIdentifier*>(p);
-                q->flatten();
-                for(auto p:q->parts){
-                    flattened.push_back(p);
-                }
-            }
-            else{
-                flattened.push_back(p);
-            }
-        }
-        this->parts = flattened;
-    }
-    std::string str(){
-        std::string name;
-        bool first = true;
-        for(auto p:parts){
-            if(!first)name+=".";
-            name+=p->str();
-            first = false;
-        }
-        return name;
-    }
-    const char* c_str(){
-        auto s = str();
-        return std::move(s.c_str());
-    }
-    Ident* last(){
-        flatten();
-        // guaranteed to be an Ident after flattening
-        auto p = (Ident*)parts.at(-1);
-        return p;
-    }
+class CompilationUnit : public Block<TopLevelExpression>
+{
 };

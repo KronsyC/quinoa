@@ -6,9 +6,21 @@
 #include "./compiler/compiler.h"
 #include <string>
 #include <fstream>
+#include<signal.h>
 using namespace std;
+
+void segfault(int sig){
+    error("Segfault", true);
+}
+void ill(int sig){
+    error("SegIll", true);
+}
+
 int main(int argc, char **argv)
 {
+    // Handle Segfaults Nicely
+    signal(SIGSEGV, segfault);
+    signal(SIGILL, ill);
     if (argc < 2)
         error("You Must Pass Options To The Compiler [INSERT INFO PAGE HERE]");
     string command = argv[1];

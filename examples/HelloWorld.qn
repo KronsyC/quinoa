@@ -2,10 +2,11 @@ import @io;
 
 module HelloWorld is Entry{
 
-    int main(int argc, string* argv){
+    int main(int argno, string* strargs){
         io.println("Hello, World!");
-        return argc;
-    }
+        return 0;
+    } 
+
 }
 
 

@@ -104,6 +104,8 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
     retVal.push_back(temp);
     return retVal;
 }
+
+
 Expression *parseExpression(vector<Token> &toks)
 {
     if (toks.size() == 0)
@@ -140,18 +142,22 @@ Expression *parseExpression(vector<Token> &toks)
             auto params = readBlock(toks, IND_parens);
             if (toks.size() == 0)
             {
+                int i = 1; 
                 auto paramsList = parseCommaSeparatedValues(params);
                 vector<Expression *> params;
+                vector<Type*> types;
                 for (auto p : paramsList)
                 {
                     auto expr = parseExpression(p);
+                    types.push_back(expr->getType());
                     params.push_back(expr);
                 }
-
-                MethodCall call;
-                call.target = target;
-                call.params = params;
-                return new MethodCall(call);
+                auto call = new MethodCall;
+                call->params = params;
+                call->target = nullptr;
+                if(instanceof<CompoundIdentifier>(target))call->name = (CompoundIdentifier*)target;
+                else call->name = new CompoundIdentifier(target->str());
+                return call;
             }
         }
         else if(toks[0].is(TT_l_square_bracket)){
@@ -296,15 +302,15 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                     params.push_back(parseParameter(a));
                 }
                 auto contentToks = readBlock(toks, IND_braces);
-                Method method;
-                parseSourceBlock(contentToks, method);
-                auto name = new Ident(nameTok.value);
-                auto fullname = new CompoundIdentifier({mod->name, name});
-                method.name = name;
-                method.fullname = fullname;
-                method.params = params;
-                method.returnType = new Primitive(primitive_mappings[c.type]);
-                mod->push(new Method(method));
+                auto method = new Method();
+                auto sig = new MethodSignature();
+                method->sig = sig;
+                parseSourceBlock(contentToks, *method);
+                sig->name = new Ident(nameTok.value);
+                sig->space = mod->name;
+                sig->params = params;
+                sig->returnType = new Primitive(primitive_mappings[c.type]);
+                mod->push(method);
 
                 continue;
             }
@@ -370,7 +376,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             }
             auto moduleToks = readBlock(toks, IND_braces);
             auto mod = new Module();
-            mod->name = new Ident(name.value);
+            mod->name = new CompoundIdentifier(name.value);
             mod->compositors = compositors;
             parseModuleContent(moduleToks, mod);
             unit.push(mod);

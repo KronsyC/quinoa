@@ -152,11 +152,15 @@ for defi in ALL_DEFINITIONS:
 
 primitives_enum_members = ""
 primitives_enum_mappings = ""
+primitives_enum_names = ""
+primitives_enum_groups = ""
 for defi in ALL_DEFINITIONS:
     if "type" in defi.properties:
         name = "PR_"+defi.id
         primitives_enum_members+=name+",\n"
         primitives_enum_mappings+="{ TT_"+defi.id+", "+name+"},\n"
+        primitives_enum_names+="{"+name+", "+ "\""+name+"\"},\n"
+        primitives_enum_groups+="{"+name+", "+"\"" + defi.properties["type"][0] + "\""+"},\n"
 # To add a new macro to the source code
 # Simply Write it's generator above
 # and add it to the list of macros
@@ -174,7 +178,9 @@ MACRO_KVP = {
     "INFIX_ENUM_MAPPINGS": infix_enum_mappings,
 
     "PRIMITIVES_ENUM_MEMBERS": primitives_enum_members,
-    "PRIMITIVES_ENUM_MAPPINGS": primitives_enum_mappings
+    "PRIMITIVES_ENUM_MAPPINGS": primitives_enum_mappings,
+    "PRIMITIVES_ENUM_NAMES": primitives_enum_names,
+    "PRIMITIVES_ENUM_GROUPS": primitives_enum_groups
 }
 CONTENTS = ""
 

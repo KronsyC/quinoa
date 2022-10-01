@@ -23,7 +23,7 @@ public:
     }
     bool isTypeTok(){
         for(auto t:defs){
-            if(t->ttype == type)return t->type;
+            if(t->ttype == type)return t->type != "";
         }
         return false;
     }

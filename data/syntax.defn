@@ -57,59 +57,59 @@ literal_char
 # Type Definitions
 
 @alias void
-@type
+@type void
 void
 
 @alias bool
-@type
+@type integer
 boolean
 
 @alias string
-@type
+@type pointer
 string
 
 @alias i8 char
-@type
+@type integer
 int8
 
 @alias i16
-@type
+@type integer
 int16
 
 @alias i32 int
-@type
+@type integer
 int32
 
 @alias i64
-@type
+@type integer
 int64
 
 @alias u8 byte
-@type
+@type integer
 uint8
 
 @alias u16
-@type
+@type integer
 uint16
 
 @alias u32 uint
-@type
+@type integer
 uint32
 
 @alias u64
-@type
+@type integer
 uint64
 
 @alias f16
-@type
+@type floating_point
 float16
 
 @alias f32
-@type
+@type floating_point
 float32
 
 @alias f64 float
-@type
+@type floating_point
 float64
 
 @alias "
