@@ -20,6 +20,11 @@ entry_block:
   ret void
 }
 
+define i32 @TCP.fn_init() {
+entry_block:
+  ret i32 1
+}
+
 define i32 @main(i32 %argc, i8** %argv) {
 main_entry:
   %"param argc" = alloca i32, align 4
