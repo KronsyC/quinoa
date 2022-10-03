@@ -241,7 +241,7 @@ Expression *parseExpression(vector<Token> &toks)
     return new BinaryOperation(leftAST, rightAST, optype);
 }
 
-vector<Statement*> parseSourceBlock(Method& target)
+vector<Statement*> parseSourceBlock(vector<Token> toks)
 {
     vector<Statement*> ret;
     while (toks.size())
@@ -266,7 +266,7 @@ vector<Statement*> parseSourceBlock(Method& target)
         {
             popf(line);
             auto returnValue = parseExpression(line);
-            ret.push(new Return(returnValue));
+            ret.push_back(new Return(returnValue));
             continue;
         }
         else if(f.isTypeTok()){
@@ -275,18 +275,18 @@ vector<Statement*> parseSourceBlock(Method& target)
             expects(line[0], TT_identifier);
             auto name = new Ident(popf(line).value);
 
-            ret.push(new InitializeVar(type, name));
+            ret.push_back(new InitializeVar(type, name));
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line);
-                ret.push(new BinaryOperation(name, val, BIN_assignment));
+                ret.push_back(new BinaryOperation(name, val, BIN_assignment));
             }
             continue;
         }
 
         // Default to expression parsing
         auto expr = parseExpression(line);
-        ret.push(expr);
+        ret.push_back(expr);
     }
     return ret;
 }
