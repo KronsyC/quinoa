@@ -13,6 +13,7 @@ void mergeUnits(CompilationUnit &tgt, CompilationUnit donor) {
   }
 }
 void resolveImports(CompilationUnit &unit) {
+  //TODO: Load this from the project config files, this wont work on any other pc
   string libq_dir = "/home/casey/quinoa-ref/libq";
   static std::vector<std::string> imports;
   /**
