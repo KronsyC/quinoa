@@ -32,13 +32,12 @@ void resolveImports(CompilationUnit &unit) {
       // ton of
       //  other benefits)
       if (import->isStdLib) {
-        Logger::debug("Importing " + import->target->str());
         string rpath = regex_replace(import->target->str(), regex("\\."), "/");
         rpath = libq_dir + "/" + rpath + ".qn";
         if (!includes(imports, rpath)) {
           imports.push_back(rpath);
           auto file = readFile(rpath);
-          auto ast = makeAst(file);
+          auto ast = makeAst(file, rpath);
 
           // TODO:
           //  locate the exported module and change it's name to the alias
@@ -181,10 +180,14 @@ void genEntryPoint(CompilationUnit &unit) {
 
 static std::map<PrimitiveType, std::string> primitive_group_mappings{
     PRIMITIVES_ENUM_GROUPS};
-int getCompatabilityScore(MethodSigStr base, MethodSigStr target) {
-  // if(base.)
+int getCompatabilityScore(QualifiedMethodSigStr base, QualifiedMethodSigStr target) {
+// compare function names
+
   if (base.name->str() != target.name->str())
     return -1;
+// compare namespaces
+    if(base.space->str() != target.space->str())return -1;
+    
   // compare param lengths TODO: Reimplement this once varargs are implemented
   if (base.params.size() != target.params.size())
     return -1;
@@ -226,11 +229,14 @@ MethodSignature *qualify(MethodCall *call,
   auto callsig = new MethodSignature;
   callsig->name = call->name->last();
   callsig->params = testparams;
+  callsig->space = call->name->all_but_last();
   auto sigstr = callsig->sigstr();
 
   CompoundIdentifier callname(call->name->parts);
+  // replace the calls name with its mangled form
   callname.parts.pop_back();
   callname.parts.push_back((Identifier *)new Ident(sigstr.str()));
+  // attempt to find a function with the exact sig
   auto fn = sigs[callname.str()];
   if (fn == nullptr) {
     sigs.erase(callname.str());
@@ -276,7 +282,7 @@ void qualifyCalls(Block<Statement> &code,
       auto call = (MethodCall *)item;
       auto tgtsig = qualify(call, sigs);
       if (tgtsig == nullptr)
-        error("Failed to locate appropriate function call");
+        error("Failed to locate appropriate function call for " + call->name->str());
       call->target = tgtsig;
     }
   }

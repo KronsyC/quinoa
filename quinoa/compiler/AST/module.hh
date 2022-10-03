@@ -48,6 +48,13 @@ public:
         return n;
     }
 };
+
+class QualifiedMethodSigStr:public MethodSigStr{
+public:
+    CompoundIdentifier* space;
+    QualifiedMethodSigStr() = default;
+};
+
 // Method definitions hold all the info of a method required to call
 // and generate definitions for it
 class MethodSignature:public AstNode{
@@ -71,10 +78,12 @@ public:
         ret+=sigstr().str();
         return ret;
     }
-    MethodSigStr sigstr(){
-        MethodSigStr sigs;
+    QualifiedMethodSigStr sigstr(){
+        QualifiedMethodSigStr sigs;
         sigs.name = name;
         sigs.params = params;
+        sigs.space = space;
+        if(space==nullptr)error("Space is null?", true);
         return sigs;
     }
 };
@@ -92,7 +101,7 @@ public:
         }
         return ret;
     }
-    MethodSigStr sigstr(){
+    QualifiedMethodSigStr sigstr(){
         return sig->sigstr();
     }
     CompoundIdentifier* fullname(){

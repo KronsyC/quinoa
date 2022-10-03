@@ -296,7 +296,6 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
         else
             error("Failed to do the stuff");
     }
-    Logger::debug("Completed Generating the module " + m->getName().str());
     return std::move(llmod);
 }
 

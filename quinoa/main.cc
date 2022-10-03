@@ -30,7 +30,7 @@ int main(int argc, char **argv)
         string filePath = argv[2];
         Logger::log("Compiling file '" + filePath + "'");
         auto file = readFile(filePath);
-        auto ir = compile(file);
+        auto ir = compile(file, filePath);
         ofstream out("test.ll");
         out.write(ir.c_str(), ir.size());
     }

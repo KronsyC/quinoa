@@ -6,10 +6,11 @@
 #include "../lib/logger.h"
 #include<fstream>
 
-CompilationUnit makeAst(std::string sourceCode){
+CompilationUnit makeAst(std::string sourceCode, std::string path, bool process){
     auto toks = Lexer::lexify(sourceCode);
     auto ast = Parser::makeAst(toks);
-    Processor::process(ast, false);
+    if(process)Processor::process(ast, false);
+    Logger::debug("Brought in " + path);
     return ast;
 }
 std::string readFile(std::string path){
@@ -24,21 +25,18 @@ std::string readFile(std::string path){
         return fileContent;
 }
 
-llvm::Module* createModule(std::string sourceCode, bool log){
+llvm::Module* createModule(std::string sourceCode, std::string path, bool log){
     // Lex the file into a token vector
-    auto tokens = Lexer::lexify(sourceCode);
-    if(log)Logger::log("Lexed the Source File");
-    // Assemble an AST from the tokens
-    auto ast = Parser::makeAst(tokens);
-    if(log)Logger::log("Generated the AST");
+    auto ast = makeAst(sourceCode, path, false);
     Processor::process(ast, true);
-    if(log)Logger::log("Processed the AST");
+    Logger::debug("Preprocessed the parent AST");
+    if(log)Logger::log("Generated the AST");
     auto mod = Codegen::codegen(ast);
     if(log)Logger::log("Generated LLVM IR Code");
     return mod;
 }
-std::string compile(std::string sourceCode){
-    auto mod = createModule(sourceCode, true);
+std::string compile(std::string sourceCode, std::string path){
+    auto mod = createModule(sourceCode, path, true);
     std::string output;
     llvm::raw_string_ostream rso(output);
     mod->print(rso, nullptr);

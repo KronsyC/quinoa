@@ -91,4 +91,16 @@ public:
         auto p = (Ident*)parts.at(parts.size()-1);
         return p;
     }
+    // the exact opposite of the last function
+    // useful for grabbing the namespace from a fully
+    // declared member name
+    CompoundIdentifier* all_but_last(){
+        flatify();
+        auto ret = new CompoundIdentifier;
+        for(int i  = 0;i<parts.size()-1;i++){
+            auto item = (Ident*)(parts[i]);
+            ret->parts.push_back(item);
+        }
+        return ret;
+    }
 };
