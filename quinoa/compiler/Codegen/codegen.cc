@@ -206,6 +206,22 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
     error("Failed to Generate Expression");
     return nullptr;
 }
+
+
+struct ControlFlowInfo{
+    // The block to jump to after the `break` action is invoked
+    llvm::BasicBlock<>* breakTo;
+
+    // The block to jump to after the `continue` action is invoked
+    llvm::BasicBlock<>* continueTo;
+
+    // The block to jump to after the `fallthrough` action is invoked
+    llvm::BasicBlock<>* fallthroughTo;
+    
+    // The block to break to after the inner scope is executed
+    llvm::BasicBlock<>* exitBlock;
+};
+
 void genSource(vector<Statement *> content, llvm::Function *func, TVars vars)
 {
     for (auto stm : content)
