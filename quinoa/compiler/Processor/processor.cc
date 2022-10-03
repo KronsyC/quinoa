@@ -4,130 +4,22 @@
 #include "../AST/ast.hh"
 #include "../compiler.h"
 #include "./processor.h"
-#include <regex>
+#include "./util.hh"
+
+// Preprocessor Pipeline Modules
+#include "./processes/importer.hh"
+#include "./processes/hoister.hh"
+#include "./processes/self_ref_resolver.hh"
+#include "./processes/call_qualifier.hh"
 using namespace std;
 
-void mergeUnits(CompilationUnit &tgt, CompilationUnit donor) {
-  for (auto e : donor.items) {
-    tgt.push(e);
-  }
-}
-void resolveImports(CompilationUnit &unit) {
-  //TODO: Load this from the project config files, this wont work on any other pc
-  string libq_dir = "/home/casey/quinoa-ref/libq";
-  static std::vector<std::string> imports;
-  /**
-   * - Pulls in the relevant Modules
-   * - Skips a module if their path is already imported
-   * - Renames them to their proper aliases
-   * - Changes any self-references to the module as the new aliased name
-   *
-   */
-  int removals = 0;
-  for (int i = 0; i < unit.items.size(); i++) {
-    auto item = unit.items[i - removals];
-    if (instanceof <Import>(item)) {
-      auto import = (Import *)item;
-      // TODO: Implement config-file based imports (allows custom stdlib and a
-      // ton of
-      //  other benefits)
-      if (import->isStdLib) {
-        string rpath = regex_replace(import->target->str(), regex("\\."), "/");
-        rpath = libq_dir + "/" + rpath + ".qn";
-        if (!includes(imports, rpath)) {
-          imports.push_back(rpath);
-          auto file = readFile(rpath);
-          auto ast = makeAst(file, rpath);
 
-          // TODO:
-          //  locate the exported module and change it's name to the alias
-          //  rename the rest of the modules to illegal names (i.e hiding so
-          //  they arent accidentally accessed)
 
-          mergeUnits(unit, ast);
-        }
 
-      }
 
-      else
-        error("Non-stdlib imports are not yet supported");
-      unit.items.erase(unit.items.begin() + i - removals);
-      removals++;
-    }
-  }
-};
-void hoistDefinitions(CompilationUnit &unit) {
-  vector<TopLevelExpression *> items;
-  for (auto child : unit.items) {
-    if (instanceof <Module>(child)) {
-      auto mod = (Module *)child;
-      for (auto d : mod->items) {
-        if (instanceof <Method>(d)) {
-          auto method = (Method *)d;
-          auto dec = new MethodPredeclaration;
-          dec->sig = method->sig;
-          items.push_back(dec);
-        }
-      }
-    }
-  }
-  for (auto i : items) {
-    pushf(unit.items, i);
-  }
-}
 
-// Flattens a source tree as a single list of all of its members
-// and their children bubbled up to the top-level
-// useful for iterating over every single node of a given type
-vector<Statement *> flatten(Block<Statement> stmnt) {
-  vector<Statement *> retval;
-  for (auto item : stmnt.items) {
-    if (instanceof <Block<Statement>>(item)) {
-      auto nested = (Block<Statement> *)item;
-      auto sub = flatten(*nested);
-      for (auto c : sub)
-        retval.push_back(c);
 
-    } else if (instanceof <Statement>(item)) {
-      auto stmnt = (Statement *)item;
-      auto flat = stmnt->flatten();
-      for (auto i : flat)
-        retval.push_back(i);
-    }
-  }
-  return retval;
-}
 
-void resolveSelfReferences(Block<Statement> *content, Module *mod) {
-  auto flat = flatten(*content);
-
-  for (auto m : flat) {
-    if (instanceof <MethodCall>(m)) {
-      auto call = (MethodCall *)m;
-      call->name->flatify();
-      if (call->name->parts.size() == 1) {
-        Logger::log("Injecting Namespace for " + call->name->str());
-        auto space = mod->name;
-        pushf(call->name->parts, (Identifier *)space);
-        call->name->flatify();
-        Logger::log("Call is now " + call->name->str());
-      }
-    }
-  }
-}
-void resolveSelfReferences(CompilationUnit &unit) {
-  for (auto tli : unit.items) {
-    if (instanceof <Module>(tli)) {
-      auto mod = (Module *)tli;
-      for (auto child : mod->items) {
-        if (instanceof <Method>(child)) {
-          auto fn = (Method *)child;
-          resolveSelfReferences(fn, mod);
-        }
-      }
-    }
-  }
-}
 void genEntryPoint(CompilationUnit &unit) {
   vector<Module *> entryPointCandidates;
   for (auto member : unit.items) {
@@ -178,144 +70,6 @@ void genEntryPoint(CompilationUnit &unit) {
           "' does not contain a main method");
 }
 
-static std::map<PrimitiveType, std::string> primitive_group_mappings{
-    PRIMITIVES_ENUM_GROUPS};
-int getCompatabilityScore(QualifiedMethodSigStr base, QualifiedMethodSigStr target) {
-// compare function names
-
-  if (base.name->str() != target.name->str())
-    return -1;
-// compare namespaces
-    if(base.space->str() != target.space->str())return -1;
-    
-  // compare param lengths TODO: Reimplement this once varargs are implemented
-  if (base.params.size() != target.params.size())
-    return -1;
-  // Start with a base score, each infraction has a cost based on how different
-  // it is
-  int score = 0;
-  for (int i = 0; i < base.params.size(); i++) {
-    auto baram = base.params[i]->type;
-    auto taram = target.params[i]->type;
-    if (baram->equals(taram))
-      continue;
-    if (instanceof <Primitive>(baram) && instanceof <Primitive>(taram)) {
-      // same group, different type is +1, otherwise no match
-
-      auto bprim = (Primitive *)baram;
-      auto tprim = (Primitive *)taram;
-      auto bg = primitive_group_mappings[bprim->type];
-      auto tg = primitive_group_mappings[tprim->type];
-      if (bg == tg)
-        score++;
-      else
-        score = -1;
-    }
-  }
-
-  // TODO: Implement Type Reference Inheritance Tree Crawling
-  return score;
-}
-
-// Takes a function and returns the best matching signature that it fits into to
-// be called
-MethodSignature *qualify(MethodCall *call,
-                         std::map<std::string, MethodSignature *> sigs) {
-
-  auto params = call->params;
-  vector<Param *> testparams;
-  for (auto p : params)
-    testparams.push_back(new Param(p->getType(), nullptr));
-  auto callsig = new MethodSignature;
-  callsig->name = call->name->last();
-  callsig->params = testparams;
-  callsig->space = call->name->all_but_last();
-  auto sigstr = callsig->sigstr();
-
-  CompoundIdentifier callname(call->name->parts);
-  // replace the calls name with its mangled form
-  callname.parts.pop_back();
-  callname.parts.push_back((Identifier *)new Ident(sigstr.str()));
-  // attempt to find a function with the exact sig
-  auto fn = sigs[callname.str()];
-  if (fn == nullptr) {
-    sigs.erase(callname.str());
-    // Run Compatibility Checks on each sigstr pair to find
-    // the most compatible function to match to
-    vector<int> compatabilityScores;
-    for (auto sigpair : sigs) {
-      auto sig = sigpair.second;
-      auto name = sigpair.first;
-      int compat = getCompatabilityScore(sig->sigstr(), callsig->sigstr());
-      compatabilityScores.push_back(compat);
-    }
-    int max = -1;
-    int prev = -1;
-    int idx = -1;
-    for (int i = 0; i < compatabilityScores.size(); i++) {
-      auto s = compatabilityScores[i];
-      if (s == -1)
-        continue;
-      if (s <= max || max == -1) {
-        prev = max;
-        max = s;
-        idx = i;
-      }
-    }
-    if (idx == -1)
-      return nullptr;
-    int ind = 0;
-    for (auto pair : sigs) {
-      if (ind == idx)
-        return pair.second;
-      ind++;
-    }
-    return nullptr;
-  }
-  return fn;
-}
-void qualifyCalls(Block<Statement> &code,
-                  std::map<std::string, MethodSignature *> sigs) {
-  auto flat = flatten(code);
-  for (auto item : flat) {
-    if (instanceof <MethodCall>(item)) {
-      auto call = (MethodCall *)item;
-      auto tgtsig = qualify(call, sigs);
-      if (tgtsig == nullptr)
-        error("Failed to locate appropriate function call for " + call->name->str());
-      call->target = tgtsig;
-    }
-  }
-}
-void qualifyCalls(CompilationUnit &unit) {
-  // Construct a table of all call names -> their signatures
-  std::map<std::string, MethodSignature *> sigs;
-  for (auto item : unit.items) {
-    if (instanceof <Module>(item)) {
-      auto mod = (Module *)item;
-      for (auto item : mod->items) {
-        if (instanceof <Method>(item)) {
-          auto method = (Method *)item;
-          auto name = method->sig->sourcename();
-          sigs[name] = method->sig;
-        }
-      }
-    }
-  }
-
-  // Attempt to Qualify all Calls
-  for (auto item : unit.items) {
-    if (instanceof <Module>(item)) {
-      auto mod = (Module *)item;
-      for (auto item : mod->items) {
-        if (instanceof <Method>(item)) {
-          auto method = (Method *)item;
-          qualifyCalls(*method, sigs);
-        }
-      }
-    }
-  }
-}
 void Processor::process(CompilationUnit &unit, bool finalize) {
   /**
    * Preprocess the tree via various different processes:
@@ -337,7 +91,6 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
 
   resolveImports(unit);
   resolveSelfReferences(unit);
-  Logger::debug("Resolved Self Refs");
   if (finalize) {
     qualifyCalls(unit);
     Logger::debug("Successfully Qualified Calls");
