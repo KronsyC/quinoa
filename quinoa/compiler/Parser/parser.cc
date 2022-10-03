@@ -241,10 +241,24 @@ Expression *parseExpression(vector<Token> &toks)
     return new BinaryOperation(leftAST, rightAST, optype);
 }
 
-void parseSourceBlock(vector<Token> &toks, Method& target)
+vector<Statement*> parseSourceBlock(Method& target)
 {
+    vector<Statement*> ret;
     while (toks.size())
     {
+        auto first = toks[0];
+        if(first.is(TT_while)){
+            popf(toks);
+            auto expr = readBlock(toks, IND_parens);
+            auto exec = readBlock(toks, IND_braces);
+
+            auto cond = parseExpression(expr);
+            auto block= parseSourceBlock(exec);
+            auto loop = new WhileCond(cond, block);
+            ret.push_back(loop);
+            continue;
+        }
+
         auto line = readUntil(toks, TT_semicolon, true);
         auto f = line[0];
 
@@ -252,7 +266,7 @@ void parseSourceBlock(vector<Token> &toks, Method& target)
         {
             popf(line);
             auto returnValue = parseExpression(line);
-            target.push(new Return(returnValue));
+            ret.push(new Return(returnValue));
             continue;
         }
         else if(f.isTypeTok()){
@@ -261,19 +275,20 @@ void parseSourceBlock(vector<Token> &toks, Method& target)
             expects(line[0], TT_identifier);
             auto name = new Ident(popf(line).value);
 
-            target.push(new InitializeVar(type, name));
+            ret.push(new InitializeVar(type, name));
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line);
-                target.push(new BinaryOperation(name, val, BIN_assignment));
+                ret.push(new BinaryOperation(name, val, BIN_assignment));
             }
             continue;
         }
 
         // Default to expression parsing
         auto expr = parseExpression(line);
-        target.push(expr);
+        ret.push(expr);
     }
+    return ret;
 }
 
 Param* parseParameter(vector<Token>& toks){
@@ -305,7 +320,8 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 auto method = new Method();
                 auto sig = new MethodSignature();
                 method->sig = sig;
-                parseSourceBlock(contentToks, *method);
+                auto content =parseSourceBlock(contentToks);
+                method->items = content;
                 sig->name = new Ident(nameTok.value);
                 sig->space = mod->name;
                 sig->params = params;
