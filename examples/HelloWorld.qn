@@ -1,10 +1,8 @@
 import @io as IO;
-import @net.io as IOA;
 module HelloWorld is Entry{
 
     int main(int argno, string* strargs){
         IO.println("Hello, World!");
-        IOA.something();
         return 0;
     } 
 
