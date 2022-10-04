@@ -1,3 +1,6 @@
+#define DEBUG_MODE 0
+
+
 #include "stdio.h"
 #include <vector>
 #include "./lib/error.h"
@@ -7,6 +10,8 @@
 #include <string>
 #include <fstream>
 #include<signal.h>
+
+
 using namespace std;
 
 void segfault(int sig){

@@ -1,7 +1,7 @@
 import @io as IO;
 module HelloWorld is Entry{
 
-    int main(int argno, string* strargs){
+    int main(int argc, string* argv){
         IO.println("Hello, World!");
         return 0;
     } 

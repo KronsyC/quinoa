@@ -1,6 +1,8 @@
 #include "./logger.h"
 #include<ctime>
 #include<iomanip>
+
+#define DEBUG_MODE 0
 using namespace std;
 
 void Logger::writeLog(string message, Logger::LogLevel level)
@@ -36,7 +38,7 @@ void Logger::log(string message)
 }
 void Logger::debug(string message)
 {
-    Logger::writeLog(message, Logger::LL_DEBUG);
+    if(DEBUG_MODE)Logger::writeLog(message, Logger::LL_DEBUG);
 }
 void Logger::warn(string message)
 {
