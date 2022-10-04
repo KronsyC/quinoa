@@ -2,11 +2,11 @@
 #include "./ast.hh"
 class Import:public TopLevelExpression{
 public:
-    Identifier* target;
+    CompoundIdentifier* target;
     bool isStdLib = false;
-    Identifier* alias;
+    CompoundIdentifier* alias;
 
-    Import(Identifier* tgt, bool std, Identifier*alias){
+    Import(CompoundIdentifier* tgt, bool std, CompoundIdentifier* alias){
         target = tgt;
         isStdLib = std;
         this->alias = alias;

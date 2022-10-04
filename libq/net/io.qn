@@ -1,0 +1,5 @@
+module IO is Exported{
+	void something(){
+
+	}
+}

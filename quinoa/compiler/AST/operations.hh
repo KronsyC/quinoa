@@ -12,7 +12,7 @@ public:
     std::vector<Expression*> params;
 
     std::vector<Statement*> flatten(){
-        std::vector<Statement*> ret{this};
+        std::vector<Statement*> ret{this, name};
         for(auto p:params)ret.push_back(p);
         return ret;
     }

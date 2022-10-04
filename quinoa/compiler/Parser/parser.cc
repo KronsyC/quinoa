@@ -24,12 +24,12 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
         }
     }
 }
-Identifier *parseIdentifier(vector<Token> &toks)
+CompoundIdentifier *parseIdentifier(vector<Token> &toks)
 {
     expects(toks[0], TT_identifier);
     // Simplest Case (single-part)
     if (toks.size() < 3 || !(toks[1].is(TT_dot) && toks[2].is(TT_identifier)))
-        return new Ident(popf(toks).value);
+        return new CompoundIdentifier(popf(toks).value);
     vector<Identifier *> parts;
     bool expectDot = false;
     for (auto t : toks)
@@ -364,13 +364,13 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 isStd = true;
             }
             auto target = parseIdentifier(importExprToks);
-            auto alias = target;
+            CompoundIdentifier* alias = target;
             if(importExprToks.size()){
                 auto as = popf(importExprToks);
                 expects(as, TT_as);
                 if(importExprToks.size() == 0)error("Expected An Import Alias at " + as.afterpos());
                 expects(importExprToks[0], TT_identifier);
-                alias = new Ident(popf(importExprToks).value);
+                alias = new CompoundIdentifier(popf(importExprToks).value);
                 if(importExprToks.size())error("An Import Alias may only be a single identifier");
             }
             unit.push(new Import(target, isStd, alias));

@@ -66,6 +66,7 @@ struct TopLevelExpression : public AstNode
 struct ModuleMember : public AstNode
 {
 };
+#include "./identifier.hh"
 class CompilationUnit : public Block<TopLevelExpression>
 {
 };

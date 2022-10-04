@@ -1,5 +1,5 @@
-module TCP{
-	int init(){
-		return 1;
+
+module TCP is Exported{
+	void something(){
 	}
 }

@@ -103,4 +103,16 @@ public:
         }
         return ret;
     }
+
+    bool equals(CompoundIdentifier* compare){
+        compare->flatify();
+        this->flatify();
+        if(compare->parts.size() != this->parts.size())return false;
+        for(int i = 0;i<compare->parts.size();i++){
+            auto mine = (Ident*)this->parts[i];
+            auto cmp = (Ident*)compare->parts[i];
+            if(mine->name != cmp->name)return false;
+        }
+        return true;
+    }
 };

@@ -1,4 +1,4 @@
-module io{
+module IO is Exported{
     void println(string message){
                 
     }

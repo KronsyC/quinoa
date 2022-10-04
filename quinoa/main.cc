@@ -18,6 +18,9 @@ void ill(int sig){
 
 int main(int argc, char **argv)
 {
+    // initialize random numbers
+    srand((unsigned)time(NULL) * getpid());
+
     // Handle Segfaults Nicely
     signal(SIGSEGV, segfault);
     signal(SIGILL, ill);

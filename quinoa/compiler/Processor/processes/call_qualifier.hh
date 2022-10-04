@@ -7,7 +7,7 @@ static std::map<PrimitiveType, std::string> primitive_group_mappings{
     PRIMITIVES_ENUM_GROUPS};
 int getCompatabilityScore(QualifiedMethodSigStr base, QualifiedMethodSigStr target) {
 // compare function names
-
+  Logger::debug("Comparing " + base.space->str() + " against " + target.space->str());
   if (base.name->str() != target.name->str())
     return -1;
 // compare namespaces
@@ -38,14 +38,16 @@ int getCompatabilityScore(QualifiedMethodSigStr base, QualifiedMethodSigStr targ
     }
   }
 
-  // TODO: Implement Type Reference Inheritance Tree Crawling
+  // TODO: Implement Type Reference Inheritance Tree Crawling (Each step up the tree is +1)
   return score;
 }
 
 // Takes a function and returns the best matching signature that it fits into to
 // be called
-MethodSignature *qualify(MethodCall *call,
-                         std::map<std::string, MethodSignature *> sigs) {
+MethodSignature *qualify(
+  MethodCall *call,
+   std::map<std::string, MethodSignature *> sigs
+ ) {
 
   auto params = call->params;
   vector<Param *> testparams;

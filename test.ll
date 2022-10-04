@@ -9,14 +9,20 @@ entry_block:
   store i32 %argno, i32* %"param argno", align 4
   %"param strargs" = alloca i8**, align 8
   store i8** %strargs, i8*** %"param strargs", align 8
-  call void @"io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  call void @"[Zeempf6EOn].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  call void @"[zMnorDxgvC].io.fn_something"()
   ret i32 0
 }
 
-define void @"io.fn_println(PR_string)"(i8* %message) {
+define void @"[Zeempf6EOn].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8
+  ret void
+}
+
+define void @"[zMnorDxgvC].io.fn_something"() {
+entry_block:
   ret void
 }
 
