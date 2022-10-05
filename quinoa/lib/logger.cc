@@ -2,7 +2,7 @@
 #include<ctime>
 #include<iomanip>
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 using namespace std;
 
 void Logger::writeLog(string message, Logger::LogLevel level)

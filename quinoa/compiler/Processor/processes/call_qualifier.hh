@@ -6,8 +6,6 @@
 static std::map<PrimitiveType, std::string> primitive_group_mappings{
     PRIMITIVES_ENUM_GROUPS};
 int getCompatabilityScore(QualifiedMethodSigStr base, QualifiedMethodSigStr target) {
-// compare function names
-  Logger::debug("Comparing " + base.space->str() + " against " + target.space->str());
   if (base.name->str() != target.name->str())
     return -1;
 // compare namespaces

@@ -46,7 +46,6 @@ void prefixifyChildren(CompilationUnit &unit, std::string prefix) {
   for (auto item : unit.items) {
     if (instanceof <Module>(item)) {
       auto mod = (Module *)item;
-      Logger::debug("Prefixifying " + mod->name->str());
       pushf(mod->name->parts, (Identifier *)new Ident("[" + prefix + "]"));
     }
   }
@@ -69,7 +68,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
               auto name = ident->last();
               CompoundIdentifier deAliasedName({fullname, name});
               *ident = deAliasedName;
-              Logger::debug("Aliasing Something!! now " + deAliasedName.str());
+              // Logger::debug("Aliasing Something!! now " + deAliasedName.str());
             }
           }
         }
@@ -92,11 +91,14 @@ static std::vector<std::string> imports;
 static std::map<std::string, std::string> path_aliases;
 
 CompilationUnit getAstFromPath(std::string path) {
-  Logger::log("Importing file with path " + path);
+  Logger::log("Importing module from " + path);
   auto file = readFile(path);
   auto ast = makeAst(file, path);
   return ast;
 }
+
+
+static std::map<std::string, Module*> exports;
 
 void resolveImports(CompilationUnit &unit) {
   // TODO: Load this from the project config files, this wont work on any other
@@ -121,11 +123,10 @@ void resolveImports(CompilationUnit &unit) {
       if (import->isStdLib) {
         string rpath = regex_replace(import->target->str(), regex("\\."), "/");
         rpath = libq_dir + "/" + rpath + ".qn";
+        Logger::debug("Import " + rpath);
         if (!includes(imports, rpath)) {
           imports.push_back(rpath);
           auto ast = getAstFromPath(rpath);
-
-          //  rename the primary exported module to it's filename
           auto primary_export = getPrimaryExport(ast);
           if (primary_export == nullptr)
             error("Failed to Import Module " + import->target->str());
@@ -133,19 +134,25 @@ void resolveImports(CompilationUnit &unit) {
           primary_export->name->parts.pop_back();
           primary_export->name->parts.push_back(filename);
 
-          // Prefix all the modules with their unique filepath alias
           auto prefix = genRandomStr(10);
           path_aliases[rpath] = prefix;
 
-          // Change all references to the alias for references
-          // to the real exported module name ([hash].name)
-          auto alias = import->alias;
+          Logger::debug("The alias for '" + rpath + "' is " + prefix);
 
-          prefixifyChildren(ast, prefix);
-          deAliasify(unit, alias, primary_export->name);
-          mergeUnits(unit, ast);
+
+          exports[rpath] = primary_export;
+          prefixifyChildren(ast, prefix);  
+          mergeUnits(unit, ast);      
         }
 
+        auto mod = exports[rpath];
+        if(mod==nullptr)error("Failed to Locate Module " + rpath);
+
+        // Replace all references to the alias with the actual name
+        auto name = mod->name;
+        auto alias = import->alias;
+        Logger::debug("Replacing Alias " + alias->str() + " with " + name->str());
+        deAliasify(unit, alias, name);
       }
 
       else

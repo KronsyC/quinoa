@@ -1,5 +1,6 @@
-
+import @io;
 module TCP is Exported{
 	void something(){
+		io.println("Doing Something Lol");
 	}
 }
