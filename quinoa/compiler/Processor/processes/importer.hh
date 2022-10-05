@@ -5,6 +5,7 @@
 #include <ctime>
 #include <regex>
 #include <unistd.h>
+#include <toml.hpp>
 using namespace std;
 
 std::string genRandomStr(int size) {
