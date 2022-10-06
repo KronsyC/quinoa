@@ -1,9 +1,9 @@
 import @io;
-import @net.tcp;
 module HelloWorld is Entry{
 
     int main(int argc, string* argv){
-        io.println("Hello, World!");
+        string message = argv[1];
+        io.println(message);
         return 0;
     } 
 

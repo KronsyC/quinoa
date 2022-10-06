@@ -88,4 +88,9 @@ public:
         for(auto p:item->flatten())ret.push_back(p);
         return ret;
     }
+
+    Type* getType(){
+        error("Type for subscript");
+        return nullptr;
+    }
 };

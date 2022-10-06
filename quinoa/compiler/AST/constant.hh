@@ -21,7 +21,7 @@ class Integer : public Constant<long long>
     inline long long maxVal(int bits){
         return (1 << bits) -1;
     }   
-    Type *getType()
+    Type *getType(LocalTypeTable _)
     {
         if(value <= maxVal(8))return new Primitive(PR_int8);
         if(value <= maxVal(16))return new Primitive(PR_int16);

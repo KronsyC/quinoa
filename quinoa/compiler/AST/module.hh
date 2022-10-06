@@ -91,7 +91,7 @@ class MethodPredeclaration:public TopLevelExpression{
 public:
     MethodSignature* sig;
 };
-class Method:public ModuleMember, public Block<Statement>{
+class Method:public ModuleMember, public SourceBlock{
 public:
     MethodSignature* sig = nullptr;
     std::vector<Type*> paramTypes(){

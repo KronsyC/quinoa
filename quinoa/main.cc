@@ -25,9 +25,6 @@ int main(int argc, char **argv)
     // initialize random numbers
     srand((unsigned)time(NULL) * getpid());
 
-    toml::value data = toml::parse(filename);
-    auto world = data["test"]["hello"];
-    std::cout << world.as_boolean() << endl;
     // Handle Segfaults Nicely
     signal(SIGSEGV, segfault);
     signal(SIGILL, ill);

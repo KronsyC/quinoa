@@ -44,13 +44,14 @@ int getCompatabilityScore(QualifiedMethodSigStr base, QualifiedMethodSigStr targ
 // be called
 MethodSignature *qualify(
   MethodCall *call,
-   std::map<std::string, MethodSignature *> sigs
+   std::map<std::string, MethodSignature *> sigs,
+   LocalTypeTable type_info
  ) {
 
   auto params = call->params;
   vector<Param *> testparams;
   for (auto p : params)
-    testparams.push_back(new Param(p->getType(), nullptr));
+    testparams.push_back(new Param(p->getType(type_info), nullptr));
   auto callsig = new MethodSignature;
   callsig->name = call->name->last();
   callsig->params = testparams;
@@ -99,13 +100,13 @@ MethodSignature *qualify(
   }
   return fn;
 }
-void qualifyCalls(Block<Statement> &code,
+void qualifyCalls(SourceBlock &code,
                   std::map<std::string, MethodSignature *> sigs) {
   auto flat = flatten(code);
   for (auto item : flat) {
     if (instanceof <MethodCall>(item)) {
       auto call = (MethodCall *)item;
-      auto tgtsig = qualify(call, sigs);
+      auto tgtsig = qualify(call, sigs, code.local_types);
       if (tgtsig == nullptr)
         error("Failed to locate appropriate function call for " + call->name->str());
       call->target = tgtsig;

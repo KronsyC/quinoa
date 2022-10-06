@@ -125,7 +125,9 @@ llvm::Value *loadVar(Subscript *subscr, TVars vars)
     auto name = subscr->tgt;
     auto var = loadVar(name, vars);
     auto varl = builder.CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
+    Logger::debug("Generating Subscript idx");
     auto idx = genExpression(subscr->item, vars, nullptr);
+    Logger::debug("Generated");
     auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
     return loaded;
 }

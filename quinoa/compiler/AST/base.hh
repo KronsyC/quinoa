@@ -32,7 +32,7 @@ public:
 struct Expression : public Statement
 {
 public:
-    virtual Type *getType()
+    virtual Type *getType(LocalTypeTable type_table)
     {
         error("GetType Fn is not implemented for Expression");
         return nullptr;
@@ -66,7 +66,17 @@ struct TopLevelExpression : public AstNode
 struct ModuleMember : public AstNode
 {
 };
-#include "./identifier.hh"
-class CompilationUnit : public Block<TopLevelExpression>
+
+
+// A Souceblock is a wrapper around a statement block
+// but contains important information such as guarantees about execution
+// and a local scope type table
+// variables cannot be redefined within the same block and are hence guaranteed to keep the same type
+class SourceBlock:public Block<Statement>{
+public:
+    LocalTypeTable local_types;
+};
+
+struct CompilationUnit : public Block<TopLevelExpression>
 {
 };

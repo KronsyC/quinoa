@@ -104,7 +104,7 @@ static std::map<std::string, Module*> exports;
 void resolveImports(CompilationUnit &unit) {
   // TODO: Load this from the project config files, this wont work on any other
   // pc
-  string libq_dir = "/home/casey/quinoa-ref/libq";
+  string libq_dir = "/home/casey/quinoa/libq";
 
   /**
    * - Pulls in the relevant Modules

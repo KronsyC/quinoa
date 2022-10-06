@@ -1,8 +1,8 @@
 ; ModuleID = 'Quinoa Program'
 source_filename = "Quinoa Program"
 
-@str = private unnamed_addr constant [14 x i8] c"Hello, World!\00", align 1
-@str.3 = private unnamed_addr constant [20 x i8] c"Doing Something Lol\00", align 1
+declare void @puts(i8*);
+
 
 define i32 @"HelloWorld.fn_main(PR_int32,PR_string*)"(i32 %argc, i8** %argv) {
 entry_block:
@@ -10,20 +10,21 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
-  call void @"[7JHCOZtixO].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  %"var message" = alloca i8*, align 8
+  %"temp load for subscript" = load i8**, i8*** %"param argv", align 8
+  %"subscript-ptr of 'argv'" = getelementptr i8*, i8** %"temp load for subscript", i32 1
+  %"element of argv" = load i8*, i8** %"subscript-ptr of 'argv'", align 8
+  store i8* %"element of argv", i8** %"var message", align 8
+  %"loaded var 'message'" = load i8*, i8** %"var message", align 8
+  call void @"[17KGJw2NkK].io.fn_println(PR_string)"(i8* %"loaded var 'message'")
   ret i32 0
 }
 
-define void @"[7JHCOZtixO].io.fn_println(PR_string)"(i8* %message) {
+define void @"[17KGJw2NkK].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8
-  ret void
-}
-
-define void @"[kusDpYU0TS].tcp.fn_something"() {
-entry_block:
-  call void @"[7JHCOZtixO].io.fn_println(PR_string)"(i8* getelementptr inbounds ([20 x i8], [20 x i8]* @str.3, i32 0, i32 0))
+  call void @puts(i8* %message);
   ret void
 }
 

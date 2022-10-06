@@ -1,4 +1,9 @@
 #pragma once
+#include <map>
+#include <string>
+#define LocalTypeTable std::map<std::string, Type*>
+
+
 template <typename Base, typename T>
 inline bool instanceof (T * item)
 {

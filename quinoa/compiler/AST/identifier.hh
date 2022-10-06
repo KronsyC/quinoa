@@ -28,6 +28,12 @@ public:
     const char* c_str(){
         return std::move(str().c_str());
     }
+
+    Type* getType(LocalTypeTable types){
+        auto type = types[name];
+
+        return type;
+    }
 };
 class CompoundIdentifier:public Ident{
 public:
