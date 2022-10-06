@@ -125,9 +125,7 @@ llvm::Value *loadVar(Subscript *subscr, TVars vars)
     auto name = subscr->tgt;
     auto var = loadVar(name, vars);
     auto varl = builder.CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
-    Logger::debug("Generating Subscript idx");
     auto idx = genExpression(subscr->item, vars, nullptr);
-    Logger::debug("Generated");
     auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
     return loaded;
 }
@@ -137,6 +135,10 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         return createInt((Integer *)expr, expectedType);
     if (instanceof <String>(expr))
         return createStr((String *)expr, expectedType);
+    if(instanceof<Boolean>(expr)){
+        auto boo = (Boolean*)expr;
+        return builder.getInt1(boo->value);
+    }
     if (instanceof <Ident>(expr))
     {
         auto e = (Ident *)expr;
@@ -224,10 +226,11 @@ struct ControlFlowInfo{
     llvm::BasicBlock* exitBlock;
 };
 
-void genSource(vector<Statement *> content, llvm::Function *func, TVars vars)
+void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, ControlFlowInfo cfi = {})
 {
     for (auto stm : content)
     {
+        if(!stm->active)continue;
         if (instanceof <InitializeVar>(stm))
         {
             auto init = (InitializeVar *)stm;
@@ -236,21 +239,44 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars)
             auto alloca = builder.CreateAlloca(type, nullptr, "var " + varname);
 
             vars.insert({varname, alloca});
-            continue;
+        }
+        else if(instanceof<WhileCond>(stm)){
+            auto loop = (WhileCond*)stm;
+            auto cond = genExpression(loop->cond, vars, getType(new Primitive(PR_boolean)));
+
+            auto evaluatorBlock = llvm::BasicBlock::Create(ctx, "while_evaluator", func);
+            auto runBlock = llvm::BasicBlock::Create(ctx, "while_content", func);
+            auto continuationBlock = llvm::BasicBlock::Create(ctx, "while_continuation", func);
+
+            ControlFlowInfo cf = cfi;
+            cf.breakTo = continuationBlock;
+            cf.continueTo = evaluatorBlock;
+            cf.exitBlock = continuationBlock;
+
+            // Set up the evaluator
+            builder.CreateBr(evaluatorBlock);      
+            builder.SetInsertPoint(evaluatorBlock);
+            builder.CreateCondBr(cond, runBlock, continuationBlock);    
+
+            // Set up the content
+            builder.SetInsertPoint(runBlock);
+            genSource(loop->items, func, vars, cf);
+            builder.CreateBr(evaluatorBlock);
+
+            // generate the continuation
+            builder.SetInsertPoint(continuationBlock);  
         }
         else if (instanceof <Return>(stm))
         {
             auto ret = (Return *)stm;
             auto expr = genExpression(ret->retValue, vars, func->getReturnType());
             builder.CreateRet(expr);
-            continue;
         }
+        // interpret as expression with dumped value
         else if (instanceof <Expression>(stm))
         {
             genExpression((Expression *)stm, vars);
-            continue;
         }
-        // interpret as expression with dumped value
         else
             error("Failed Generate IR for statement");
     }

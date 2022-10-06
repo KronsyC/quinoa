@@ -16,19 +16,26 @@ public:
 
 };
 
-class WhileCond:public Statement, SourceBlock{
+class WhileCond:public Statement, public SourceBlock{
 public:
 	Expression* cond;
-
-	WhileCond(Expression* cond, std::vector<Statement*> exec){
+	WhileCond(Expression* cond){
 		this->cond = cond;
-		this->items = exec;
+	}
+	WhileCond() = default;
+
+	std::vector<Statement*> flatten(){
+		std::vector<Statement*> ret = {this};
+		for(auto child:items){
+			for(auto m:child->flatten())ret.push_back(m);
+		}
+		return ret;
 	}
 };
 
 
 // Traditional for(init;cond;inc)
-class ForRange: public Statement, SourceBlock{
+class ForRange: public Statement, public SourceBlock{
 public:
 	Statement* init;
 	Expression* cond;

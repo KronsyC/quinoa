@@ -102,7 +102,7 @@ MethodSignature *qualify(
 }
 void qualifyCalls(SourceBlock &code,
                   std::map<std::string, MethodSignature *> sigs) {
-  auto flat = flatten(code);
+  auto flat = code.flatten();
   for (auto item : flat) {
     if (instanceof <MethodCall>(item)) {
       auto call = (MethodCall *)item;

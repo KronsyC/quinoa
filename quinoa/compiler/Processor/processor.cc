@@ -9,6 +9,7 @@
 // Preprocessor Pipeline Modules
 #include "./processes/importer.hh"
 #include "./processes/hoister.hh"
+#include "./processes/var_init_hoister.hh"
 #include "./processes/self_ref_resolver.hh"
 #include "./processes/call_qualifier.hh"
 using namespace std;
@@ -91,12 +92,10 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
 
   resolveImports(unit);
   resolveSelfReferences(unit);
+  hoistVarInitializations(unit);
   if (finalize) {
     qualifyCalls(unit);
-    Logger::debug("Successfully Qualified Calls");
     hoistDefinitions(unit);
-    Logger::debug("Hoisted Definitions");
     genEntryPoint(unit);
-    Logger::debug("Generated Entry Point");
   }
 };

@@ -251,11 +251,13 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
             popf(toks);
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
-
             auto cond = parseExpression(expr, type_info);
-            auto block= parseSourceBlock(exec, type_info);
-            // auto loop = new WhileCond(cond, block);
-            // block->push_back(loop);
+            auto content= parseSourceBlock(exec, type_info);
+            auto loop = new WhileCond;
+            *loop = *(WhileCond*)content;
+            delete content;
+            loop->cond = cond;
+            block->push(loop);
             continue;
         }
 
@@ -296,7 +298,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
     // Inject the type table
     block->local_types = type_info;
 
-    
+
     return block;
 }
 

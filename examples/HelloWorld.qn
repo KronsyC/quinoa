@@ -3,7 +3,10 @@ module HelloWorld is Entry{
 
     int main(int argc, string* argv){
         string message = argv[1];
-        io.println(message);
+        while(true){
+            int age = 16;
+            io.println(message);
+        }
         return 0;
     } 
 

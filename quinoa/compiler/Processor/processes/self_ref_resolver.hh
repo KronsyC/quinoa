@@ -3,8 +3,8 @@
 #include "../util.hh"
 using namespace std;
 
-void resolveBlockSelfRefs(Block<Statement> *content, Module *mod) {
-  auto flat = flatten(*content);
+void resolveBlockSelfRefs(SourceBlock *content, Module *mod) {
+  auto flat = content->flatten();
 
   for (auto m : flat) {
     if (instanceof <MethodCall>(m)) {

@@ -10,6 +10,10 @@ public:
 
 struct Statement : public AstNode
 {
+    // Statements can be deactivated if needed
+    // This is useful when working with flattened asts, where it is impossible to remove nodes
+    // The next best thing is deactivation
+    bool active = true;
     virtual std::vector<Statement *> flatten()
     {
         error("Cannot Flatten a raw Statement");
@@ -75,6 +79,16 @@ struct ModuleMember : public AstNode
 class SourceBlock:public Block<Statement>{
 public:
     LocalTypeTable local_types;
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret;
+        for(auto i:items){
+            for(auto m:i->flatten()){
+                ret.push_back(m);
+            }
+        }
+        return ret;
+    }
 };
 
 struct CompilationUnit : public Block<TopLevelExpression>

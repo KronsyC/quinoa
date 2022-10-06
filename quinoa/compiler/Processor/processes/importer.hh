@@ -58,7 +58,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
       auto mod = (Module *)item;
       for (auto item : mod->items) {
         auto method = (Method *)item;
-        auto content = flatten(*method);
+        auto content = method->flatten();
 
         for (auto member : content) {
           if (instanceof <CompoundIdentifier>(member)) {
@@ -69,7 +69,6 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
               auto name = ident->last();
               CompoundIdentifier deAliasedName({fullname, name});
               *ident = deAliasedName;
-              // Logger::debug("Aliasing Something!! now " + deAliasedName.str());
             }
           }
         }
@@ -124,7 +123,6 @@ void resolveImports(CompilationUnit &unit) {
       if (import->isStdLib) {
         string rpath = regex_replace(import->target->str(), regex("\\."), "/");
         rpath = libq_dir + "/" + rpath + ".qn";
-        Logger::debug("Import " + rpath);
         if (!includes(imports, rpath)) {
           imports.push_back(rpath);
           auto ast = getAstFromPath(rpath);
@@ -138,7 +136,6 @@ void resolveImports(CompilationUnit &unit) {
           auto prefix = genRandomStr(10);
           path_aliases[rpath] = prefix;
 
-          Logger::debug("The alias for '" + rpath + "' is " + prefix);
 
 
           exports[rpath] = primary_export;
@@ -152,7 +149,6 @@ void resolveImports(CompilationUnit &unit) {
         // Replace all references to the alias with the actual name
         auto name = mod->name;
         auto alias = import->alias;
-        Logger::debug("Replacing Alias " + alias->str() + " with " + name->str());
         deAliasify(unit, alias, name);
       }
 

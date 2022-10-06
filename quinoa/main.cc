@@ -17,7 +17,11 @@ void segfault(int sig){
     error("Segfault", true);
 }
 void ill(int sig){
-    error("SegIll", true);
+    error("SigIll", true);
+}
+
+void abort(int sig){
+    error("SigAbrt", true);
 }
 
 int main(int argc, char **argv)
@@ -28,6 +32,7 @@ int main(int argc, char **argv)
     // Handle Segfaults Nicely
     signal(SIGSEGV, segfault);
     signal(SIGILL, ill);
+    signal(SIGABRT, abort);
     if (argc < 2)
         error("You Must Pass Options To The Compiler [INSERT INFO PAGE HERE]");
     string command = argv[1];

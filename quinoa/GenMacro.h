@@ -33,13 +33,13 @@
 	new TokenDefinition(TT_eof, "__eof", {}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_comment, "__comment", {}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_identifier, "__identifier", {}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_str, "__literal_str", {"l_string"}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_true, "__literal_true", {"l_true"}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_false, "__literal_false", {"l_false"}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_int, "__literal_int", {"l_int"}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_float, "__literal_float", {"l_float"}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_string, "__literal_string", {"l_string"}, "", false, false, 0, 0, 0),\
-	new TokenDefinition(TT_literal_char, "__literal_char", {"l_char"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_str, "__literal_str", {}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_true, "__literal_true", {"true"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_false, "__literal_false", {"false"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_int, "__literal_int", {}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_float, "__literal_float", {}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_string, "__literal_string", {}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_literal_char, "__literal_char", {}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_void, "__void", {"void"}, {"void"}, false, false, 0, 0, 0),\
 	new TokenDefinition(TT_boolean, "__boolean", {"bool"}, {"integer"}, false, false, 0, 0, 0),\
 	new TokenDefinition(TT_string, "__string", {"string"}, {"pointer"}, false, false, 0, 0, 0),\

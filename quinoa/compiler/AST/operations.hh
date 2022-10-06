@@ -60,6 +60,18 @@ public:
     }
 };
 
+
+class TypeCast:public Expression{
+public:
+    Expression* target;
+    Type* to;
+
+    TypeCast(Expression* tgt, Type* type){
+        this->to = type;
+        this->target = tgt;
+    }
+};
+
 class InitializeVar:public Statement{
 public:
     Type* type;
