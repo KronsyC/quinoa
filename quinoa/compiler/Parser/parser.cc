@@ -56,13 +56,13 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
 Type* parseType(vector<Token>& toks){
     if(!toks.size())error("Failed To Parse Type");
     Type* ret = nullptr;
-    if(toks[0].isTypeTok())ret =  new Primitive(primitive_mappings[popf(toks).type]);
+    if(toks[0].isTypeTok())ret = new Primitive(primitive_mappings[popf(toks).type]);
     else{
         auto references = parseIdentifier(toks);
         ret = new CustomType(references);
     }
 
-    while(toks[0].is(TT_star)){
+    while(toks.size() && toks[0].is(TT_star)){
         popf(toks);
         ret = new TPtr(ret);
     }
@@ -303,8 +303,12 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
 }
 
 Param* parseParameter(vector<Token>& toks){
-    auto type = parseType(toks);
     auto name = popf(toks);
+    expects(name, TT_identifier);
+    expects(popf(toks), TT_colon);
+    auto type = parseType(toks);
+    Logger::debug("parsed");
+
     if(toks.size())error("Failed to Parse Parameter");
     return new Param(type, new Ident(name.value));
 }
@@ -315,36 +319,47 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
     {
         auto c = popf(toks);
 
-        if (c.isTypeTok())
-        {
+        if(c.is(TT_func)){
             auto nameTok = popf(toks);
             expects(nameTok, TT_identifier);
-            if (toks[0].is(TT_l_paren))
-            {
-                auto argsTokens = readBlock(toks, IND_parens);
-                auto argsCSV = parseCommaSeparatedValues(argsTokens);
-                vector<Param*> params;
-                for(auto a:argsCSV){
-                    params.push_back(parseParameter(a));
-                }
-                auto contentToks = readBlock(toks, IND_braces);
-                auto method = new Method();
-                auto sig = new MethodSignature();
-                auto content = parseSourceBlock(contentToks);
+            expects(toks[0], TT_l_paren);
+            auto argsTokens = readBlock(toks, IND_parens);
 
-                *method = *(Method*)content;
-                delete content;
-                method->sig = sig;
+            Type* returnType;
 
-                sig->name = new Ident(nameTok.value);
-                sig->space = mod->name;
-                sig->params = params;
-                sig->returnType = new Primitive(primitive_mappings[c.type]);
-                mod->push(method);
-
-                continue;
+            // Functions implicitly return void
+            if(toks[0].is(TT_arrow)){
+                popf(toks);
+                returnType = parseType(toks);
             }
+            else{
+                returnType = new Primitive(PR_void);
+            }
+
+            auto argsCSV = parseCommaSeparatedValues(argsTokens);
+            vector<Param*> params;
+            for(auto a:argsCSV){
+                params.push_back(parseParameter(a));
+            }
+            auto contentToks = readBlock(toks, IND_braces);
+            auto method = new Method();
+            auto sig = new MethodSignature();
+            auto content = parseSourceBlock(contentToks);
+
+            *method = *(Method*)content;
+            delete content;
+            method->sig = sig;
+
+            sig->name = new Ident(nameTok.value);
+            sig->space = mod->name;
+            sig->params = params;
+            sig->returnType = returnType;
+            mod->push(method);
+
+            continue;
+            
         }
+
         error("Functions are the only module members currently supported");
     }
 }

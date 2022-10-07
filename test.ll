@@ -21,14 +21,14 @@ while_evaluator:                                  ; preds = %while_content, %ent
 while_content:                                    ; preds = %while_evaluator
   store i32 16, i32* %"var age", align 4
   %"loaded var 'message'" = load i8*, i8** %"var message", align 8
-  call void @"[EgILMf0VLU].io.fn_println(PR_string)"(i8* %"loaded var 'message'")
+  call void @"[s0TbZ9esPk].io.fn_println(PR_string)"(i8* %"loaded var 'message'")
   br label %while_evaluator
 
 while_continuation:                               ; preds = %while_evaluator
   ret i32 0
 }
 
-define void @"[EgILMf0VLU].io.fn_println(PR_string)"(i8* %message) {
+define void @"[s0TbZ9esPk].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8

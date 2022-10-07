@@ -66,6 +66,7 @@
 	new TokenDefinition(TT_comma, "__comma", {","}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_colon, "__colon", {":"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_semicolon, "__semicolon", {";"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_arrow, "__arrow", {"->"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_question_mark, "__question_mark", {"?"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_at_symbol, "__at_symbol", {"@"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_backslash, "__backslash", {"\\"}, "", false, false, 0, 0, 0),\
@@ -117,6 +118,7 @@
 	new TokenDefinition(TT_fallthrough, "__fallthrough", {"fallthrough"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_import, "__import", {"import"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_module, "__module", {"module"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_func, "__func", {"func"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_is, "__is", {"is"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_as, "__as", {"as"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_return, "__return", {"return"}, "", false, false, 0, 0, 0),\
@@ -160,6 +162,7 @@
 	TT_comma,\
 	TT_colon,\
 	TT_semicolon,\
+	TT_arrow,\
 	TT_question_mark,\
 	TT_at_symbol,\
 	TT_backslash,\
@@ -211,6 +214,7 @@
 	TT_fallthrough,\
 	TT_import,\
 	TT_module,\
+	TT_func,\
 	TT_is,\
 	TT_as,\
 	TT_return,\

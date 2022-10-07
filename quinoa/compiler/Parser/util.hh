@@ -28,7 +28,9 @@ vector<Token> readUntil(vector<Token>& toks, TokenType type, bool removeEnding=f
 }
 void expects(Token tok, TokenType expected){
     if(!tok.is(expected)){
-        error("Unexpected Token '"+tok.value+"' ["+getTokenTypeName(tok.type)+"] @ "+ tok.pos());
+        std::string message = "Unexpected Token '"+tok.value+"' ["+getTokenTypeName(tok.type)+"] @ "+ tok.pos();
+        message += " (expected '" + getTokenTypeName(expected) + "')";
+        error(message);
     }
 }
 

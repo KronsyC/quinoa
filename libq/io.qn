@@ -1,5 +1,5 @@
 module IO is Exported{
-    void println(string message){
+    func println(message:string){
                 
     }
 }

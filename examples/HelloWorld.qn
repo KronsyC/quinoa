@@ -1,7 +1,7 @@
 import @io;
 module HelloWorld is Entry{
 
-    int main(int argc, string* argv){
+    func main(argc:int, argv:string*) -> int{
         string message = argv[1];
         while(true){
             int age = 16;
