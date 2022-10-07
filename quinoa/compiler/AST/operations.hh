@@ -51,7 +51,7 @@ public:
     }
 
     std::vector<Statement*> flatten(){
-        std::vector<Statement*>flat;
+        std::vector<Statement*>flat = {this};
         auto l = left->flatten();
         for(auto i:l)flat.push_back(i);
         auto r = right->flatten();

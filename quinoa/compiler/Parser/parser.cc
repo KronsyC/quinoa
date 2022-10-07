@@ -115,13 +115,12 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
         switch (toks[0].type)
         {
         case TT_literal_int:
-            return new Integer(stoll(toks[0].value));
+            return new Integer(stoull(toks[0].value));
         case TT_literal_true:
             return new Boolean(true);
         case TT_literal_false:
             return new Boolean(false);
-        case TT_literal_str:
-            return new String(toks[0].value);
+        case TT_literal_str: return new String(toks[0].value);
         case TT_literal_float:
             return new Float(stold(toks[0].value));
         case TT_identifier:
@@ -149,7 +148,8 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
                 for (auto p : paramsList)
                 {
                     auto expr = parseExpression(p, type_info);
-                    types.push_back(expr->getType(type_info));
+                    auto t = expr->getType(type_info);
+                    types.push_back(t);
                     params.push_back(expr);
                 }
                 auto call = new MethodCall;
@@ -244,6 +244,9 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
 SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
 {
     auto block = new SourceBlock;
+   // Inject the type table
+    block->local_types = type_info;
+
     while (toks.size())
     {
         auto first = toks[0];
@@ -252,8 +255,10 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
             auto cond = parseExpression(expr, type_info);
+            cond->ctx = block;
             auto content= parseSourceBlock(exec, type_info);
             auto loop = new WhileCond;
+            loop->ctx = block;
             *loop = *(WhileCond*)content;
             delete content;
             loop->cond = cond;
@@ -268,35 +273,49 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
         {
             popf(line);
             auto returnValue = parseExpression(line, type_info);
-            block->push(new Return(returnValue));
+            auto ret = new Return(returnValue);
+            ret->ctx = block;
+            block->push(ret);
             continue;
         }
-        else if(f.isTypeTok()){
-            // initialization
-            auto type = parseType(line);
-            expects(line[0], TT_identifier);
-            auto varname = popf(line).value;
+        else if(f.is(TT_let)){
+            popf(line);    
+            auto varname = popf(line).value; 
+            Type* vartype;
+            if(line[0].is(TT_colon)){
+                popf(line);
+                vartype = parseType(line);
+            }       
+            else vartype = new Primitive(PR_implicit);
             auto name = new Ident(varname);
-
+            name->ctx = block;
 
             // Add the variable to the type table
-            type_info[varname] = type;
-            block->push(new InitializeVar(type, name));
+            type_info[varname] = vartype;
+            auto init = new InitializeVar(vartype, name);
+            init->ctx = block;
+            block->push(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line, type_info);
-                block->push(new BinaryOperation(name, val, BIN_assignment));
+                auto ass = new BinaryOperation(name, val, BIN_assignment);
+                ass->ctx = block;
+                block->push(ass);
             }
             continue;
         }
 
         // Default to expression parsing
         auto expr = parseExpression(line, type_info);
+        expr->ctx = block;
+        // Logger::debug("PRint below:");
+        // printf("%d items\n", expr->ctx->items.size());
+        // Logger::debug("Has " + std::to_string(expr->ctx->items.size()) + " peers");
+
         block->push(expr);
     }
 
-    // Inject the type table
-    block->local_types = type_info;
+ 
 
 
     return block;
@@ -307,7 +326,6 @@ Param* parseParameter(vector<Token>& toks){
     expects(name, TT_identifier);
     expects(popf(toks), TT_colon);
     auto type = parseType(toks);
-    Logger::debug("parsed");
 
     if(toks.size())error("Failed to Parse Parameter");
     return new Param(type, new Ident(name.value));

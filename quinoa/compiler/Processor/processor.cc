@@ -12,6 +12,7 @@
 #include "./processes/var_init_hoister.hh"
 #include "./processes/self_ref_resolver.hh"
 #include "./processes/call_qualifier.hh"
+#include "./processes/type_resolver.hh"
 using namespace std;
 
 
@@ -94,8 +95,9 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
   resolveSelfReferences(unit);
   hoistVarInitializations(unit);
   if (finalize) {
-    qualifyCalls(unit);
     hoistDefinitions(unit);
+    resolveTypes(unit);
+    qualifyCalls(unit);
     genEntryPoint(unit);
   }
 };

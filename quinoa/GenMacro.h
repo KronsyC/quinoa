@@ -54,6 +54,7 @@
 	new TokenDefinition(TT_float16, "__float16", {"f16"}, {"floating_point"}, false, false, 0, 0, 0),\
 	new TokenDefinition(TT_float32, "__float32", {"f32"}, {"floating_point"}, false, false, 0, 0, 0),\
 	new TokenDefinition(TT_float64, "__float64", {"f64", "float"}, {"floating_point"}, false, false, 0, 0, 0),\
+	new TokenDefinition(TT_implicit, "__implicit", {}, {"implicit"}, false, false, 0, 0, 0),\
 	new TokenDefinition(TT_double_quote, "__double_quote", {"\""}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_hashtag, "__hashtag", {"#"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_quote, "__quote", {"'"}, "", false, false, 0, 0, 0),\
@@ -122,6 +123,7 @@
 	new TokenDefinition(TT_is, "__is", {"is"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_as, "__as", {"as"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_return, "__return", {"return"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_let, "__let", {"let"}, "", false, false, 0, 0, 0),\
 	
 
 #define DEFINITIONS_ENUM_MEMBERS \
@@ -150,6 +152,7 @@
 	TT_float16,\
 	TT_float32,\
 	TT_float64,\
+	TT_implicit,\
 	TT_double_quote,\
 	TT_hashtag,\
 	TT_quote,\
@@ -218,6 +221,7 @@
 	TT_is,\
 	TT_as,\
 	TT_return,\
+	TT_let,\
 	
 
 #define INDENTATION_TYPES \
@@ -317,6 +321,7 @@
 	PR_float16,\
 	PR_float32,\
 	PR_float64,\
+	PR_implicit,\
 	
 
 #define PRIMITIVES_ENUM_MAPPINGS \
@@ -334,6 +339,7 @@
 	{ TT_float16, PR_float16},\
 	{ TT_float32, PR_float32},\
 	{ TT_float64, PR_float64},\
+	{ TT_implicit, PR_implicit},\
 	
 
 #define PRIMITIVES_ENUM_NAMES \
@@ -351,6 +357,7 @@
 	{PR_float16, "PR_float16"},\
 	{PR_float32, "PR_float32"},\
 	{PR_float64, "PR_float64"},\
+	{PR_implicit, "PR_implicit"},\
 	
 
 #define PRIMITIVES_ENUM_GROUPS \
@@ -368,5 +375,6 @@
 	{PR_float16, "floating_point"},\
 	{PR_float32, "floating_point"},\
 	{PR_float64, "floating_point"},\
+	{PR_implicit, "implicit"},\
 	
 

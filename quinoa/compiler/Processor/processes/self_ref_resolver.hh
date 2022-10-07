@@ -9,6 +9,8 @@ void resolveBlockSelfRefs(SourceBlock *content, Module *mod) {
   for (auto m : flat) {
     if (instanceof <MethodCall>(m)) {
       auto call = (MethodCall *)m;
+      auto ctx = call->ctx;
+
       call->name->flatify();
       if (call->name->parts.size() == 1) {
         Logger::log("Injecting Namespace for " + call->name->str());

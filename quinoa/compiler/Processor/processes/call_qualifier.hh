@@ -107,6 +107,7 @@ void qualifyCalls(SourceBlock &code,
     if (instanceof <MethodCall>(item)) {
       auto call = (MethodCall *)item;
       auto tgtsig = qualify(call, sigs, code.local_types);
+      Logger::debug("Call");
       if (tgtsig == nullptr)
         error("Failed to locate appropriate function call for " + call->name->str());
       call->target = tgtsig;

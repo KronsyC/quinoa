@@ -42,7 +42,6 @@ void hoistVarInitializations(CompilationUnit& unit){
 					// insert all declarations into the top
 					for(auto init:allInitializations){
 						pushf(method->items, (Statement*)init);
-						Logger::debug("Init for " + init->varname->str());
 					}
 				}
 			}

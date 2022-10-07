@@ -2,11 +2,8 @@ import @io;
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        string message = argv[1];
-        while(true){
-            int age = 16;
-            io.println(message);
-        }
+        io.println("Hello, World!");
+        let age = 16;
         return 0;
     } 
 
