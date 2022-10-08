@@ -61,6 +61,11 @@ llvm::Type *getType(Type *type)
         auto p = (TPtr *)type;
         return getType(p->to)->getPointerTo();
     }
+    else if(instanceof<ListType>(type)){
+        auto arr = (ListType *)type;
+        auto elementType = getType(arr->elements);
+        return elementType->getPointerTo();
+    }
     else
     {
         error("Custom type support is not yet implemented");
@@ -74,7 +79,16 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
     vector<llvm::Type *> args;
     for (auto a : f.params)
         args.push_back(getType(a->type));
-    auto sig = llvm::FunctionType::get(ret, args, false);
+    bool isVarArg = false;
+    if(f.params.size()){
+        auto last = f.params[f.params.size()-1];
+        if(last->isVariadic){
+            isVarArg = true;
+            args.pop_back();
+        }
+    }
+
+    auto sig = llvm::FunctionType::get(ret, args, isVarArg);
     auto fn = llvm::Function::Create(sig, linkage, name, mod);
     for (int i = 0; i < fn->arg_size(); i++)
         fn->getArg(i)->setName(f.params[i]->name->str());
@@ -324,6 +338,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
             if(fn==nullptr)error("Function " + fname +" could not be found");
+            if(!method->items.size())continue;
             auto entry_block = llvm::BasicBlock::Create(ctx, "entry_block", fn);
 
             builder.SetInsertPoint(entry_block);

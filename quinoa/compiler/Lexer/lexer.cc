@@ -41,7 +41,10 @@ bool isNumber(char c){
     return c >= '0' && c <= '9';
 }
 bool isAlphaChar(char c){
-    return c >= 'A' && c<='Z' || c>='a' && c<='z';
+    return (c >= 'A' && c<='Z') || (c>='a' && c<='z');
+}
+bool isExtVarChar(char c){
+    return c == '_' || c=='$';
 }
 bool isSymbol(char c){
     return !isNumber(c) && !isAlphaChar(c);
@@ -145,12 +148,13 @@ Token readNextToken(string& str){
     }
     
     // Literal Parsing, accepts literally Anything
-    if(isAlphaChar(str[0]) || str[0] == '_'){
+    if(isAlphaChar(str[0]) || isExtVarChar(str[0])){
         string ident;
-        while(str.length()&& (isAlphaChar(str[0]) || isNumber(str[0] || str[0] == '_'))){
+        while(str.length()&& (isAlphaChar(str[0]) || isNumber(str[0]) || isExtVarChar(str[0]))){
             ident+=popf(str);
         }
         col+=ident.size();
+        if(ident!="")
         return make(TT_identifier, ident);
     }
     string s;

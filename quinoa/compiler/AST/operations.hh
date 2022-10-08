@@ -34,10 +34,6 @@ public:
 
     std::vector<Param *> testparams;
     for (auto p : params){
-      for(auto t:type_info){
-        Logger::debug("Defined: " + t.first);
-        Logger::debug("is null? " + std::to_string(t.second == nullptr));
-      }
       auto type = p->getType(type_info);
       if(type==nullptr)error("Unknown param type");
       testparams.push_back(new Param(type, nullptr));
@@ -82,8 +78,11 @@ public:
           idx = i;
         }
       }
-      if (idx == -1)
+      if (idx == -1){
+        error("Failed to generate function call to " + callname.str());
         return;
+
+      }
       int ind = 0;
       for (auto pair : sigs)
       {
@@ -103,6 +102,7 @@ private:
   static int getCompatabilityScore(QualifiedMethodSigStr base,
                                    QualifiedMethodSigStr target)
   {
+    Logger::debug("Comparing " + base.str() + " against " + target.str());
     if (base.name->str() != target.name->str())
       return -1;
     // compare namespaces
@@ -110,15 +110,18 @@ private:
       return -1;
 
     // compare param lengths TODO: Reimplement this once varargs are implemented
-    if (base.params.size() != target.params.size())
-      return -1;
+    if(!base.isVariadic()){
+            if (base.params.size() != target.params.size())
+                return -1;
+    }
+
     // Start with a base score, each infraction has a cost based on how
     // different it is
     int score = 0;
-    for (int i = 0; i < base.params.size(); i++)
+    for (int i = 0; i < target.params.size(); i++)
     {
-      auto baram = base.params[i]->type;
-      auto taram = target.params[i]->type;
+      auto baram = base.getParam(i)->type;
+      auto taram = target.getParam(i)->type;
       if (baram->equals(taram))
         continue;
       if (instanceof <Primitive>(baram) && instanceof <Primitive>(taram))
@@ -129,8 +132,10 @@ private:
         auto tprim = (Primitive *)taram;
         auto bg = primitive_group_mappings[bprim->type];
         auto tg = primitive_group_mappings[tprim->type];
-        if (bg == tg)
+        if (bg == tg){
+
           score += 10;
+        }
         else
           score = -1;
       }

@@ -66,6 +66,14 @@ Type* parseType(vector<Token>& toks){
         popf(toks);
         ret = new TPtr(ret);
     }
+    if(toks.size() && toks[0].is(TT_l_square_bracket)){
+        // Type Array
+        auto size = readBlock(toks, IND_square_brackets);
+        if(size.size()==0)ret=new ListType(ret, nullptr);
+        else{
+            error("Variable Length Arrays are currently not supported");
+        }
+    }
     return ret;
 }
 vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
@@ -331,13 +339,23 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 }
 
 Param* parseParameter(vector<Token>& toks){
+    bool isVarParam = false;
+    if(toks[0].is(TT_ellipsis)){
+        isVarParam = true;
+        popf(toks);
+    }
     auto name = popf(toks);
     expects(name, TT_identifier);
     expects(popf(toks), TT_colon);
     auto type = parseType(toks);
 
-    if(toks.size())error("Failed to Parse Parameter");
-    return new Param(type, new Ident(name.value));
+    if(toks.size()){
+        printToks(toks);
+        error("Failed to Parse Parameter");
+    }
+    auto p = new Param(type, new Ident(name.value));
+    p->isVariadic = isVarParam;
+    return p;
 }
 
 void parseModuleContent(vector<Token> &toks, Module* mod)
@@ -372,11 +390,19 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 Logger::debug(param->name->str() + " : " + param->type->str());
                 params.push_back(param);
             }
-            auto contentToks = readBlock(toks, IND_braces);
             auto method = new Method();
             auto sig = new MethodSignature();
-            auto content = parseSourceBlock(contentToks, argTypes);
-            *method = *static_cast<Method*>(content);
+            if(toks[0].is(TT_l_brace)){
+               auto contentToks = readBlock(toks, IND_braces);
+                auto content = parseSourceBlock(contentToks, argTypes);
+                *method = *static_cast<Method*>(content); 
+            }
+            else{
+                 expects(toks[0], TT_semicolon);
+                 popf(toks);
+                 method->local_types = new LocalTypeTable;
+            }
+
             // delete content;
             method->sig = sig;
 

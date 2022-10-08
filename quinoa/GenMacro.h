@@ -94,6 +94,7 @@
 	new TokenDefinition(TT_bool_or, "__bool_or", {"||"}, "", false, false, 15, 0, 0),\
 	new TokenDefinition(TT_bool_and, "__bool_and", {"&&"}, "", false, false, 14, 0, 0),\
 	new TokenDefinition(TT_dot, "__dot", {"."}, "", false, false, 4, 0, 0),\
+	new TokenDefinition(TT_ellipsis, "__ellipsis", {"..."}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_slash, "__slash", {"/"}, "", false, false, 5, 0, 0),\
 	new TokenDefinition(TT_lesser, "__lesser", {"<"}, "", false, false, 9, 0, 0),\
 	new TokenDefinition(TT_greater, "__greater", {">"}, "", false, false, 9, 0, 0),\
@@ -108,7 +109,6 @@
 	new TokenDefinition(TT_bitwise_xor, "__bitwise_xor", {"^"}, "", false, false, 13, 0, 0),\
 	new TokenDefinition(TT_bitwise_shl, "__bitwise_shl", {"<<"}, "", false, false, 7, 0, 0),\
 	new TokenDefinition(TT_bitwise_shr, "__bitwise_shr", {">>"}, "", false, false, 7, 0, 0),\
-	new TokenDefinition(TT_underscore, "__underscore", {"_"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_if, "__if", {"if"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_while, "__while", {"while"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_for, "__for", {"for"}, "", false, false, 0, 0, 0),\
@@ -192,6 +192,7 @@
 	TT_bool_or,\
 	TT_bool_and,\
 	TT_dot,\
+	TT_ellipsis,\
 	TT_slash,\
 	TT_lesser,\
 	TT_greater,\
@@ -206,7 +207,6 @@
 	TT_bitwise_xor,\
 	TT_bitwise_shl,\
 	TT_bitwise_shr,\
-	TT_underscore,\
 	TT_if,\
 	TT_while,\
 	TT_for,\

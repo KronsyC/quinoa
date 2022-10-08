@@ -77,18 +77,21 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
    * Preprocess the tree via various different processes:
    * ----------------------------------------------------
    * ✅ Import resolution
-   * ✅ Method Shorthand Self-Referencing (foo() -> method.foo())
+   * ✅ Method Shorthand Self-Referencing
    * Generic Implementation (Type Substitution and method gen)
-   * ✅ Method Mangling (For Overloads)
-   * ✅ Function Call Qualification (Signature Reference Injection)
+   * ✅ Method Mangling
+   * \
+   *  ✅ Type Resolution
+   *  ✅ Function Call Qualification
+   * /
    * Duplicate Name Detection
-   * ✅ Function/Property Hoisting (at the module level)
+   * ✅ Function/Property Hoisting
    * Type Checking
    * Unused Variable Warning / Removal
    * Unreachable Code Warning / Removal
    * Static Statement Resolution ( 11 + 4 -> 15 )
-   * Local Initializer Hoisting (optimization) (may require renames for
-   * block-scoped overrides) ✅ Entrypoint Generation
+   * ✅ Local Initializer Hoisting (optimization)
+   * ✅ Entrypoint Generation
    */
 
   resolveImports(unit);

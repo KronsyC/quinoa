@@ -57,12 +57,22 @@ public:
     }
 };
 
-class List:public Type{
+class ListType:public Type{
 public:
     Type* elements;
-    Expression* size;
-    List(Type* eT, Expression* n){
+    Expression* size = nullptr;
+    ListType(Type* eT, Expression* n){
         elements = eT;
         size = n;
+    }
+    std::string str(){
+        return elements->str()+"[]";
+    }
+    bool equals(Type* type){
+        if(instanceof<ListType>(type)){
+            auto typ = (ListType*)type;
+            return elements->equals(typ->elements);
+        }
+        return false;
     }
 };

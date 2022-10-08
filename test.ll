@@ -9,11 +9,14 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
-  %0 = call i64 @"[BPPMTghWKs].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  %0 = call i64 @"[n0rL7NRbfJ].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  %1 = call i64 (i32, ...) @"[8oVye5tJ3u].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 2)
   ret i32 0
 }
 
-define i64 @"[BPPMTghWKs].io.fn_println(PR_string)"(i8* %message) {
+declare i64 @"[8oVye5tJ3u].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32, ...)
+
+define i64 @"[n0rL7NRbfJ].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8

@@ -265,6 +265,9 @@ bool_and
 @infix 4
 dot
 
+@alias ...
+ellipsis
+
 @alias /
 @infix 5
 slash
@@ -321,8 +324,6 @@ bitwise_shl
 @infix 7
 bitwise_shr
 
-@alias _
-underscore
 
 # Control Flow Shennanigans
 @alias if

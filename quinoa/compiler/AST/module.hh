@@ -22,6 +22,7 @@ class Param : public AstNode{
 public:
     Type* type = nullptr;
     Ident* name = nullptr;
+    bool isVariadic = false;
     Param(Type* type, Ident* name){
         this->type = type;
         this->name = name;
@@ -40,12 +41,27 @@ public:
             bool first = true;
             for(auto p:params){
                 if(!first)n+=",";
+                if(p->isVariadic)n+="...";
                 n+=p->type->str();
                 first = false;
             }
             n+=")";
         }
         return n;
+    }
+    bool isVariadic(){
+        if(params.size()==0)return false;
+        return params[params.size()-1]->isVariadic;
+    }
+    Param* getParam(int n){
+        if(isVariadic()){
+            if(n>params.size()-1)return params[params.size()-1];
+            else return params[n];
+        }
+        else{
+            if(n > params.size()-1)return nullptr;
+            return params[n];            
+        }
     }
 };
 
@@ -60,6 +76,7 @@ public:
 class MethodSignature:public AstNode{
 public:
     Ident* name = nullptr;
+    bool nomangle = false;
     CompoundIdentifier* space = nullptr;
     std::vector<Param*> params;
     Type* returnType = nullptr;
@@ -94,6 +111,8 @@ public:
 class Method:public ModuleMember, public SourceBlock{
 public:
     MethodSignature* sig = nullptr;
+    // If nomangle is enabled, matching is done via names directly
+    // instead of using the overload chosing algorithm
     std::vector<Type*> paramTypes(){
         std::vector<Type*> ret;
         for(auto p:sig->params){
