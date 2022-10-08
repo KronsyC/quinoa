@@ -175,7 +175,6 @@ public:
     this->right = right;
     this->op = op;
   }
-
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> flat = {this};
@@ -239,9 +238,14 @@ public:
     return ret;
   }
 
-  Type *getType()
+  Type *getType(LocalTypeTable tt)
   {
-    error("Type for subscript");
-    return nullptr;
+    Logger::debug("im in");
+    Logger::debug("Getting type of sub of " + tgt->str());
+    auto elementType = tgt->getType(tt);
+    if(elementType==nullptr)error("No Element Type");
+    Logger::debug(tgt->str() + " : " + elementType->str());
+    if(!instanceof<TPtr>(elementType))error("List has member type which is a non-pointer");
+    return ((TPtr*)elementType)->to;
   }
 };

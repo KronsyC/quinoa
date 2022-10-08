@@ -100,17 +100,10 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
     bool resolved = false;
     while(!resolved){
       resolved = resolveTypes(unit);
-      Logger::debug("Resolved? " + std::to_string(resolved));
       qualifyCalls(unit);
     }
 
 
-    // Resolve Types a second time
-    // This time, we have access to
-    // the returnType of methods
-    //TODO: chain the previous 2 steps
-    //in a loop until no more unresolved
-    // stuff are detected
     
     genEntryPoint(unit);
   }

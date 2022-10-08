@@ -4,6 +4,7 @@
 struct Identifier:public Expression{
 public:
     virtual std::string str(){
+        error("Cannot get Str of raw identifier");
         return "";
     }
     virtual const char* c_str(){
@@ -24,15 +25,15 @@ public:
     Ident() = default;
     std::string str(){
         auto name = this->name;
-        return this->name;
+        return name;
     }
     const char* c_str(){
         return std::move(str().c_str());
     }
 
     Type* getType(LocalTypeTable types){
-
-        auto type = types[name];
+        printTypeTable(types);
+        auto type = types[str()];
         
 
         return type;

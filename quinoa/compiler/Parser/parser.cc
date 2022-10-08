@@ -106,7 +106,7 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
 }
 
 
-Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
+Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, SourceBlock* ctx)
 {
     if (toks.size() == 0)
         error("Cannot Generate an Expression from no tokens");
@@ -136,6 +136,7 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
     {
         auto initial = toks;
         auto target = parseIdentifier(toks);
+        target->ctx = ctx;
         if (toks[0].is(TT_l_paren))
         {
             auto params = readBlock(toks, IND_parens);
@@ -147,7 +148,8 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
                 vector<Type*> types;
                 for (auto p : paramsList)
                 {
-                    auto expr = parseExpression(p, type_info);
+                    auto expr = parseExpression(p, type_info, ctx);
+                    expr->ctx = ctx;
                     auto t = expr->getType(type_info);
                     types.push_back(t);
                     params.push_back(expr);
@@ -156,14 +158,19 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
                 call->params = params;
                 call->target = nullptr;
                 if(instanceof<CompoundIdentifier>(target))call->name = (CompoundIdentifier*)target;
-                else call->name = new CompoundIdentifier(target->str());
+                else{
+                    auto id = new CompoundIdentifier(target->str());
+                    id->ctx = ctx;
+                    call->name = id;
+                }
                 return call;
             }
         }
         else if(toks[0].is(TT_l_square_bracket)){
             auto etoks = readBlock(toks, IND_square_brackets);
             if(toks.size() == 0){
-                auto item = parseExpression(etoks, type_info);
+                auto item = parseExpression(etoks, type_info, ctx);
+                item->ctx = ctx;
                 return new Subscript(target, item);
             }
         }
@@ -175,7 +182,7 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
         auto initial = toks;
         auto block = readBlock(toks, IND_parens);
         if (toks.size() == 0)
-            return parseExpression(block, type_info);
+            return parseExpression(block, type_info, ctx);
 
         toks = initial;
     }
@@ -235,8 +242,8 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info)
     auto [left, right] = split(toks, splitPoint);
     auto l = left;
     auto r = right;
-    auto leftAST = parseExpression(left, type_info);
-    auto rightAST = parseExpression(right, type_info);
+    auto leftAST = parseExpression(left, type_info, ctx);
+    auto rightAST = parseExpression(right, type_info, ctx);
     auto optype = binary_op_mappings[op.type];
     return new BinaryOperation(leftAST, rightAST, optype);
 }
@@ -245,7 +252,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 {
     auto block = new SourceBlock;
     auto type_info = new LocalTypeTable;
-   // Inject the type table
+    *type_info = typeinfo;
 
     while (toks.size())
     {
@@ -254,14 +261,15 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             popf(toks);
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
-            auto cond = parseExpression(expr, *type_info);
+            auto cond = parseExpression(expr, *type_info, block);
             cond->ctx = block->self;
             auto content= parseSourceBlock(exec, *type_info);
             auto loop = new WhileCond;
-            loop->ctx = block->self;
             *loop = *(WhileCond*)content;
-            delete content;
             loop->cond = cond;
+            loop->ctx = block->self;
+            // For some reason the loop becomes inactive at this point
+            loop->active = true;
             block->push(loop);
             continue;
         }
@@ -272,9 +280,10 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
         if (f.is(TT_return))
         {
             popf(line);
-            auto returnValue = parseExpression(line, *type_info);
+            auto returnValue = parseExpression(line, *type_info, block);
             auto ret = new Return(returnValue);
             ret->ctx = block->self;
+            returnValue->ctx = block->self;
             block->push(ret);
             continue;
         }
@@ -292,21 +301,23 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 
             // Add the variable to the type table
             (*type_info)[varname] = vartype;
+            block->declarations.push_back(varname);
             auto init = new InitializeVar(vartype, name);
             init->ctx = block->self;
             block->push(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
-                auto val = parseExpression(line, *type_info);
+                auto val = parseExpression(line, *type_info, block);
                 auto ass = new BinaryOperation(name, val, BIN_assignment);
                 ass->ctx = block->self;
+                val->ctx = block->self;
                 block->push(ass);
             }
             continue;
         }
 
         // Default to expression parsing
-        auto expr = parseExpression(line, *type_info);
+        auto expr = parseExpression(line, *type_info, block);
         expr->ctx = block->self;
 
         block->push(expr);
@@ -354,13 +365,17 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
 
             auto argsCSV = parseCommaSeparatedValues(argsTokens);
             vector<Param*> params;
+            LocalTypeTable argTypes;
             for(auto a:argsCSV){
-                params.push_back(parseParameter(a));
+                auto param = parseParameter(a);
+                argTypes[param->name->str()] = param->type;
+                Logger::debug(param->name->str() + " : " + param->type->str());
+                params.push_back(param);
             }
             auto contentToks = readBlock(toks, IND_braces);
             auto method = new Method();
             auto sig = new MethodSignature();
-            auto content = parseSourceBlock(contentToks);
+            auto content = parseSourceBlock(contentToks, argTypes);
             *method = *static_cast<Method*>(content);
             // delete content;
             method->sig = sig;

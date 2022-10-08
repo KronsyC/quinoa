@@ -251,6 +251,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             vars.insert({varname, alloca});
         }
         else if(instanceof<WhileCond>(stm)){
+            Logger::debug("Generating while");
             auto loop = (WhileCond*)stm;
             auto cond = genExpression(loop->cond, vars, getType(new Primitive(PR_boolean)));
 

@@ -30,20 +30,19 @@ bool resolveTypes(CompilationUnit& unit){
 				for(auto c:flat){
 					if(!instanceof<BinaryOperation>(c))continue;
 					auto op = (BinaryOperation*)c;
-					if(op->op == BIN_assignment){
-						auto name = static_cast<Identifier*>(op->left);
-						if(name->str() == init->varname->str()){
-							//TODO: Do Some Complex Initializer
-							// Compatibility checks to ensure
-							// consistent type safety
-							initializer = op->right;
+					if(op->op != BIN_assignment)continue;
+					auto name = static_cast<Identifier*>(op->left);
+					if(name->str() == init->varname->str()){
+						//TODO: Do Some Complex Initializer
+						// Compatibility checks to ensure
+						// consistent type safety
+						initializer = op->right;
 
-						}
 					}
 					
 				}
 				if(initializer==nullptr)error("Failed to locate type for " + init->varname->str());
-				auto ctx = init->ctx;
+				auto ctx = initializer->ctx;
 				LocalTypeTable type_table = *ctx->local_types;
 				auto exprType = initializer->getType(type_table);
 				// If a nullptr is returned, there is not enough info
@@ -52,7 +51,7 @@ bool resolveTypes(CompilationUnit& unit){
 					isGood = false;
 					continue;
 				}
-				(*ctx->local_types)[init->varname->str()] = exprType;
+				(*init->ctx->local_types)[init->varname->str()] = exprType;
 				Logger::debug("Successfully Resolved Type for " + init->varname->str());
 				init->type = exprType;
 

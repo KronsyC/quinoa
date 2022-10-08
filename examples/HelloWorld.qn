@@ -1,10 +1,10 @@
 import @io;
+
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        let message = "Hello, Human!";
-        let val = io.println(message);
-        return val;
+        io.println("Hello, World!");
+        return 0;
     } 
 
 
