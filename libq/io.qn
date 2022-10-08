@@ -1,5 +1,5 @@
 module IO is Exported{
-    func println(message:string){
-                
+    func println(message:string) -> int{
+        return 69;
     }
 }

@@ -7,7 +7,9 @@
 
 #include "../processor.h"
 
-void resolveTypes(CompilationUnit& unit){
+// Returns True, if all types are resolved
+bool resolveTypes(CompilationUnit& unit){
+	bool isGood = true;
 	for(auto member:unit.items){
 		if(!instanceof<Module>(member))continue;
 		auto mod = static_cast<Module*>(member);
@@ -18,9 +20,9 @@ void resolveTypes(CompilationUnit& unit){
 			for(auto child:flat){
 				if(!instanceof<InitializeVar>(child))continue;
 				auto init = static_cast<InitializeVar*>(child);
-				if(!instanceof<Primitive>(init->type))continue;
-				auto type = static_cast<Primitive*>(init->type);
-				if(type->type != PR_implicit)continue;
+				Logger::debug("Searching for initializer " + init->varname->str());
+
+				if(init->type != nullptr)continue;
 				// Locate the initializer expression for this variable
 				// and set its type to be equal to that of the
 				// expression
@@ -42,8 +44,17 @@ void resolveTypes(CompilationUnit& unit){
 				}
 				if(initializer==nullptr)error("Failed to locate type for " + init->varname->str());
 				auto ctx = init->ctx;
-				LocalTypeTable type_table = ctx->local_types;
-				init->type = initializer->getType(type_table);
+				LocalTypeTable type_table = *ctx->local_types;
+				auto exprType = initializer->getType(type_table);
+				// If a nullptr is returned, there is not enough info
+				// currently available
+				if(exprType == nullptr){
+					isGood = false;
+					continue;
+				}
+				(*ctx->local_types)[init->varname->str()] = exprType;
+				Logger::debug("Successfully Resolved Type for " + init->varname->str());
+				init->type = exprType;
 
 				
 
@@ -53,6 +64,8 @@ void resolveTypes(CompilationUnit& unit){
 				
 		}
 	}
+	// error("Im out babyyy");
+	return isGood;
 }
 
 

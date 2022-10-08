@@ -80,7 +80,7 @@ struct ModuleMember : public AstNode
 // variables cannot be redefined within the same block and are hence guaranteed to keep the same type
 class SourceBlock:public Block<Statement>{
 public:
-    LocalTypeTable local_types;
+    LocalTypeTable* local_types;
     // This is messy, im sorry
     SourceBlock* self = this;
     std::vector<Statement*> flatten(){

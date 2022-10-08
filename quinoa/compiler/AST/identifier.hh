@@ -14,6 +14,7 @@ public:
     }
 
 };
+
 class Ident:public Identifier{
 public:
     std::string name;
@@ -30,7 +31,9 @@ public:
     }
 
     Type* getType(LocalTypeTable types){
+
         auto type = types[name];
+        
 
         return type;
     }

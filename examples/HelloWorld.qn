@@ -2,9 +2,11 @@ import @io;
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        io.println("Hello, World!");
-        return 0;
+        let message = "Hello, Human!";
+        let val = io.println(message);
+        return val;
     } 
+
 
 
 }
