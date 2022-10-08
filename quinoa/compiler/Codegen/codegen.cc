@@ -82,7 +82,10 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
 }
 bool isInt(llvm::Type *i)
 {
-    return i->isIntegerTy(1) | i->isIntegerTy(8) | i->isIntegerTy(16) | i->isIntegerTy(32) | i->isIntegerTy(64);
+    return i->isIntegerTy(1) || i->isIntegerTy(8) || i->isIntegerTy(16) || i->isIntegerTy(32) || i->isIntegerTy(64);
+}
+bool isFloat(llvm::Type* i){
+    return i->isFloatingPointTy() || i->isHalfTy() || i->isDoubleTy();
 }
 llvm::Constant *createInt(Integer *i, llvm::Type *expected)
 {
@@ -129,6 +132,14 @@ llvm::Value *loadVar(Subscript *subscr, TVars vars)
     auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
     return loaded;
 }
+llvm::Value* cast(llvm::Value* val, llvm::Type* type){
+    if(type == nullptr)return val;
+    if(val->getType() == type)return val; 
+    if(isInt(type) && isInt(val->getType()))return builder.CreateIntCast(val, type, true);
+    if(isFloat(type) && isFloat(val->getType()))return builder.CreateFPCast(val, type);
+    error("Failed to cast");
+    return nullptr;
+}
 llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedType = nullptr)
 {
     if (instanceof <Integer>(expr))
@@ -144,8 +155,7 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         auto e = (Ident *)expr;
         auto var = loadVar(e, vars);
         auto loaded = builder.CreateLoad(var->getType()->getPointerElementType(), var, "loaded var '" + e->str() + "'");
-        if(expectedType != nullptr && loaded->getType() != expectedType)error("Types dont match");
-        return loaded;
+        return cast(loaded, expectedType);
     }
     if (instanceof <MethodCall>(expr))
     {
