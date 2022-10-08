@@ -3,7 +3,6 @@ module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
         io.println("Hello, World!");
-        let age = 16;
         return 0;
     } 
 

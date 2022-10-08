@@ -10,16 +10,16 @@
 void resolveTypes(CompilationUnit& unit){
 	for(auto member:unit.items){
 		if(!instanceof<Module>(member))continue;
-		auto mod = (Module*)member;
+		auto mod = static_cast<Module*>(member);
 		for(auto child:mod->items){
 			if(!instanceof<Method>(child))continue;
 			auto source = (Method*)child;
 			auto flat = source->flatten();
 			for(auto child:flat){
 				if(!instanceof<InitializeVar>(child))continue;
-				auto init = (InitializeVar*)child;
+				auto init = static_cast<InitializeVar*>(child);
 				if(!instanceof<Primitive>(init->type))continue;
-				auto type = (Primitive*)init->type;
+				auto type = static_cast<Primitive*>(init->type);
 				if(type->type != PR_implicit)continue;
 				// Locate the initializer expression for this variable
 				// and set its type to be equal to that of the
@@ -29,7 +29,7 @@ void resolveTypes(CompilationUnit& unit){
 					if(!instanceof<BinaryOperation>(c))continue;
 					auto op = (BinaryOperation*)c;
 					if(op->op == BIN_assignment){
-						auto name = (Identifier*)op->left;
+						auto name = static_cast<Identifier*>(op->left);
 						if(name->str() == init->varname->str()){
 							//TODO: Do Some Complex Initializer
 							// Compatibility checks to ensure
@@ -42,9 +42,8 @@ void resolveTypes(CompilationUnit& unit){
 				}
 				if(initializer==nullptr)error("Failed to locate type for " + init->varname->str());
 				auto ctx = init->ctx;
-				Logger::debug("Has " + std::to_string(ctx->items.size()) + " peers");
 				LocalTypeTable type_table = ctx->local_types;
-				Logger::debug("Setting Local Type");
+				init->type = initializer->getType(type_table);
 
 				
 

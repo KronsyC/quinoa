@@ -9,11 +9,11 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
-  call void @"[BfXbcQ2eCz].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  call void @"[5hiGNADmE0].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
   ret i32 0
 }
 
-define void @"[BfXbcQ2eCz].io.fn_println(PR_string)"(i8* %message) {
+define void @"[5hiGNADmE0].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8

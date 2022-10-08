@@ -255,10 +255,10 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
             auto cond = parseExpression(expr, type_info);
-            cond->ctx = block;
+            cond->ctx = block->self;
             auto content= parseSourceBlock(exec, type_info);
             auto loop = new WhileCond;
-            loop->ctx = block;
+            loop->ctx = block->self;
             *loop = *(WhileCond*)content;
             delete content;
             loop->cond = cond;
@@ -274,7 +274,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
             popf(line);
             auto returnValue = parseExpression(line, type_info);
             auto ret = new Return(returnValue);
-            ret->ctx = block;
+            ret->ctx = block->self;
             block->push(ret);
             continue;
         }
@@ -288,18 +288,18 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
             }       
             else vartype = new Primitive(PR_implicit);
             auto name = new Ident(varname);
-            name->ctx = block;
+            name->ctx = block->self;
 
             // Add the variable to the type table
             type_info[varname] = vartype;
             auto init = new InitializeVar(vartype, name);
-            init->ctx = block;
+            init->ctx = block->self;
             block->push(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line, type_info);
                 auto ass = new BinaryOperation(name, val, BIN_assignment);
-                ass->ctx = block;
+                ass->ctx = block->self;
                 block->push(ass);
             }
             continue;
@@ -307,7 +307,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable type_info={})
 
         // Default to expression parsing
         auto expr = parseExpression(line, type_info);
-        expr->ctx = block;
+        expr->ctx = block->self;
         // Logger::debug("PRint below:");
         // printf("%d items\n", expr->ctx->items.size());
         // Logger::debug("Has " + std::to_string(expr->ctx->items.size()) + " peers");
@@ -363,9 +363,8 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             auto method = new Method();
             auto sig = new MethodSignature();
             auto content = parseSourceBlock(contentToks);
-
-            *method = *(Method*)content;
-            delete content;
+            *method = *static_cast<Method*>(content);
+            // delete content;
             method->sig = sig;
 
             sig->name = new Ident(nameTok.value);

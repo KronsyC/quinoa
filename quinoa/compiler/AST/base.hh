@@ -81,7 +81,8 @@ struct ModuleMember : public AstNode
 class SourceBlock:public Block<Statement>{
 public:
     LocalTypeTable local_types;
-
+    // This is messy, im sorry
+    SourceBlock* self = this;
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret;
         for(auto i:items){
