@@ -1,5 +1,3 @@
 module Primitives is Exported, CompilerImplemented{
-	func __syscall__(callNo:int, ...args:int[]) -> i64{
-		return 1;
-	}
+	func __syscall__(callNo:int, ...args:int[]) -> i64;
 }

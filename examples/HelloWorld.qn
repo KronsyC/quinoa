@@ -3,8 +3,8 @@ import @lang::primitives as lng;
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        io::println("Hello, World!");
-        lng::__syscall__(2);
+        let message = "Hi";
+        lng::__syscall__(2, 1, message, 2);
         return 0;
     } 
 

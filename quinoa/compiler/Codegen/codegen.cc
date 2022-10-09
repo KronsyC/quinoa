@@ -156,6 +156,11 @@ llvm::Value* cast(llvm::Value* val, llvm::Type* type){
     if(val->getType() == type)return val; 
     if(isInt(type) && isInt(val->getType()))return builder.CreateIntCast(val, type, true);
     if(isFloat(type) && isFloat(val->getType()))return builder.CreateFPCast(val, type);
+    if(isInt(type) && val->getType()->isPointerTy())return builder.CreatePtrToInt(val, type);
+    val->print(llvm::outs());
+    printf("\n");
+    type->print(llvm::outs());
+    printf("\n");
     error("Failed to cast");
     return nullptr;
 }
