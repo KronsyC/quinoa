@@ -30,47 +30,34 @@ std::string genRandomSafeString(int size) {
 };
 Module *getPrimaryExport(CompilationUnit &unit) {
   Module *ret = nullptr;
-  for (auto child : unit.items) {
-    if (instanceof <Module>(child)) {
-      auto mod = (Module *)child;
-      if (mod->is("Exported")) {
-        if (ret != nullptr)
-          error("Cannot Export Multiple Modules from a file");
-        ret = mod;
-      }
+  for (auto mod : unit.getAllModules()) {
+    if (mod->is("Exported")) {
+      if (ret != nullptr)
+        error("Cannot Export Multiple Modules from a file");
+      ret = mod;
     }
   }
   return ret;
 };
 
 void prefixifyChildren(CompilationUnit &unit, std::string prefix) {
-  for (auto item : unit.items) {
-    if (instanceof <Module>(item)) {
-      auto mod = (Module *)item;
+  for (auto mod : unit.getAllModules()) 
       pushf(mod->name->parts, (Identifier *)new Ident("[" + prefix + "]"));
-    }
-  }
 }
 void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
                 CompoundIdentifier *fullname) {
-  for (auto item : unit.items) {
-    if (instanceof <Module>(item)) {
-      auto mod = (Module *)item;
-      for (auto item : mod->items) {
-        auto method = (Method *)item;
-        auto content = method->flatten();
+  for (auto method : unit.getAllMethods()) {
+    auto content = method->flatten();
 
-        for (auto member : content) {
-          if (instanceof <CompoundIdentifier>(member)) {
-            auto ident = (CompoundIdentifier*)member;
-            auto ns = ident->all_but_last();
-            if(ns->equals(alias)){
-              delete ns;
-              auto name = ident->last();
-              CompoundIdentifier deAliasedName({fullname, name});
-              *ident = deAliasedName;
-            }
-          }
+    for (auto member : content) {
+      if (instanceof <CompoundIdentifier>(member)) {
+        auto ident = (CompoundIdentifier*)member;
+        auto ns = ident->all_but_last();
+        if(ns->equals(alias)){
+          delete ns;
+          auto name = ident->last();
+          CompoundIdentifier deAliasedName({fullname, name});
+          *ident = deAliasedName;
         }
       }
     }

@@ -13,6 +13,7 @@
 #include "./processes/self_ref_resolver.hh"
 #include "./processes/call_qualifier.hh"
 #include "./processes/type_resolver.hh"
+#include "./processes/primitive_function_injector.hh"
 using namespace std;
 
 

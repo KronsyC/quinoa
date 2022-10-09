@@ -96,7 +96,3 @@ public:
         return ret;
     }
 };
-
-struct CompilationUnit : public Block<TopLevelExpression>
-{
-};
