@@ -84,7 +84,11 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
         auto last = f.params[f.params.size()-1];
         if(last->isVariadic){
             isVarArg = true;
+            auto a = f.params[f.params.size()-1];
             args.pop_back();
+            auto t = new Primitive(PR_int32);
+            args.push_back(getType(t));
+            f.params[f.params.size()-1] = new Param(t, new Ident("+vararg_count") );
         }
     }
 
@@ -182,8 +186,18 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
             error("Failed to call function '" + name + "' (doesn't exist)");
         vector<llvm::Value *> params;
         int i = 0;
+        bool generatedVarargs = false;
         for (auto p : call->params)
         {
+            if(call->target->isVariadic() && !generatedVarargs){
+                auto param = call->target->params[i];
+                if(param->isVariadic){
+                    auto argCount = call->params.size() - i;
+                    auto llArgCount = builder.getInt32(argCount);
+                    params.push_back(llArgCount);
+                    generatedVarargs = true;
+                }
+            }
             auto type = call->target->getParam(i)->type;
             auto ll_type = getType(type);
             params.push_back(genExpression(p, vars, ll_type));

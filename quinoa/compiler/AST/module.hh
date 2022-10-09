@@ -112,6 +112,9 @@ public:
     Param* getParam(int n){
         return sigstr().getParam(n);
     }
+    bool isVariadic(){
+        return sigstr().isVariadic();
+    }
 };
 class MethodPredeclaration:public TopLevelExpression{
 public:
