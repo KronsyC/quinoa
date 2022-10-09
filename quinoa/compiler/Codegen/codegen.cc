@@ -184,8 +184,9 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         int i = 0;
         for (auto p : call->params)
         {
-            auto type = tgtFn->getArg(i)->getType();
-            params.push_back(genExpression(p, vars, type));
+            auto type = call->target->getParam(i)->type;
+            auto ll_type = getType(type);
+            params.push_back(genExpression(p, vars, ll_type));
             i++;
         }
 

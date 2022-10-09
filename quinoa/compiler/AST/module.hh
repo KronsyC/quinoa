@@ -27,6 +27,12 @@ public:
         this->type = type;
         this->name = name;
     }
+    Param* deVarify(){
+        if(!instanceof<ListType>(type))error("Cannot have non-list varargs");
+        auto list = (ListType*)type;
+        auto p = new Param(list->elements, name);
+        return p;
+    }
 };
 class MethodSigStr{
 public:
@@ -55,7 +61,7 @@ public:
     }
     Param* getParam(int n){
         if(isVariadic()){
-            if(n>params.size()-1)return params[params.size()-1];
+            if(n>=params.size()-1)return params[params.size()-1]->deVarify();
             else return params[n];
         }
         else{
@@ -102,6 +108,9 @@ public:
         sigs.space = space;
         if(space==nullptr)error("Space is null?", true);
         return sigs;
+    }
+    Param* getParam(int n){
+        return sigstr().getParam(n);
     }
 };
 class MethodPredeclaration:public TopLevelExpression{
