@@ -30,11 +30,6 @@ public:
         error("Cannot stringify base type");
         return "";
     }
-
-    virtual bool equals(Type* type){
-        error("Cannot Check Type Equality from base class");
-        return false;
-    }
 };
 struct Expression : public Statement
 {

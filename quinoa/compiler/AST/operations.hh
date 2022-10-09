@@ -122,7 +122,7 @@ private:
     {
       auto baram = base.getParam(i)->type;
       auto taram = target.getParam(i)->type;
-      if (baram->equals(taram))
+      if (baram == taram)
         continue;
       if (instanceof <Primitive>(baram) && instanceof <Primitive>(taram))
       {

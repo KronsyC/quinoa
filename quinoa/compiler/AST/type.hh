@@ -25,13 +25,6 @@ public:
     std::string str(){
         return primitive_names[type];
     }
-    bool equals(Type* type){
-        if(instanceof<Primitive>(type)){
-            auto typ = (Primitive*)type;
-            return typ->type == this->type;
-        }
-        return false;
-    }
 
     static Primitive* get(PrimitiveType t){
         static std::map<PrimitiveType, Primitive*> cache;
@@ -63,13 +56,6 @@ public:
     std::string str(){
         return to->str()+"*";
     }
-    bool equals(Type* type){
-        if(instanceof<TPtr>(type)){
-            auto typ = (TPtr*)type;
-            return to->equals(typ->to);
-        }
-        return false;
-    }
 
     static TPtr* get(Type* t){
         static std::map<Type*, TPtr*> cache;
@@ -95,13 +81,6 @@ public:
     ListType() = default;
     std::string str(){
         return elements->str()+"[]";
-    }
-    bool equals(Type* type){
-        if(instanceof<ListType>(type)){
-            auto typ = (ListType*)type;
-            return elements->equals(typ->elements);
-        }
-        return false;
     }
     static ListType* get(Type* t, Expression* n){
         static std::map<std::pair<Type*, Expression*>, ListType*> cache;
