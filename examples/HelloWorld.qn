@@ -4,7 +4,7 @@ module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
         io.println("Hello, World!");
-        lng.__syscall__(2, 3, 4, 6);
+        lng.__syscall__(2);
         return 0;
     } 
 

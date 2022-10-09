@@ -2,6 +2,7 @@
 #include "../AST/ast.hh"
 #include "../../lib/error.h"
 #include <string>
+#include <algorithm>
 #include <map>
 #include "llvm/Linker/Linker.h"
 #include "llvm/IR/IRBuilder.h"
@@ -189,19 +190,16 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         bool generatedVarargs = false;
         for (auto p : call->params)
         {
-            if(call->target->isVariadic() && !generatedVarargs){
-                auto param = call->target->params[i];
-                if(param->isVariadic){
-                    auto argCount = call->params.size() - i;
-                    auto llArgCount = builder.getInt32(argCount);
-                    params.push_back(llArgCount);
-                    generatedVarargs = true;
-                }
-            }
             auto type = call->target->getParam(i)->type;
             auto ll_type = getType(type);
             params.push_back(genExpression(p, vars, ll_type));
             i++;
+        }
+        if(call->target->isVariadic()){
+            int idx = call->target->params.size()-1;
+            int argCount = call->params.size()-idx;
+            // Insert the arg_count parameter before the varargs
+            params.insert(params.begin()+idx, builder.getInt32(argCount));
         }
 
         return builder.CreateCall(tgtFn, params);

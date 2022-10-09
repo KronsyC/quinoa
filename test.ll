@@ -9,19 +9,19 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
-  %0 = call i64 @"[vQOn9GHQRq].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
-  %1 = call i64 (i32, i32, ...) @"[nt7Ywln2FC].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 2, i32 3, i32 3, i32 4, i32 6)
+  %0 = call i64 @"[0mSvnixKLO].io.fn_println(PR_string)"(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @str, i32 0, i32 0))
+  %1 = call i64 (i32, i32, ...) @"[8hjpAVGNZN].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 2, i32 0)
   ret i32 0
 }
 
-define i64 @"[vQOn9GHQRq].io.fn_println(PR_string)"(i8* %message) {
+define i64 @"[0mSvnixKLO].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8
   ret i64 69
 }
 
-define i64 @"[nt7Ywln2FC].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 %callNo, i32 %"+vararg_count", ...) {
+define i64 @"[8hjpAVGNZN].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 %callNo, i32 %"+vararg_count", ...) {
 entry_block:
   %"param callNo" = alloca i32, align 4
   store i32 %callNo, i32* %"param callNo", align 4
