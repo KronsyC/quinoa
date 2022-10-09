@@ -11,6 +11,7 @@ class MethodCall : public Expression
 {
 public:
   MethodSignature *target = nullptr;
+  bool nomangle = false;
   CompoundIdentifier *name;
   std::vector<Expression *> params;
 
@@ -31,7 +32,17 @@ public:
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
-
+    if(nomangle){
+      for(auto pair:sigs){
+        auto signame = pair.first;
+        auto sig = pair.second;
+        if(signame==name->str() && sig->nomangle){
+          target = sig;
+          return;
+        }
+      }
+      error("Failed to find appropriate function call for internal method");
+    }
     std::vector<Param *> testparams;
     for (auto p : params){
       auto type = p->getType(type_info);
@@ -42,6 +53,7 @@ public:
     callsig->name = name->last();
     callsig->params = testparams;
     callsig->space = name->all_but_last();
+    callsig->nomangle = nomangle;
     auto sigstr = callsig->sigstr();
 
     CompoundIdentifier callname(name->parts);
@@ -60,6 +72,10 @@ public:
       {
         auto sig = sigpair.second;
         auto name = sigpair.first;
+        if(sig->nomangle){
+          compatabilityScores.push_back(-1);
+          continue;
+        }
         int compat = getCompatabilityScore(sig->sigstr(), callsig->sigstr());
         compatabilityScores.push_back(compat);
       }
@@ -96,13 +112,13 @@ public:
       return;
     }
     target = fn;
+    Logger::debug("Qualified");
   }
 
 private:
   static int getCompatabilityScore(QualifiedMethodSigStr base,
                                    QualifiedMethodSigStr target)
   {
-    Logger::debug("Comparing " + base.str() + " against " + target.str());
     if (base.name->str() != target.name->str())
       return -1;
     // compare namespaces
@@ -245,11 +261,8 @@ public:
 
   Type *getType(LocalTypeTable tt)
   {
-    Logger::debug("im in");
-    Logger::debug("Getting type of sub of " + tgt->str());
     auto elementType = tgt->getType(tt);
     if(elementType==nullptr)error("No Element Type");
-    Logger::debug(tgt->str() + " : " + elementType->str());
     if(!instanceof<TPtr>(elementType))error("List has member type which is a non-pointer");
     return ((TPtr*)elementType)->to;
   }

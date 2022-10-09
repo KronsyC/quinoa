@@ -18,9 +18,22 @@ void qualifyCalls(SourceBlock &code,
 std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
     // Construct a table of all call names -> their signatures
   std::map<std::string, MethodSignature *> sigs;
+
+  // All Implemented Functions
   for (auto method : unit.getAllMethods()) {
     auto name = method->sig->sourcename();
     sigs[name] = method->sig;
+  }
+
+  // All Unimplemented Functions
+  for(auto item:unit.items){
+    if(instanceof<MethodPredeclaration>(item)){
+      auto sig = (MethodPredeclaration*)item;
+      if(sig->sig->nomangle){
+        Logger::debug("Injecting sig " + sig->sig->name->str());
+        sigs[sig->sig->name->str()] = sig->sig;
+      }
+    }
   }
   return sigs;
 }

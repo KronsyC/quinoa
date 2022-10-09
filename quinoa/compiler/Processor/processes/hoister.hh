@@ -7,8 +7,7 @@ using namespace std;
 void hoistDefinitions(CompilationUnit &unit) {
 
   for(auto method:unit.getAllMethods()){
-    auto dec = new MethodPredeclaration;
-    dec->sig = method->sig;
+    auto dec = new MethodPredeclaration(method->sig);
     pushf(unit.items, (TopLevelExpression*)dec);
   }
 }

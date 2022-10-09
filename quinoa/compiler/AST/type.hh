@@ -79,9 +79,11 @@ public:
     Type* elements;
     Expression* size = nullptr;
     ListType() = default;
+
     std::string str(){
         return elements->str()+"[]";
     }
+    
     static ListType* get(Type* t, Expression* n){
         static std::map<std::pair<Type*, Expression*>, ListType*> cache;
         auto fetched = cache[{t, n}];

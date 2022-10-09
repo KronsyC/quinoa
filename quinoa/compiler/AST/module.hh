@@ -38,8 +38,9 @@ class MethodSigStr{
 public:
     Ident* name;
     std::vector<Param*> params;
-
+    bool nomangle = false;
     std::string str(){
+        if(nomangle)return name->str();
         std::string n = "fn_";
         n+=name->str();
         if(params.size()){
@@ -106,7 +107,8 @@ public:
         sigs.name = name;
         sigs.params = params;
         sigs.space = space;
-        if(space==nullptr)error("Space is null?", true);
+        sigs.nomangle = nomangle;
+        if(space==nullptr && !nomangle)error("Space is null?", true);
         return sigs;
     }
     Param* getParam(int n){
@@ -119,6 +121,9 @@ public:
 class MethodPredeclaration:public TopLevelExpression{
 public:
     MethodSignature* sig;
+    MethodPredeclaration(MethodSignature* sig){
+        this->sig = sig;
+    }
 };
 class Method:public ModuleMember, public SourceBlock{
 public:
@@ -167,6 +172,14 @@ public:
 
         }
         return nullptr;
+    }
+    std::vector<Method*> getAllMethods(){
+        std::vector<Method*> ret;
+        for(auto m:this->items){
+            auto mt = (Method*)m;
+            if(instanceof<Method>(m))ret.push_back(mt);
+        }
+        return ret;
     }
     bool hasMethod(std::string name){
         return this->getMethod(name) != nullptr;

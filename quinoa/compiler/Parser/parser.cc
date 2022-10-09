@@ -387,7 +387,6 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             for(auto a:argsCSV){
                 auto param = parseParameter(a);
                 argTypes[param->name->str()] = param->type;
-                Logger::debug(param->name->str() + " : " + param->type->str());
                 params.push_back(param);
             }
             auto method = new Method();

@@ -62,7 +62,8 @@ llvm::Type *getType(Type *type)
         auto p = (TPtr *)type;
         return getType(p->to)->getPointerTo();
     }
-    else if(instanceof<ListType>(type)){
+    else if (instanceof <ListType>(type))
+    {
         auto arr = (ListType *)type;
         auto elementType = getType(arr->elements);
         return elementType->getPointerTo();
@@ -71,25 +72,30 @@ llvm::Type *getType(Type *type)
     {
         error("Custom type support is not yet implemented");
     }
-        return nullptr;
+    return nullptr;
 }
 llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
 {
     auto ret = getType(f.returnType);
-    auto name = mangle?f.sourcename():f.fullname()->str();
+    auto name = mangle ? f.sourcename() : f.fullname()->str();
+    Logger::debug("Creating Function " + name);
     vector<llvm::Type *> args;
     for (auto a : f.params)
         args.push_back(getType(a->type));
     bool isVarArg = false;
-    if(f.params.size()){
-        auto last = f.params[f.params.size()-1];
-        if(last->isVariadic){
+    if (f.params.size())
+    {
+        auto last = f.params[f.params.size() - 1];
+        if (last->isVariadic)
+        {
             isVarArg = true;
-            auto a = f.params[f.params.size()-1];
             args.pop_back();
-            auto t = Primitive::get(PR_int32);
-            args.push_back(getType(t));
-            f.params[f.params.size()-1] = new Param(t, Ident::get("+vararg_count") );
+            if (!f.nomangle)
+            {
+                auto t = Primitive::get(PR_int32);
+                args.push_back(getType(t));
+                f.params[f.params.size() - 1] = new Param(t, Ident::get("+vararg_count"));
+            }
         }
     }
 
@@ -103,7 +109,8 @@ bool isInt(llvm::Type *i)
 {
     return i->isIntegerTy(1) || i->isIntegerTy(8) || i->isIntegerTy(16) || i->isIntegerTy(32) || i->isIntegerTy(64);
 }
-bool isFloat(llvm::Type* i){
+bool isFloat(llvm::Type *i)
+{
     return i->isFloatingPointTy() || i->isHalfTy() || i->isDoubleTy();
 }
 llvm::Constant *createInt(Integer *i, llvm::Type *expected)
@@ -113,11 +120,10 @@ llvm::Constant *createInt(Integer *i, llvm::Type *expected)
         return builder.getInt32(i->value);
     else
     {
-        if (!isInt(expected)){
+        if (!isInt(expected))
+        {
             expected->print(llvm::outs());
-            error("Expected an Integer type for "+ to_string(i->value));
-
-
+            error("Expected an Integer type for " + to_string(i->value));
         }
         return builder.getIntN(expected->getPrimitiveSizeInBits(), i->value);
     }
@@ -151,12 +157,18 @@ llvm::Value *loadVar(Subscript *subscr, TVars vars)
     auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
     return loaded;
 }
-llvm::Value* cast(llvm::Value* val, llvm::Type* type){
-    if(type == nullptr)return val;
-    if(val->getType() == type)return val; 
-    if(isInt(type) && isInt(val->getType()))return builder.CreateIntCast(val, type, true);
-    if(isFloat(type) && isFloat(val->getType()))return builder.CreateFPCast(val, type);
-    if(isInt(type) && val->getType()->isPointerTy())return builder.CreatePtrToInt(val, type);
+llvm::Value *cast(llvm::Value *val, llvm::Type *type)
+{
+    if (type == nullptr)
+        return val;
+    if (val->getType() == type)
+        return val;
+    if (isInt(type) && isInt(val->getType()))
+        return builder.CreateIntCast(val, type, true);
+    if (isFloat(type) && isFloat(val->getType()))
+        return builder.CreateFPCast(val, type);
+    if (isInt(type) && val->getType()->isPointerTy())
+        return builder.CreatePtrToInt(val, type);
     val->print(llvm::outs());
     printf("\n");
     type->print(llvm::outs());
@@ -170,8 +182,9 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
         return createInt((Integer *)expr, expectedType);
     if (instanceof <String>(expr))
         return createStr((String *)expr, expectedType);
-    if(instanceof<Boolean>(expr)){
-        auto boo = (Boolean*)expr;
+    if (instanceof <Boolean>(expr))
+    {
+        auto boo = (Boolean *)expr;
         return builder.getInt1(boo->value);
     }
     if (instanceof <Ident>(expr))
@@ -184,9 +197,10 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
     if (instanceof <MethodCall>(expr))
     {
         auto call = (MethodCall *)expr;
-        if(call->target == nullptr)error("Received an unresolved call for "+call->name->str());
+        if (call->target == nullptr)
+            error("Received an unresolved call for " + call->name->str());
         auto mod = builder.GetInsertBlock()->getParent()->getParent();
-        auto name = call->target->sourcename();
+        auto name = call->target->nomangle ? call->target->name->str() : call->target->sourcename();
         auto tgtFn = mod->getFunction(name);
         if (tgtFn == nullptr)
             error("Failed to call function '" + name + "' (doesn't exist)");
@@ -200,11 +214,12 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
             params.push_back(genExpression(p, vars, ll_type));
             i++;
         }
-        if(call->target->isVariadic()){
-            int idx = call->target->params.size()-1;
-            int argCount = call->params.size()-idx;
+        if (call->target->isVariadic() && !call->target->nomangle)
+        {
+            int idx = call->target->params.size() - 1;
+            int argCount = call->params.size() - idx;
             // Insert the arg_count parameter before the varargs
-            params.insert(params.begin()+idx, builder.getInt32(argCount));
+            params.insert(params.begin() + idx, builder.getInt32(argCount));
         }
 
         return builder.CreateCall(tgtFn, params);
@@ -253,26 +268,27 @@ llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedTyp
     return nullptr;
 }
 
-
-struct ControlFlowInfo{
+struct ControlFlowInfo
+{
     // The block to jump to after the `break` action is invoked
-    llvm::BasicBlock* breakTo;
+    llvm::BasicBlock *breakTo;
 
     // The block to jump to after the `continue` action is invoked
-    llvm::BasicBlock* continueTo;
+    llvm::BasicBlock *continueTo;
 
     // The block to jump to after the `fallthrough` action is invoked
-    llvm::BasicBlock* fallthroughTo;
-    
+    llvm::BasicBlock *fallthroughTo;
+
     // The block to break to after the inner scope is executed
-    llvm::BasicBlock* exitBlock;
+    llvm::BasicBlock *exitBlock;
 };
 
 void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, ControlFlowInfo cfi = {})
 {
     for (auto stm : content)
     {
-        if(!stm->active)continue;
+        if (!stm->active)
+            continue;
         if (instanceof <InitializeVar>(stm))
         {
             auto init = (InitializeVar *)stm;
@@ -282,9 +298,9 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             vars.insert({varname, alloca});
         }
-        else if(instanceof<WhileCond>(stm)){
-            Logger::debug("Generating while");
-            auto loop = (WhileCond*)stm;
+        else if (instanceof <WhileCond>(stm))
+        {
+            auto loop = (WhileCond *)stm;
             auto cond = genExpression(loop->cond, vars, getType(Primitive::get(PR_boolean)));
 
             auto evaluatorBlock = llvm::BasicBlock::Create(ctx, "while_evaluator", func);
@@ -297,9 +313,9 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             cf.exitBlock = continuationBlock;
 
             // Set up the evaluator
-            builder.CreateBr(evaluatorBlock);      
+            builder.CreateBr(evaluatorBlock);
             builder.SetInsertPoint(evaluatorBlock);
-            builder.CreateCondBr(cond, runBlock, continuationBlock);    
+            builder.CreateCondBr(cond, runBlock, continuationBlock);
 
             // Set up the content
             builder.SetInsertPoint(runBlock);
@@ -307,7 +323,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             builder.CreateBr(evaluatorBlock);
 
             // generate the continuation
-            builder.SetInsertPoint(continuationBlock);  
+            builder.SetInsertPoint(continuationBlock);
         }
         else if (instanceof <Return>(stm))
         {
@@ -324,9 +340,10 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             error("Failed Generate IR for statement");
     }
 }
-TVars varifyArgs(llvm::Function* fn)
+TVars varifyArgs(llvm::Function *fn)
 {
-    if(fn == nullptr)error("Cannot varify the args of a null function", true);
+    if (fn == nullptr)
+        error("Cannot varify the args of a null function", true);
     TVars vars;
 
     // Inject the args as variables
@@ -355,8 +372,10 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
             auto method = (Method *)child;
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
-            if(fn==nullptr)error("Function " + fname +" could not be found");
-            if(!method->items.size())continue;
+            if (fn == nullptr)
+                error("Function " + fname + " could not be found");
+            if (!method->items.size())
+                continue;
             auto entry_block = llvm::BasicBlock::Create(ctx, "entry_block", fn);
 
             builder.SetInsertPoint(entry_block);
@@ -385,21 +404,22 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
-        else if (instanceof<Entrypoint>(unit))
+        else if (instanceof <Entrypoint>(unit))
         {
             auto entry = (Entrypoint *)unit;
             auto tgt = entry->calls->sourcename();
             auto fn = rootmod->getFunction(tgt);
             if (fn == nullptr)
-                error("Failed to locate entrypoint function '"+tgt+"'");
+                error("Failed to locate entrypoint function '" + tgt + "'");
             // Construct the entrypoint method
             auto efn = createFunction(*entry->sig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
             auto block = llvm::BasicBlock::Create(ctx, "main_entry", efn);
             builder.SetInsertPoint(block);
             genSource(entry->items, efn, varifyArgs(efn));
         }
-        else if(instanceof<MethodPredeclaration>(unit)){
-            auto dec = (MethodPredeclaration*)unit;
+        else if (instanceof <MethodPredeclaration>(unit))
+        {
+            auto dec = (MethodPredeclaration *)unit;
             defs.push_back(*dec->sig);
         }
         else

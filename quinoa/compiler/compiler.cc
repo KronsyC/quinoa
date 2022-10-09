@@ -29,7 +29,6 @@ llvm::Module* createModule(std::string sourceCode, std::string path, bool log){
     // Lex the file into a token vector
     auto ast = makeAst(sourceCode, path, false);
     Processor::process(ast, true);
-    Logger::debug("Preprocessed the parent AST");
     if(log)Logger::log("Generated the AST");
     auto mod = Codegen::codegen(ast);
     if(log)Logger::log("Generated LLVM IR Code");

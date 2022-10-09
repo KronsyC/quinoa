@@ -15,7 +15,6 @@ bool resolveTypes(CompilationUnit& unit){
 		for(auto child:flat){
 			if(!instanceof<InitializeVar>(child))continue;
 			auto init = static_cast<InitializeVar*>(child);
-			Logger::debug("Searching for initializer " + init->varname->str());
 
 			if(init->type != nullptr)continue;
 			// Locate the initializer expression for this variable

@@ -99,8 +99,8 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
   resolveSelfReferences(unit);
   hoistVarInitializations(unit);
   if (finalize) {
+    injectPrimitiveFunctions(unit);
     hoistDefinitions(unit);
-
     bool resolved = false;
     while(!resolved){
       resolved = resolveTypes(unit);
