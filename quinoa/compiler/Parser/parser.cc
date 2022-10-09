@@ -28,7 +28,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
 {
     expects(toks[0], TT_identifier);
     // Simplest Case (single-part)
-    if (toks.size() < 3 || !(toks[1].is(TT_dot) && toks[2].is(TT_identifier)))
+    if (toks.size() < 3 || !(toks[1].is(TT_double_colon) && toks[2].is(TT_identifier)))
         return new CompoundIdentifier(popf(toks).value);
     vector<Identifier *> parts;
     bool expectDot = false;
@@ -36,7 +36,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
     {
         if (expectDot)
         {
-            if (!t.is(TT_dot))
+            if (!t.is(TT_double_colon))
                 break;
             expectDot = false;
             continue;

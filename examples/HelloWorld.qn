@@ -1,10 +1,10 @@
 import @io;
-import @lang.primitives as lng;
+import @lang::primitives as lng;
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        io.println("Hello, World!");
-        lng.__syscall__(2);
+        io::println("Hello, World!");
+        lng::__syscall__(2);
         return 0;
     } 
 

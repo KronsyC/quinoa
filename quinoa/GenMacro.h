@@ -66,6 +66,7 @@
 	new TokenDefinition(TT_r_square_bracket, "__r_square_bracket", {"]"}, "", false, true, 0, 0, 0),\
 	new TokenDefinition(TT_comma, "__comma", {","}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_colon, "__colon", {":"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_double_colon, "__double_colon", {"::"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_semicolon, "__semicolon", {";"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_arrow, "__arrow", {"->"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_question_mark, "__question_mark", {"?"}, "", false, false, 0, 0, 0),\
@@ -164,6 +165,7 @@
 	TT_r_square_bracket,\
 	TT_comma,\
 	TT_colon,\
+	TT_double_colon,\
 	TT_semicolon,\
 	TT_arrow,\
 	TT_question_mark,\

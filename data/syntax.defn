@@ -152,6 +152,9 @@ comma
 @alias :
 colon
 
+@alias ::
+double_colon
+
 @alias ;
 semicolon
 
