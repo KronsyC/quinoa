@@ -35,12 +35,12 @@ public:
     }   
     Type *getType(LocalTypeTable _)
     {
-        if(value <= maxVal(8))return new Primitive(PR_int8);
-        if(value <= maxVal(16))return new Primitive(PR_int16);
-        if(value <= maxVal(32))return new Primitive(PR_int32);
-        if(value <= maxVal(64))return new Primitive(PR_int64);
+        if(value <= maxVal(8))return Primitive::get(PR_int8);
+        if(value <= maxVal(16))return Primitive::get(PR_int16);
+        if(value <= maxVal(32))return Primitive::get(PR_int32);
+        if(value <= maxVal(64))return Primitive::get(PR_int64);
         error("Cannot infer types for ints larger than 64 bit");
-        return new Primitive(PR_int64);
+        return Primitive::get(PR_int64);
     }
 
 };
@@ -50,7 +50,7 @@ public:
     using Constant::Constant;
     Type *getType(LocalTypeTable _)
     {
-        return new Primitive(PR_float64);
+        return Primitive::get(PR_float64);
     }
 };
 class String : public Constant<std::string>
@@ -62,7 +62,7 @@ public:
     String() = default;
     Type *getType(LocalTypeTable _)
     {
-        return new TPtr(new Primitive(PR_int8));
+        return TPtr::get(Primitive::get(PR_int8));
     }
 };
 class Boolean : public Constant<bool>
@@ -71,6 +71,6 @@ public:
     using Constant::Constant;
     Type *getType(LocalTypeTable _)
     {
-        return new Primitive(PR_boolean);
+        return Primitive::get(PR_boolean);
     }
 };

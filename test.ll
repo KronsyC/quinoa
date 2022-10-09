@@ -13,13 +13,13 @@ entry_block:
   store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @str, i32 0, i32 0), i8** %"var message", align 8
   %"loaded var 'message'" = load i8*, i8** %"var message", align 8
   %0 = ptrtoint i8* %"loaded var 'message'" to i32
-  %1 = call i64 (i32, i32, ...) @"[rL3kPxLHfc].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 2, i32 3, i32 1, i32 %0, i32 2)
+  %1 = call i64 (i32, i32, ...) @"[o1knuJwL4O].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32 2, i32 3, i32 1, i32 %0, i32 2)
   ret i32 0
 }
 
-declare i64 @"[rL3kPxLHfc].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32, i32, ...)
+declare i64 @"[o1knuJwL4O].primitives.fn___syscall__(PR_int32,...PR_int32[])"(i32, i32, ...)
 
-define i64 @"[76XLCWstzv].io.fn_println(PR_string)"(i8* %message) {
+define i64 @"[CzzoXOsEhP].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8

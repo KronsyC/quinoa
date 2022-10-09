@@ -50,12 +50,12 @@ void genEntryPoint(CompilationUnit &unit) {
     Entrypoint e(main->sig);
     e.sig = new MethodSignature();
     vector<Param *> params;
-    params.push_back(new Param(new Primitive(PR_int32), new Ident("argc")));
+    params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
     params.push_back(
-        new Param(new TPtr(new Primitive(PR_string)), new Ident("argv")));
-    e.sig->name = new Ident("main");
+        new Param(TPtr::get(Primitive::get(PR_string)), Ident::get("argv")));
+    e.sig->name = Ident::get("main");
     e.sig->params = params;
-    e.sig->returnType = new Primitive(PR_int32);
+    e.sig->returnType = Primitive::get(PR_int32);
     auto call = new MethodCall();
     call->target = main->sig;
     auto ret = (Primitive *)main->sig->returnType;
@@ -64,7 +64,7 @@ void genEntryPoint(CompilationUnit &unit) {
       e.items.push_back(new Return(new Integer(0)));
     } else {
 
-      call->params = {new Ident("argc"), new Ident("argv")};
+      call->params = {Ident::get("argc"), Ident::get("argv")};
       e.items.push_back(new Return(call));
     }
     unit.items.push_back(new Entrypoint(e));

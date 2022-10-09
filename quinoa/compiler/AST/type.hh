@@ -15,11 +15,13 @@ static std::map<PrimitiveType, std::string> primitive_names{
     PRIMITIVES_ENUM_NAMES
 };
 class Primitive:public Type{
-public:
-    PrimitiveType type;
+private:
     Primitive(PrimitiveType t){
         type = t;
     }
+public:
+    PrimitiveType type;
+
     std::string str(){
         return primitive_names[type];
     }
@@ -29,6 +31,17 @@ public:
             return typ->type == this->type;
         }
         return false;
+    }
+
+    static Primitive* get(PrimitiveType t){
+        static std::map<PrimitiveType, Primitive*> cache;
+        auto fetched = cache[t];
+        if(fetched == nullptr){
+            auto prim = new Primitive(t);
+            cache[t] = prim;
+            return prim;
+        }
+        return fetched;
     }
 };
 
@@ -40,11 +53,13 @@ public:
     }
 };
 class TPtr:public Type{
-public:
-    Type* to;
+private:
     TPtr(Type* type){
         to = type;
     }
+public:
+    Type* to;
+
     std::string str(){
         return to->str()+"*";
     }
@@ -55,16 +70,29 @@ public:
         }
         return false;
     }
+
+    static TPtr* get(Type* t){
+        static std::map<Type*, TPtr*> cache;
+        auto fetched = cache[t];
+        if(fetched == nullptr){
+            auto val = new TPtr(t);
+            cache[t] = val;
+            return val;
+        }
+        return fetched;
+    }
 };
 
 class ListType:public Type{
-public:
-    Type* elements;
-    Expression* size = nullptr;
+private:
     ListType(Type* eT, Expression* n){
         elements = eT;
         size = n;
     }
+public:
+    Type* elements;
+    Expression* size = nullptr;
+    ListType() = default;
     std::string str(){
         return elements->str()+"[]";
     }
@@ -74,5 +102,15 @@ public:
             return elements->equals(typ->elements);
         }
         return false;
+    }
+    static ListType* get(Type* t, Expression* n){
+        static std::map<std::pair<Type*, Expression*>, ListType*> cache;
+        auto fetched = cache[{t, n}];
+        if(fetched == nullptr){
+            auto val = new ListType(t, n);
+            cache[{t, n}] = val;
+            return val;
+        }
+        return fetched;
     }
 };

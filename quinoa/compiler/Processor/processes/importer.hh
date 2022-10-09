@@ -42,7 +42,7 @@ Module *getPrimaryExport(CompilationUnit &unit) {
 
 void prefixifyChildren(CompilationUnit &unit, std::string prefix) {
   for (auto mod : unit.getAllModules()) 
-      pushf(mod->name->parts, (Identifier *)new Ident("[" + prefix + "]"));
+      pushf(mod->name->parts, (Identifier *)Ident::get("[" + prefix + "]"));
 }
 void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
                 CompoundIdentifier *fullname) {

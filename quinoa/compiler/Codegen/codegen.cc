@@ -87,9 +87,9 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
             isVarArg = true;
             auto a = f.params[f.params.size()-1];
             args.pop_back();
-            auto t = new Primitive(PR_int32);
+            auto t = Primitive::get(PR_int32);
             args.push_back(getType(t));
-            f.params[f.params.size()-1] = new Param(t, new Ident("+vararg_count") );
+            f.params[f.params.size()-1] = new Param(t, Ident::get("+vararg_count") );
         }
     }
 
@@ -285,7 +285,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         else if(instanceof<WhileCond>(stm)){
             Logger::debug("Generating while");
             auto loop = (WhileCond*)stm;
-            auto cond = genExpression(loop->cond, vars, getType(new Primitive(PR_boolean)));
+            auto cond = genExpression(loop->cond, vars, getType(Primitive::get(PR_boolean)));
 
             auto evaluatorBlock = llvm::BasicBlock::Create(ctx, "while_evaluator", func);
             auto runBlock = llvm::BasicBlock::Create(ctx, "while_content", func);

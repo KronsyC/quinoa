@@ -17,12 +17,13 @@ public:
 };
 
 class Ident:public Identifier{
-public:
-    std::string name;
+private:
     Ident(std::string name){
         this->name = name;
     }
+public:
     Ident() = default;
+    std::string name;
     std::string str(){
         auto name = this->name;
         return name;
@@ -38,6 +39,17 @@ public:
 
         return type;
     }
+
+    static Ident* get(std::string name){
+        static std::map<std::string, Ident*> cache;
+        auto val = cache[name];
+        if(val == nullptr){
+            auto ident = new Ident(name);
+            cache[name] = ident;
+            return ident;
+        }
+        return val;
+    }
 };
 class CompoundIdentifier:public Ident{
 public:
@@ -48,7 +60,7 @@ public:
     }
     CompoundIdentifier(std::string value)
     {
-        auto ident = new Ident(value);
+        auto ident = Ident::get(value);
         this->parts = {};
         this->parts.push_back(ident);
         flatify();

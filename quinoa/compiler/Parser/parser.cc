@@ -43,7 +43,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
         }
         if (t.is(TT_identifier))
         {
-            parts.push_back(new Ident(t.value));
+            parts.push_back(Ident::get(t.value));
             expectDot = true;
             continue;
         }
@@ -56,7 +56,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
 Type* parseType(vector<Token>& toks){
     if(!toks.size())error("Failed To Parse Type");
     Type* ret = nullptr;
-    if(toks[0].isTypeTok())ret = new Primitive(primitive_mappings[popf(toks).type]);
+    if(toks[0].isTypeTok())ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else{
         auto references = parseIdentifier(toks);
         ret = new CustomType(references);
@@ -64,12 +64,12 @@ Type* parseType(vector<Token>& toks){
 
     while(toks.size() && toks[0].is(TT_star)){
         popf(toks);
-        ret = new TPtr(ret);
+        ret = TPtr::get(ret);
     }
     if(toks.size() && toks[0].is(TT_l_square_bracket)){
         // Type Array
         auto size = readBlock(toks, IND_square_brackets);
-        if(size.size()==0)ret=new ListType(ret, nullptr);
+        if(size.size()==0)ret=ListType::get(ret, nullptr);
         else{
             error("Variable Length Arrays are currently not supported");
         }
@@ -132,7 +132,7 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
         case TT_literal_float:
             return new Float(stold(toks[0].value));
         case TT_identifier:
-            return new Ident(toks[0].value);
+            return Ident::get(toks[0].value);
         default:
             error("Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'");
         }
@@ -304,7 +304,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
                 vartype = parseType(line);
             }       
             else vartype = nullptr;
-            auto name = new Ident(varname);
+            auto name = Ident::get(varname);
             name->ctx = block->self;
 
             // Add the variable to the type table
@@ -353,7 +353,7 @@ Param* parseParameter(vector<Token>& toks){
         printToks(toks);
         error("Failed to Parse Parameter");
     }
-    auto p = new Param(type, new Ident(name.value));
+    auto p = new Param(type, Ident::get(name.value));
     p->isVariadic = isVarParam;
     return p;
 }
@@ -378,7 +378,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 returnType = parseType(toks);
             }
             else{
-                returnType = new Primitive(PR_void);
+                returnType = Primitive::get(PR_void);
             }
 
             auto argsCSV = parseCommaSeparatedValues(argsTokens);
@@ -406,7 +406,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             // delete content;
             method->sig = sig;
 
-            sig->name = new Ident(nameTok.value);
+            sig->name = Ident::get(nameTok.value);
             sig->space = mod->name;
             sig->params = params;
             sig->returnType = returnType;

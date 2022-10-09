@@ -47,7 +47,7 @@ public:
     CompoundIdentifier callname(name->parts);
     // replace the calls name with its mangled form
     callname.parts.pop_back();
-    callname.parts.push_back((Identifier *)new Ident(sigstr.str()));
+    callname.parts.push_back((Identifier *)Ident::get(sigstr.str()));
     // attempt to find a function with the exact sig
     auto fn = sigs[callname.str()];
     if (fn == nullptr)
