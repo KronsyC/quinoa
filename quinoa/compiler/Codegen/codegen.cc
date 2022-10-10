@@ -71,7 +71,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
-            auto alloca = builder.CreateAlloca(type, nullptr, "var " + varname);
+            auto alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
 
             vars.insert({varname, alloca});
         }
@@ -80,9 +80,9 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto loop = (WhileCond *)stm;
             auto cond = loop->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
 
-            auto evaluatorBlock = llvm::BasicBlock::Create(ctx, "while_evaluator", func);
-            auto runBlock = llvm::BasicBlock::Create(ctx, "while_content", func);
-            auto continuationBlock = llvm::BasicBlock::Create(ctx, "while_continuation", func);
+            auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "while_evaluator", func);
+            auto runBlock = llvm::BasicBlock::Create(*ctx(), "while_content", func);
+            auto continuationBlock = llvm::BasicBlock::Create(*ctx(), "while_continuation", func);
 
             ControlFlowInfo cf = cfi;
             cf.breakTo = continuationBlock;
@@ -90,23 +90,23 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             cf.exitBlock = continuationBlock;
 
             // Set up the evaluator
-            builder.CreateBr(evaluatorBlock);
-            builder.SetInsertPoint(evaluatorBlock);
-            builder.CreateCondBr(cond, runBlock, continuationBlock);
+            builder()->CreateBr(evaluatorBlock);
+            builder()->SetInsertPoint(evaluatorBlock);
+            builder()->CreateCondBr(cond, runBlock, continuationBlock);
 
             // Set up the content
-            builder.SetInsertPoint(runBlock);
+            builder()->SetInsertPoint(runBlock);
             genSource(loop->items, func, vars, cf);
-            builder.CreateBr(evaluatorBlock);
+            builder()->CreateBr(evaluatorBlock);
 
             // generate the continuation
-            builder.SetInsertPoint(continuationBlock);
+            builder()->SetInsertPoint(continuationBlock);
         }
         else if (instanceof <Return>(stm))
         {
             auto ret = (Return *)stm;
             auto expr = ret->retValue->getLLValue(vars, func->getReturnType());
-            builder.CreateRet(expr);
+            builder()->CreateRet(expr);
         }
         // interpret as expression with dumped value
         else if (instanceof <Expression>(stm))
@@ -127,15 +127,15 @@ TVars varifyArgs(llvm::Function *fn)
     for (int i = 0; i < fn->arg_size(); i++)
     {
         auto arg = fn->getArg(i);
-        auto alloc = builder.CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
-        builder.CreateStore(arg, alloc);
+        auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
+        builder()->CreateStore(arg, alloc);
         vars[arg->getName().str()] = alloc;
     }
     return vars;
 }
 std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSignature> injectedDefinitions)
 {
-    auto llmod = std::make_unique<llvm::Module>(mod.name->str(), ctx);
+    auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *ctx());
 
     auto m = llmod.get();
     for (auto d : injectedDefinitions)
@@ -153,12 +153,12 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
                 error("Function " + fname + " could not be found");
             if (!method->items.size())
                 continue;
-            auto entry_block = llvm::BasicBlock::Create(ctx, "entry_block", fn);
+            auto entry_block = llvm::BasicBlock::Create(*ctx(), "entry_block", fn);
 
-            builder.SetInsertPoint(entry_block);
+            builder()->SetInsertPoint(entry_block);
             genSource(method->items, fn, varifyArgs(fn));
             if (fn->getReturnType()->isVoidTy())
-                builder.CreateRetVoid();
+                builder()->CreateRetVoid();
             continue;
         }
         else
@@ -169,7 +169,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
 
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {
-    auto rootmod = new llvm::Module("Quinoa Program", ctx);
+    auto rootmod = new llvm::Module("Quinoa Program", *ctx());
     std::vector<MethodSignature> defs;
     // Generate all of the modules, and link them into the root module "Quinoa Program"
     for (auto unit : ast.items)
@@ -190,8 +190,8 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
                 error("Failed to locate entrypoint function '" + tgt + "'");
             // Construct the entrypoint method
             auto efn = createFunction(*entry->sig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
-            auto block = llvm::BasicBlock::Create(ctx, "main_entry", efn);
-            builder.SetInsertPoint(block);
+            auto block = llvm::BasicBlock::Create(*ctx(), "main_entry", efn);
+            builder()->SetInsertPoint(block);
             genSource(entry->items, efn, varifyArgs(efn));
         }
         else if (instanceof <MethodPredeclaration>(unit))

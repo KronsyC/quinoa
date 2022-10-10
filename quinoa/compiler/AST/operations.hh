@@ -33,7 +33,7 @@ public:
   {
     if (target == nullptr)
       error("Call to " + name->str() + " is unresolved");
-    auto mod = builder.GetInsertBlock()->getParent()->getParent();
+    auto mod = builder()->GetInsertBlock()->getParent()->getParent();
     auto name = target->nomangle ? target->name->str() : target->sourcename();
     auto tgtFn = mod->getFunction(name);
     if (tgtFn == nullptr)
@@ -53,10 +53,10 @@ public:
       int idx = target->params.size() - 1;
       int argCount = params.size() - idx;
       // Insert the arg_count parameter before the varargs
-      llparams.insert(llparams.begin() + idx, builder.getInt32(argCount));
+      llparams.insert(llparams.begin() + idx, builder()->getInt32(argCount));
     }
 
-    return builder.CreateCall(tgtFn, llparams);
+    return builder()->CreateCall(tgtFn, llparams);
   }
   void qualify(
       std::map<std::string, MethodSignature *> sigs,
@@ -242,27 +242,22 @@ public:
       error("List has member type which is a non-pointer");
     return ((TPtr *)elementType)->to;
   }
+
+  llvm::Value* getLLValue(TVars vars, llvm::Type* target=nullptr){
+    auto name = tgt;
+    auto var = name->getLLValue(vars);
+    auto varl = builder()->CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
+    auto idx = item->getLLValue(vars);
+    auto loaded = builder()->CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
+    return loaded;
+
+  }
 };
 enum BinaryOp
 {
   INFIX_ENUM_MEMBERS
 };
-llvm::Value *loadIVar(Identifier *ident, TVars vars)
-{
-    auto loaded = vars[ident->str()];
-    if (loaded == nullptr)
-        error("Failed to read variable '" + ident->str() + "'");
-    return loaded;
-}
-llvm::Value *loadSVar(Subscript *subscr, TVars vars)
-{
-    auto name = subscr->tgt;
-    auto var = loadIVar(name, vars);
-    auto varl = builder.CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
-    auto idx = subscr->item->getLLValue(vars);
-    auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
-    return loaded;
-}
+
 static std::map<TokenType, BinaryOp> binary_op_mappings{INFIX_ENUM_MAPPINGS};
 class BinaryOperation : public Expression
 {
@@ -290,26 +285,21 @@ public:
   }
 
   llvm::Value* getLLValue(TVars types, llvm::Type* expected){
+    Logger::debug("Gen binop");
     auto l = left->getLLValue(types);
+    Logger::debug("did left");
     auto r = right->getLLValue(types);
-    if(instanceof<Identifier>(left)){
-        llvm::Value *var;
-          if (instanceof <Identifier>(left))
-              var = loadIVar((Identifier *)left, types);
-          else if (instanceof <Subscript>(left))
-              var = loadSVar((Subscript *)left, types);
-          else
-              error("Failed to load Variable");
-          builder.CreateStore(r, var);
-          return r;
+    Logger::debug("gen children");
+    switch(op){
+      case BIN_assignment: {
+        Logger::debug("Creating Assignment");
+        builder()->CreateStore(r, l);
+        return r;
+      };
+      case BIN_plus: return builder()->CreateAdd(l, r);
+      default: error("Failed to generate IR for expression");
     }
-    else{
 
-      switch(op){
-        case BIN_plus: return builder.CreateAdd(l, r);
-        default: error("Failed to generate IR for expression");
-      }
-    }
     return nullptr;
   }
 };

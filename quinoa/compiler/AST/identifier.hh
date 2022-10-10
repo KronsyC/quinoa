@@ -40,7 +40,12 @@ public:
         auto type = (*ctx->local_types)[str()];
         return type;
     }
-
+    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        auto loaded = vars[str()];
+        if (loaded == nullptr)
+            error("Failed to read variable '" + str() + "'");
+        return loaded;
+    }
     static Ident* get(std::string name, SourceBlock* ctx=nullptr){
         static std::map<std::pair<std::string, SourceBlock*>, Ident*> cache;
         auto val = cache[{name, ctx}];

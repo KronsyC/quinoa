@@ -20,6 +20,11 @@ public:
         error("GetType not implemented for constant", true);
         return nullptr;
     }
+    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        error("Cannot get llvalue for constant");
+        return nullptr;
+    }
+
 };
 class Integer : public Constant<unsigned long long>
 {
@@ -44,9 +49,9 @@ public:
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
         auto myType = getType();
-        auto myVal = builder.getIntN(myType->getLLType()->getPrimitiveSizeInBits(), value);
+        auto myVal = builder()->getIntN(myType->getLLType()->getPrimitiveSizeInBits(), value);
         if(expected==nullptr)return myVal;
-        else return builder.CreateIntCast(myVal, expected, true);
+        else return builder()->CreateIntCast(myVal, expected, true);
 
     }
 
@@ -73,7 +78,9 @@ public:
         return TPtr::get(Primitive::get(PR_int8));
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
-        return builder.CreateGlobalStringPtr(value);
+        auto st = builder()->CreateGlobalStringPtr(value, "str");
+        Logger::debug("made str");
+        return st;
     }
 };
 class Boolean : public Constant<bool>
@@ -85,9 +92,9 @@ public:
         return Primitive::get(PR_boolean);
     }
     virtual llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
-        auto val = value?builder.getTrue():builder.getFalse();
+        auto val = value?builder()->getTrue():builder()->getFalse();
         if(expected==nullptr)return val;
-        else return builder.CreateIntCast(val, expected, true);
+        else return builder()->CreateIntCast(val, expected, true);
     }
 
 };

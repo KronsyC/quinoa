@@ -46,7 +46,7 @@ public:
     };
 
     virtual llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
-        error("Cannot get llvm value for base expression type");
+        error("Cannot get llvm value for base expression type", true);
         return nullptr;
     }
 };

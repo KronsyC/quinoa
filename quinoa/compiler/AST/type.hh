@@ -39,36 +39,36 @@ public:
         switch (type)
         {
         case PR_int8:
-            return llvm::Type::getInt8Ty(ctx);
+            return llvm::Type::getInt8Ty(*ctx());
         case PR_int16:
-            return llvm::Type::getInt16Ty(ctx);
+            return llvm::Type::getInt16Ty(*ctx());
         case PR_int32:
-            return llvm::Type::getInt32Ty(ctx);
+            return llvm::Type::getInt32Ty(*ctx());
         case PR_int64:
-            return llvm::Type::getInt64Ty(ctx);
+            return llvm::Type::getInt64Ty(*ctx());
 
         case PR_uint8:
-            return llvm::Type::getInt8Ty(ctx);
+            return llvm::Type::getInt8Ty(*ctx());
         case PR_uint16:
-            return llvm::Type::getInt16Ty(ctx);
+            return llvm::Type::getInt16Ty(*ctx());
         case PR_uint32:
-            return llvm::Type::getInt32Ty(ctx);
+            return llvm::Type::getInt32Ty(*ctx());
         case PR_uint64:
-            return llvm::Type::getInt64Ty(ctx);
+            return llvm::Type::getInt64Ty(*ctx());
 
         case PR_float16:
-            return llvm::Type::getHalfTy(ctx);
+            return llvm::Type::getHalfTy(*ctx());
         case PR_float32:
-            return llvm::Type::getFloatTy(ctx);
+            return llvm::Type::getFloatTy(*ctx());
         case PR_float64:
-            return llvm::Type::getDoubleTy(ctx);
+            return llvm::Type::getDoubleTy(*ctx());
 
         case PR_boolean:
-            return llvm::Type::getInt1Ty(ctx);
+            return llvm::Type::getInt1Ty(*ctx());
         case PR_string:
-            return llvm::Type::getInt8PtrTy(ctx); // This type is just temporary //TODO: implement string module within the language
+            return llvm::Type::getInt8PtrTy(*ctx()); // This type is just temporary //TODO: implement string module within the language
         case PR_void:
-            return llvm::Type::getVoidTy(ctx);
+            return llvm::Type::getVoidTy(*ctx());
         default:
             error("Failed to generate primitive for " + std::to_string(type));
         }
