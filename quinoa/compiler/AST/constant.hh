@@ -15,7 +15,7 @@ public:
     std::vector<Statement*> flatten(){
         return {this};
     }
-    Type *getType(LocalTypeTable _)
+    Type *getType()
     {
         error("GetType not implemented for constant", true);
         return nullptr;
@@ -33,7 +33,7 @@ public:
         if(bits==64)return 18446744073709551615U;
         return ((long long)1 << bits)-1;
     }   
-    Type *getType(LocalTypeTable _)
+    Type *getType()
     {
         if(value <= maxVal(8))return Primitive::get(PR_int8);
         if(value <= maxVal(16))return Primitive::get(PR_int16);
@@ -42,13 +42,21 @@ public:
         error("Cannot infer types for ints larger than 64 bit");
         return Primitive::get(PR_int64);
     }
+    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        auto myType = getType();
+        auto myVal = builder.getIntN(myType->getLLType()->getPrimitiveSizeInBits(), value);
+        if(expected==nullptr)return myVal;
+        else return builder.CreateIntCast(myVal, expected, true);
+
+    }
+
 
 };
 class Float : public Constant<long double>
 {
 public:
     using Constant::Constant;
-    Type *getType(LocalTypeTable _)
+    Type *getType()
     {
         return Primitive::get(PR_float64);
     }
@@ -60,17 +68,26 @@ public:
         this->value = val;
     }
     String() = default;
-    Type *getType(LocalTypeTable _)
+    Type *getType()
     {
         return TPtr::get(Primitive::get(PR_int8));
+    }
+    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        return builder.CreateGlobalStringPtr(value);
     }
 };
 class Boolean : public Constant<bool>
 {
 public:
     using Constant::Constant;
-    Type *getType(LocalTypeTable _)
+    Type *getType()
     {
         return Primitive::get(PR_boolean);
     }
+    virtual llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        auto val = value?builder.getTrue():builder.getFalse();
+        if(expected==nullptr)return val;
+        else return builder.CreateIntCast(val, expected, true);
+    }
+
 };

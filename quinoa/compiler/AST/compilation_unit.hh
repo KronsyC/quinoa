@@ -7,9 +7,7 @@ public:
     std::vector<Module*> getAllModules(){
         std::vector<Module*> ret;
         for(auto child:items){
-            if(instanceof<Module>(child)){
-                ret.push_back((Module*)child);
-            }        
+            if(child->isModule())ret.push_back((Module*)child);
            }
         return ret;
     }

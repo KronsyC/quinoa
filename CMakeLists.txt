@@ -3,7 +3,7 @@ cmake_minimum_required( VERSION 3.16 )
 project( quinoa-compiler )
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+set(CMAKE_CXX_COMPILER /usr/bin/g++)
 execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE SYS_LIBS )
 execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE LIBS )
 execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LDF )
@@ -16,12 +16,12 @@ string(STRIP ${LDF} LDF)
 link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
-include(FetchContent)
-FetchContent_Declare(toml11                              # name of the content
-  GIT_REPOSITORY https://github.com/ToruNiina/toml11.git  # the repository
-  GIT_TAG        v3.7.1
-)
-FetchContent_MakeAvailable(toml11)
+# include(FetchContent)
+# FetchContent_Declare(toml11                              # name of the content
+  # GIT_REPOSITORY https://github.com/ToruNiina/toml11.git  # the repository
+  # GIT_TAG        v3.7.1
+# )
+# FetchContent_MakeAvailable(toml11)
 add_executable(quinoa ${sources})
 
-target_link_libraries(quinoa PRIVATE toml11)
+# target_link_libraries(quinoa PRIVATE toml11)

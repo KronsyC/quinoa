@@ -5,7 +5,6 @@
 #include <ctime>
 #include <regex>
 #include <unistd.h>
-#include <toml.hpp>
 using namespace std;
 
 std::string genRandomStr(int size) {
@@ -102,7 +101,7 @@ void resolveImports(CompilationUnit &unit) {
   int removals = 0;
   for (int i = 0; i < unit.items.size(); i++) {
     auto item = unit.items[i - removals];
-    if (instanceof <Import>(item)) {
+    if (item->isImport()) {
       auto import = (Import *)item;
       // TODO: Implement config-file based imports (allows custom stdlib and a
       // ton of

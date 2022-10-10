@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <string>
+#include "../llvm_globals.h"
 #define LocalTypeTable std::map<std::string, Type*>
 
 #define printTypeTable(tt) \
@@ -17,7 +18,6 @@ inline bool instanceof (T * item)
 {
     return dynamic_cast<Base *>(item) != nullptr;
 }
-
 
 
 #include "../../lib/logger.h"

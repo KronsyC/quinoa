@@ -13,18 +13,18 @@ entry_block:
   store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @str, i32 0, i32 0), i8** %"var message", align 8
   %"loaded var 'message'" = load i8*, i8** %"var message", align 8
   %0 = ptrtoint i8* %"loaded var 'message'" to i64
-  %1 = call i64 (i64, i32, ...) @"[VbIDx9BknR].primitives.fn___syscall__(PR_int64,...PR_int64[])"(i64 2, i32 3, i64 1, i64 %0, i64 2)
+  %1 = call i64 (i64, i32, ...) @"[3jw022f35A].primitives.fn___syscall__(PR_int64,...PR_int64[])"(i64 2, i32 3, i64 1, i64 %0, i64 2)
   ret i32 0
 }
 
-define i64 @"[t8YWQlndZS].io.fn_println(PR_string)"(i8* %message) {
+define i64 @"[fBxKTeuJA9].io.fn_println(PR_string)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8
   ret i64 69
 }
 
-define i64 @"[VbIDx9BknR].primitives.fn___syscall__(PR_int64,...PR_int64[])"(i64 %callNo, i32 %"+vararg_count", ...) {
+define i64 @"[3jw022f35A].primitives.fn___syscall__(PR_int64,...PR_int64[])"(i64 %callNo, i32 %"+vararg_count", ...) {
 entry_block:
   %"param callNo" = alloca i64, align 8
   store i64 %callNo, i64* %"param callNo", align 4

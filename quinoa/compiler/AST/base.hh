@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "../../lib/error.h"
+#include "llvm/IR/Type.h"
 class AstNode
 {
 public:
@@ -30,15 +31,24 @@ public:
         error("Cannot stringify base type");
         return "";
     }
+    virtual llvm::Type* getLLType(){
+        error("Cannot get LL Type for base Type Class");
+        return nullptr;
+    }
 };
 struct Expression : public Statement
 {
 public:
-    virtual Type *getType(LocalTypeTable type_table)
+    virtual Type *getType()
     {
         error("GetType Fn is not implemented for Expression", true);
         return nullptr;
     };
+
+    virtual llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        error("Cannot get llvm value for base expression type");
+        return nullptr;
+    }
 };
 template <typename T>
 class Block : public AstNode
@@ -64,6 +74,13 @@ private:
 
 struct TopLevelExpression : public AstNode
 {
+public:
+    virtual bool isModule(){
+        return false;
+    }
+    virtual bool isImport(){
+        return false;
+    }
 };
 struct ModuleMember : public AstNode
 {
@@ -76,6 +93,7 @@ struct ModuleMember : public AstNode
 class SourceBlock:public Block<Statement>{
 public:
     LocalTypeTable* local_types;
+    TVars vars;
     std::vector<std::string> declarations;
     // This is messy, im sorry
     SourceBlock* self = this;

@@ -32,20 +32,22 @@ public:
         return std::move(str().c_str());
     }
 
-    Type* getType(LocalTypeTable types){
-        printTypeTable(types);
-        auto type = types[str()];
-        
-
+    Type* getType(){
+        auto tt = ctx->local_types;
+        Logger::debug("Getting Types for " + name);
+        Logger::debug("ctx is null? " + std::to_string(tt==nullptr));
+        printTypeTable(*ctx->local_types)
+        auto type = (*ctx->local_types)[str()];
         return type;
     }
 
-    static Ident* get(std::string name){
-        static std::map<std::string, Ident*> cache;
-        auto val = cache[name];
+    static Ident* get(std::string name, SourceBlock* ctx=nullptr){
+        static std::map<std::pair<std::string, SourceBlock*>, Ident*> cache;
+        auto val = cache[{name, ctx}];
         if(val == nullptr){
             auto ident = new Ident(name);
-            cache[name] = ident;
+            ident->ctx = ctx;
+            cache[{name, ctx}] = ident;
             return ident;
         }
         return val;
@@ -60,7 +62,7 @@ public:
     }
     CompoundIdentifier(std::string value)
     {
-        auto ident = Ident::get(value);
+        auto ident = Ident::get(value, ctx);
         this->parts = {};
         this->parts.push_back(ident);
         flatify();

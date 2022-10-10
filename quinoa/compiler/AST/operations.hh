@@ -22,21 +22,54 @@ public:
       ret.push_back(p);
     return ret;
   }
-  Type *getType(LocalTypeTable _)
+  Type *getType()
   {
     if (target == nullptr || target->returnType == nullptr)
       return nullptr;
     return target->returnType;
   }
+
+  llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
+  {
+    if (target == nullptr)
+      error("Call to " + name->str() + " is unresolved");
+    auto mod = builder.GetInsertBlock()->getParent()->getParent();
+    auto name = target->nomangle ? target->name->str() : target->sourcename();
+    auto tgtFn = mod->getFunction(name);
+    if (tgtFn == nullptr)
+      error("Failed to locate function " + name);
+    std::vector<llvm::Value *> llparams;
+    int i = 0;
+    bool generatedVarargs = false;
+    for (auto p : this->params)
+    {
+      auto type = target->getParam(i)->type;
+      auto ll_type = type->getLLType();
+      llparams.push_back(p->getLLValue(vars, ll_type));
+      i++;
+    }
+    if (target->isVariadic() && !target->nomangle)
+    {
+      int idx = target->params.size() - 1;
+      int argCount = params.size() - idx;
+      // Insert the arg_count parameter before the varargs
+      llparams.insert(llparams.begin() + idx, builder.getInt32(argCount));
+    }
+
+    return builder.CreateCall(tgtFn, llparams);
+  }
   void qualify(
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
-    if(nomangle){
-      for(auto pair:sigs){
+    if (nomangle)
+    {
+      for (auto pair : sigs)
+      {
         auto signame = pair.first;
         auto sig = pair.second;
-        if(signame==name->str() && sig->nomangle){
+        if (signame == name->str() && sig->nomangle)
+        {
           target = sig;
           return;
         }
@@ -44,9 +77,11 @@ public:
       error("Failed to find appropriate function call for internal method");
     }
     std::vector<Param *> testparams;
-    for (auto p : params){
-      auto type = p->getType(type_info);
-      if(type==nullptr)error("Unknown param type");
+    for (auto p : params)
+    {
+      auto type = p->getType();
+      if (type == nullptr)
+        error("Unknown param type");
       testparams.push_back(new Param(type, nullptr));
     }
     auto callsig = new MethodSignature;
@@ -59,7 +94,7 @@ public:
     CompoundIdentifier callname(name->parts);
     // replace the calls name with its mangled form
     callname.parts.pop_back();
-    callname.parts.push_back((Identifier *)Ident::get(sigstr.str()));
+    callname.parts.push_back((Identifier *)Ident::get(sigstr.str(), ctx));
     // attempt to find a function with the exact sig
     auto fn = sigs[callname.str()];
     if (fn == nullptr)
@@ -72,7 +107,8 @@ public:
       {
         auto sig = sigpair.second;
         auto name = sigpair.first;
-        if(sig->nomangle){
+        if (sig->nomangle)
+        {
           compatabilityScores.push_back(-1);
           continue;
         }
@@ -94,10 +130,10 @@ public:
           idx = i;
         }
       }
-      if (idx == -1){
+      if (idx == -1)
+      {
         error("Failed to generate function call to " + callname.str());
         return;
-
       }
       int ind = 0;
       for (auto pair : sigs)
@@ -126,9 +162,10 @@ private:
       return -1;
 
     // compare param lengths TODO: Reimplement this once varargs are implemented
-    if(!base.isVariadic()){
-            if (base.params.size() != target.params.size())
-                return -1;
+    if (!base.isVariadic())
+    {
+      if (base.params.size() != target.params.size())
+        return -1;
     }
 
     // Start with a base score, each infraction has a cost based on how
@@ -148,7 +185,8 @@ private:
         auto tprim = (Primitive *)taram;
         auto bg = primitive_group_mappings[bprim->type];
         auto tg = primitive_group_mappings[tprim->type];
-        if (bg == tg){
+        if (bg == tg)
+        {
 
           score += 10;
         }
@@ -177,11 +215,54 @@ public:
   }
 };
 
+class Subscript : public Expression
+{
+public:
+  Identifier *tgt;
+  Expression *item;
+  Subscript(Identifier *tgt, Expression *item)
+  {
+    this->tgt = tgt;
+    this->item = item;
+  }
+  std::vector<Statement *> flatten()
+  {
+    std::vector<Statement *> ret{tgt};
+    for (auto p : item->flatten())
+      ret.push_back(p);
+    return ret;
+  }
+
+  Type *getType()
+  {
+    auto elementType = tgt->getType();
+    if (elementType == nullptr)
+      error("No Element Type");
+    if (! instanceof <TPtr>(elementType))
+      error("List has member type which is a non-pointer");
+    return ((TPtr *)elementType)->to;
+  }
+};
 enum BinaryOp
 {
   INFIX_ENUM_MEMBERS
 };
-
+llvm::Value *loadIVar(Identifier *ident, TVars vars)
+{
+    auto loaded = vars[ident->str()];
+    if (loaded == nullptr)
+        error("Failed to read variable '" + ident->str() + "'");
+    return loaded;
+}
+llvm::Value *loadSVar(Subscript *subscr, TVars vars)
+{
+    auto name = subscr->tgt;
+    auto var = loadIVar(name, vars);
+    auto varl = builder.CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
+    auto idx = subscr->item->getLLValue(vars);
+    auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
+    return loaded;
+}
 static std::map<TokenType, BinaryOp> binary_op_mappings{INFIX_ENUM_MAPPINGS};
 class BinaryOperation : public Expression
 {
@@ -207,20 +288,32 @@ public:
       flat.push_back(i);
     return flat;
   }
-};
 
-class TypeCast : public Expression
-{
-public:
-  Expression *target;
-  Type *to;
+  llvm::Value* getLLValue(TVars types, llvm::Type* expected){
+    auto l = left->getLLValue(types);
+    auto r = right->getLLValue(types);
+    if(instanceof<Identifier>(left)){
+        llvm::Value *var;
+          if (instanceof <Identifier>(left))
+              var = loadIVar((Identifier *)left, types);
+          else if (instanceof <Subscript>(left))
+              var = loadSVar((Subscript *)left, types);
+          else
+              error("Failed to load Variable");
+          builder.CreateStore(r, var);
+          return r;
+    }
+    else{
 
-  TypeCast(Expression *tgt, Type *type)
-  {
-    this->to = type;
-    this->target = tgt;
+      switch(op){
+        case BIN_plus: return builder.CreateAdd(l, r);
+        default: error("Failed to generate IR for expression");
+      }
+    }
+    return nullptr;
   }
 };
+
 
 class InitializeVar : public Statement
 {
@@ -238,32 +331,5 @@ public:
     for (auto i : varname->flatten())
       ret.push_back(i);
     return ret;
-  }
-};
-
-class Subscript : public Expression
-{
-public:
-  Identifier *tgt;
-  Expression *item;
-  Subscript(Identifier *tgt, Expression *item)
-  {
-    this->tgt = tgt;
-    this->item = item;
-  }
-  std::vector<Statement *> flatten()
-  {
-    std::vector<Statement *> ret{tgt};
-    for (auto p : item->flatten())
-      ret.push_back(p);
-    return ret;
-  }
-
-  Type *getType(LocalTypeTable tt)
-  {
-    auto elementType = tgt->getType(tt);
-    if(elementType==nullptr)error("No Element Type");
-    if(!instanceof<TPtr>(elementType))error("List has member type which is a non-pointer");
-    return ((TPtr*)elementType)->to;
   }
 };

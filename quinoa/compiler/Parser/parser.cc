@@ -24,7 +24,7 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
         }
     }
 }
-CompoundIdentifier *parseIdentifier(vector<Token> &toks)
+CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock* ctx)
 {
     expects(toks[0], TT_identifier);
     // Simplest Case (single-part)
@@ -43,7 +43,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
         }
         if (t.is(TT_identifier))
         {
-            parts.push_back(Ident::get(t.value));
+            parts.push_back(Ident::get(t.value, ctx));
             expectDot = true;
             continue;
         }
@@ -51,14 +51,16 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks)
     }
     for (int i = 0; i < parts.size() * 2 - 1; i++)
         popf(toks);
-    return new CompoundIdentifier(parts);
+    auto id = new CompoundIdentifier(parts);
+    id->ctx = ctx;
+    return id;
 }
-Type* parseType(vector<Token>& toks){
+Type* parseType(vector<Token>& toks, SourceBlock* ctx){
     if(!toks.size())error("Failed To Parse Type");
     Type* ret = nullptr;
     if(toks[0].isTypeTok())ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else{
-        auto references = parseIdentifier(toks);
+        auto references = parseIdentifier(toks, ctx);
         ret = new CustomType(references);
     }
 
@@ -114,16 +116,17 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
 }
 
 
-Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, SourceBlock* ctx)
+Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
 {
+    printToks(toks);
+    Logger::debug("Parsing Expr, ctx is null? " + std::to_string(ctx==nullptr));
     if (toks.size() == 0)
         error("Cannot Generate an Expression from no tokens");
     if (toks.size() == 1)
     {
         switch (toks[0].type)
         {
-        case TT_literal_int:
-            return new Integer(stoull(toks[0].value));
+        case TT_literal_int:return new Integer(stoull(toks[0].value));
         case TT_literal_true:
             return new Boolean(true);
         case TT_literal_false:
@@ -131,8 +134,11 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
         case TT_literal_str: return new String(toks[0].value);
         case TT_literal_float:
             return new Float(stold(toks[0].value));
-        case TT_identifier:
-            return Ident::get(toks[0].value);
+        case TT_identifier:{
+            Logger::debug("Generating ident " + toks[0].value);
+            return Ident::get(toks[0].value, ctx);
+
+        }
         default:
             error("Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'");
         }
@@ -143,7 +149,7 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
     if (c.is(TT_identifier))
     {
         auto initial = toks;
-        auto target = parseIdentifier(toks);
+        auto target = parseIdentifier(toks, ctx);
         target->ctx = ctx;
         if (toks[0].is(TT_l_paren))
         {
@@ -156,15 +162,16 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
                 vector<Type*> types;
                 for (auto p : paramsList)
                 {
-                    auto expr = parseExpression(p, type_info, ctx);
+                    auto expr = parseExpression(p, ctx);
                     expr->ctx = ctx;
-                    auto t = expr->getType(type_info);
+                    auto t = expr->getType();
                     types.push_back(t);
                     params.push_back(expr);
                 }
                 auto call = new MethodCall;
                 call->params = params;
                 call->target = nullptr;
+                call->ctx = ctx;
                 if(instanceof<CompoundIdentifier>(target))call->name = (CompoundIdentifier*)target;
                 else{
                     auto id = new CompoundIdentifier(target->str());
@@ -177,7 +184,7 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
         else if(toks[0].is(TT_l_square_bracket)){
             auto etoks = readBlock(toks, IND_square_brackets);
             if(toks.size() == 0){
-                auto item = parseExpression(etoks, type_info, ctx);
+                auto item = parseExpression(etoks, ctx);
                 item->ctx = ctx;
                 return new Subscript(target, item);
             }
@@ -190,7 +197,7 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
         auto initial = toks;
         auto block = readBlock(toks, IND_parens);
         if (toks.size() == 0)
-            return parseExpression(block, type_info, ctx);
+            return parseExpression(block, ctx);
 
         toks = initial;
     }
@@ -250,8 +257,8 @@ Expression *parseExpression(vector<Token> &toks, LocalTypeTable type_info, Sourc
     auto [left, right] = split(toks, splitPoint);
     auto l = left;
     auto r = right;
-    auto leftAST = parseExpression(left, type_info, ctx);
-    auto rightAST = parseExpression(right, type_info, ctx);
+    auto leftAST = parseExpression(left, ctx);
+    auto rightAST = parseExpression(right, ctx);
     auto optype = binary_op_mappings[op.type];
     return new BinaryOperation(leftAST, rightAST, optype);
 }
@@ -261,7 +268,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
     auto block = new SourceBlock;
     auto type_info = new LocalTypeTable;
     *type_info = typeinfo;
-
+    block->local_types = type_info;
     while (toks.size())
     {
         auto first = toks[0];
@@ -269,7 +276,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             popf(toks);
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
-            auto cond = parseExpression(expr, *type_info, block);
+            auto cond = parseExpression(expr, block);
             cond->ctx = block->self;
             auto content= parseSourceBlock(exec, *type_info);
             auto loop = new WhileCond;
@@ -288,7 +295,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
         if (f.is(TT_return))
         {
             popf(line);
-            auto returnValue = parseExpression(line, *type_info, block);
+            auto returnValue = parseExpression(line, block);
             auto ret = new Return(returnValue);
             ret->ctx = block->self;
             returnValue->ctx = block->self;
@@ -301,7 +308,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             Type* vartype;
             if(line[0].is(TT_colon)){
                 popf(line);
-                vartype = parseType(line);
+                vartype = parseType(line, block);
             }       
             else vartype = nullptr;
             auto name = Ident::get(varname);
@@ -315,7 +322,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             block->push(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
-                auto val = parseExpression(line, *type_info, block);
+                auto val = parseExpression(line, block);
                 auto ass = new BinaryOperation(name, val, BIN_assignment);
                 ass->ctx = block->self;
                 val->ctx = block->self;
@@ -325,7 +332,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
         }
 
         // Default to expression parsing
-        auto expr = parseExpression(line, *type_info, block);
+        auto expr = parseExpression(line, block);
         expr->ctx = block->self;
 
         block->push(expr);
@@ -333,7 +340,6 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 
  
 
-    block->local_types = type_info;
 
     return block;
 }
@@ -347,7 +353,7 @@ Param* parseParameter(vector<Token>& toks){
     auto name = popf(toks);
     expects(name, TT_identifier);
     expects(popf(toks), TT_colon);
-    auto type = parseType(toks);
+    auto type = parseType(toks, nullptr);
 
     if(toks.size()){
         printToks(toks);
@@ -371,11 +377,12 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             auto argsTokens = readBlock(toks, IND_parens);
 
             Type* returnType;
+            auto method = new Method();
 
             // Functions implicitly return void
             if(toks[0].is(TT_arrow)){
                 popf(toks);
-                returnType = parseType(toks);
+                returnType = parseType(toks, method);
             }
             else{
                 returnType = Primitive::get(PR_void);
@@ -389,7 +396,6 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 argTypes[param->name->str()] = param->type;
                 params.push_back(param);
             }
-            auto method = new Method();
             auto sig = new MethodSignature();
             if(toks[0].is(TT_l_brace)){
                auto contentToks = readBlock(toks, IND_braces);
@@ -420,7 +426,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
 }
 
 ModuleReference* parseCompositor(vector<Token>& toks){
-    auto name = parseIdentifier(toks);
+    auto name = parseIdentifier(toks, nullptr);
     if(toks.size())error("Complex Compositor Support is WIP");
     auto c = new ModuleReference;
     c->name = name;
@@ -447,7 +453,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 popf(importExprToks);
                 isStd = true;
             }
-            auto target = parseIdentifier(importExprToks);
+            auto target = parseIdentifier(importExprToks, nullptr);
             CompoundIdentifier* alias = target;
             if(importExprToks.size()){
                 auto as = popf(importExprToks);

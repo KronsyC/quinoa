@@ -36,7 +36,7 @@ bool resolveTypes(CompilationUnit& unit){
 			if(initializer==nullptr)error("Failed to locate type for " + init->varname->str());
 			auto ctx = initializer->ctx;
 			LocalTypeTable type_table = *ctx->local_types;
-			auto exprType = initializer->getType(type_table);
+			auto exprType = initializer->getType();
 			// If a nullptr is returned, there is not enough info
 			// currently available
 			if(exprType == nullptr){

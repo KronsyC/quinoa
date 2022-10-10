@@ -11,77 +11,15 @@
 #include "../../lib/logger.h"
 using namespace std;
 
-#define TVars std::map<std::string, llvm::AllocaInst *>
 
-llvm::Type *getType(Type *type)
-{
-    if (type == nullptr)
-        error("Failed to generate a type as a nullptr was provided");
-    if (instanceof <Primitive>(type))
-    {
-        auto prim = (Primitive *)type;
-        switch (prim->type)
-        {
-        case PR_int8:
-            return llvm::Type::getInt8Ty(ctx);
-        case PR_int16:
-            return llvm::Type::getInt16Ty(ctx);
-        case PR_int32:
-            return llvm::Type::getInt32Ty(ctx);
-        case PR_int64:
-            return llvm::Type::getInt64Ty(ctx);
-
-        case PR_uint8:
-            return llvm::Type::getInt8Ty(ctx);
-        case PR_uint16:
-            return llvm::Type::getInt16Ty(ctx);
-        case PR_uint32:
-            return llvm::Type::getInt32Ty(ctx);
-        case PR_uint64:
-            return llvm::Type::getInt64Ty(ctx);
-
-        case PR_float16:
-            return llvm::Type::getHalfTy(ctx);
-        case PR_float32:
-            return llvm::Type::getFloatTy(ctx);
-        case PR_float64:
-            return llvm::Type::getDoubleTy(ctx);
-
-        case PR_boolean:
-            return llvm::Type::getInt1Ty(ctx);
-        case PR_string:
-            return llvm::Type::getInt8PtrTy(ctx); // This type is just temporary //TODO: implement string module within the language
-        case PR_void:
-            return llvm::Type::getVoidTy(ctx);
-        default:
-            error("Failed to generate primitive for " + to_string(prim->type));
-        }
-    }
-    else if (instanceof <TPtr>(type))
-    {
-        auto p = (TPtr *)type;
-        return getType(p->to)->getPointerTo();
-    }
-    else if (instanceof <ListType>(type))
-    {
-        auto arr = (ListType *)type;
-        auto elementType = getType(arr->elements);
-        return elementType->getPointerTo();
-    }
-    else
-    {
-        error("Custom type support is not yet implemented");
-    }
-    return nullptr;
-}
 llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
 {
-    auto ret = getType(f.returnType);
+    auto ret = f.returnType->getLLType();
     auto name = mangle ? f.sourcename() : f.fullname()->str();
     Logger::debug("Creating Function " + name);
     vector<llvm::Type *> args;
     for (auto a : f.params)
-        args.push_back(getType(a->type));
+        args.push_back(a->type->getLLType());
     bool isVarArg = false;
     if (f.params.size())
     {
@@ -93,7 +31,7 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
             if (!f.nomangle)
             {
                 auto t = Primitive::get(PR_int32);
-                args.push_back(getType(t));
+                args.push_back(t->getLLType());
                 f.params[f.params.size() - 1] = new Param(t, Ident::get("+vararg_count"));
             }
         }
@@ -105,168 +43,7 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
         fn->getArg(i)->setName(f.params[i]->name->str());
     return fn;
 }
-bool isInt(llvm::Type *i)
-{
-    return i->isIntegerTy(1) || i->isIntegerTy(8) || i->isIntegerTy(16) || i->isIntegerTy(32) || i->isIntegerTy(64);
-}
-bool isFloat(llvm::Type *i)
-{
-    return i->isFloatingPointTy() || i->isHalfTy() || i->isDoubleTy();
-}
-llvm::Constant *createInt(Integer *i, llvm::Type *expected)
-{
-    // TODO: Make this size-aware
-    if (expected == nullptr)
-        return builder.getInt32(i->value);
-    else
-    {
-        if (!isInt(expected))
-        {
-            expected->print(llvm::outs());
-            error("Expected an Integer type for " + to_string(i->value));
-        }
-        return builder.getIntN(expected->getPrimitiveSizeInBits(), i->value);
-    }
-}
-llvm::Constant *createStr(String *s, llvm::Type *expects)
-{
-    if (expects == nullptr)
-        return builder.CreateGlobalStringPtr(s->value, "str");
-    else
-    {
-        if (expects->isPointerTy() && expects->getPointerElementType()->isIntegerTy(8))
-            return builder.CreateGlobalStringPtr(s->value, "str");
-        error("Failed to generate String");
-        return nullptr;
-    }
-}
-llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedType);
-llvm::Value *loadVar(Identifier *ident, TVars vars)
-{
-    auto loaded = vars[ident->str()];
-    if (loaded == nullptr)
-        error("Failed to read variable '" + ident->str() + "'");
-    return loaded;
-}
-llvm::Value *loadVar(Subscript *subscr, TVars vars)
-{
-    auto name = subscr->tgt;
-    auto var = loadVar(name, vars);
-    auto varl = builder.CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
-    auto idx = genExpression(subscr->item, vars, nullptr);
-    auto loaded = builder.CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
-    return loaded;
-}
-llvm::Value *cast(llvm::Value *val, llvm::Type *type)
-{
-    if (type == nullptr)
-        return val;
-    if (val->getType() == type)
-        return val;
-    if (isInt(type) && isInt(val->getType()))
-        return builder.CreateIntCast(val, type, true);
-    if (isFloat(type) && isFloat(val->getType()))
-        return builder.CreateFPCast(val, type);
-    if (isInt(type) && val->getType()->isPointerTy())
-        return builder.CreatePtrToInt(val, type);
-    val->print(llvm::outs());
-    printf("\n");
-    type->print(llvm::outs());
-    printf("\n");
-    error("Failed to cast");
-    return nullptr;
-}
-llvm::Value *genExpression(Expression *expr, TVars vars, llvm::Type *expectedType = nullptr)
-{
-    if (instanceof <Integer>(expr))
-        return createInt((Integer *)expr, expectedType);
-    if (instanceof <String>(expr))
-        return createStr((String *)expr, expectedType);
-    if (instanceof <Boolean>(expr))
-    {
-        auto boo = (Boolean *)expr;
-        return builder.getInt1(boo->value);
-    }
-    if (instanceof <Ident>(expr))
-    {
-        auto e = (Ident *)expr;
-        auto var = loadVar(e, vars);
-        auto loaded = builder.CreateLoad(var->getType()->getPointerElementType(), var, "loaded var '" + e->str() + "'");
-        return cast(loaded, expectedType);
-    }
-    if (instanceof <MethodCall>(expr))
-    {
-        auto call = (MethodCall *)expr;
-        if (call->target == nullptr)
-            error("Received an unresolved call for " + call->name->str());
-        auto mod = builder.GetInsertBlock()->getParent()->getParent();
-        auto name = call->target->nomangle ? call->target->name->str() : call->target->sourcename();
-        auto tgtFn = mod->getFunction(name);
-        if (tgtFn == nullptr)
-            error("Failed to call function '" + name + "' (doesn't exist)");
-        vector<llvm::Value *> params;
-        int i = 0;
-        bool generatedVarargs = false;
-        for (auto p : call->params)
-        {
-            auto type = call->target->getParam(i)->type;
-            auto ll_type = getType(type);
-            params.push_back(genExpression(p, vars, ll_type));
-            i++;
-        }
-        if (call->target->isVariadic() && !call->target->nomangle)
-        {
-            int idx = call->target->params.size() - 1;
-            int argCount = call->params.size() - idx;
-            // Insert the arg_count parameter before the varargs
-            params.insert(params.begin() + idx, builder.getInt32(argCount));
-        }
 
-        return builder.CreateCall(tgtFn, params);
-    }
-    if (instanceof <Subscript>(expr))
-    {
-        auto sub = loadVar((Subscript *)expr, vars);
-        return builder.CreateLoad(sub->getType()->getPointerElementType(), sub, "element of " + ((Subscript *)expr)->tgt->str());
-    }
-    if (instanceof <BinaryOperation>(expr))
-    {
-        auto op = (BinaryOperation *)expr;
-        auto left = op->left;
-        auto right = op->right;
-        auto r = genExpression(right, vars, expectedType);
-        if (op->op == BIN_assignment)
-        {
-            llvm::Value *var;
-            if (instanceof <Identifier>(left))
-                var = loadVar((Identifier *)left, vars);
-            else if (instanceof <Subscript>(left))
-                var = loadVar((Subscript *)left, vars);
-            else
-                error("Failed to load Variable");
-            builder.CreateStore(r, var);
-            return r;
-        }
-        auto l = genExpression(left, vars, expectedType);
-        switch (op->op)
-        {
-        case BIN_plus:
-            return builder.CreateAdd(l, r);
-        case BIN_minus:
-            return builder.CreateSub(l, r);
-        case BIN_star:
-            return builder.CreateMul(l, r);
-        case BIN_slash:
-            return builder.CreateSDiv(l, r);
-        default:
-        {
-            error("Failed to generate binary operation for op " + std::to_string(op->op));
-        }
-        }
-    }
-    error("Failed to Generate Expression");
-    return nullptr;
-}
 
 struct ControlFlowInfo
 {
@@ -293,7 +70,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         {
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
-            auto type = getType(init->type);
+            auto type = init->type->getLLType();
             auto alloca = builder.CreateAlloca(type, nullptr, "var " + varname);
 
             vars.insert({varname, alloca});
@@ -301,7 +78,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         else if (instanceof <WhileCond>(stm))
         {
             auto loop = (WhileCond *)stm;
-            auto cond = genExpression(loop->cond, vars, getType(Primitive::get(PR_boolean)));
+            auto cond = loop->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
 
             auto evaluatorBlock = llvm::BasicBlock::Create(ctx, "while_evaluator", func);
             auto runBlock = llvm::BasicBlock::Create(ctx, "while_content", func);
@@ -328,13 +105,13 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         else if (instanceof <Return>(stm))
         {
             auto ret = (Return *)stm;
-            auto expr = genExpression(ret->retValue, vars, func->getReturnType());
+            auto expr = ret->retValue->getLLValue(vars, func->getReturnType());
             builder.CreateRet(expr);
         }
         // interpret as expression with dumped value
         else if (instanceof <Expression>(stm))
         {
-            genExpression((Expression *)stm, vars);
+            ((Expression *)stm)->getLLValue(vars);
         }
         else
             error("Failed Generate IR for statement");

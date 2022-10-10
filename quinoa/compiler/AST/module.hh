@@ -11,6 +11,9 @@ public:
         isStdLib = std;
         this->alias = alias;
     }
+    bool isImport(){
+        return true;
+    }
 };
 class ModuleReference:public Block<Expression>{
 public:
@@ -157,7 +160,9 @@ class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
     CompoundIdentifier* name;
     std::vector<ModuleReference*> compositors; 
-
+    bool isModule(){
+        return true;
+    }
 
     bool is(std::string comp){
         for(auto c:compositors){
