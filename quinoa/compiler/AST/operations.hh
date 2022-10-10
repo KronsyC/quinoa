@@ -148,7 +148,6 @@ public:
       return;
     }
     target = fn;
-    Logger::debug("Qualified");
   }
 
 private:
@@ -285,14 +284,10 @@ public:
   }
 
   llvm::Value* getLLValue(TVars types, llvm::Type* expected){
-    Logger::debug("Gen binop");
     auto l = left->getLLValue(types);
-    Logger::debug("did left");
     auto r = right->getLLValue(types);
-    Logger::debug("gen children");
     switch(op){
       case BIN_assignment: {
-        Logger::debug("Creating Assignment");
         builder()->CreateStore(r, l);
         return r;
       };

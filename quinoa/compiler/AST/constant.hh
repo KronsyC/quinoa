@@ -79,7 +79,6 @@ public:
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
         auto st = builder()->CreateGlobalStringPtr(value, "str");
-        Logger::debug("made str");
         return st;
     }
 };

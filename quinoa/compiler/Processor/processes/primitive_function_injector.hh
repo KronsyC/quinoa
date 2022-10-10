@@ -25,7 +25,6 @@ void implSyscall(Method *method, CompilationUnit& unit){
     pushf(unit.items, (TopLevelExpression*)new MethodPredeclaration(sig));
 
 
-    Logger::debug("Implementing Syscall Fn");
     auto call = new MethodCall;
     call->ctx = method;
     call->name = new CompoundIdentifier("syscall");
@@ -48,7 +47,6 @@ void injectPrimitiveFunctions(CompilationUnit &unit)
         auto modname = mod->name->last();
         if (mod->is("CompilerImplemented") && modname->str() == "primitives")
         {
-            Logger::debug("Found Primitives mod");
             for (auto method : mod->getAllMethods())
             {
                 implementPrimitive(method, unit);
