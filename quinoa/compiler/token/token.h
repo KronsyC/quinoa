@@ -41,8 +41,8 @@ public:
         }
         return false;
     }
-    std::string pos(){
-        return "["+std::to_string(line) + ":" + std::to_string(col) + "]";
+    std::string position(){
+        return "("+file+":"+std::to_string(line)+":"+std::to_string(col)+")";
     }
 
     std::string afterpos(){
