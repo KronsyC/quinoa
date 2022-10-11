@@ -331,6 +331,8 @@ bitwise_shr
 # Control Flow Shennanigans
 @alias if
 if
+@alias else
+else
 
 @alias while
 while

@@ -111,6 +111,7 @@
 	new TokenDefinition(TT_bitwise_shl, "__bitwise_shl", {"<<"}, "", false, false, 7, 0, 0),\
 	new TokenDefinition(TT_bitwise_shr, "__bitwise_shr", {">>"}, "", false, false, 7, 0, 0),\
 	new TokenDefinition(TT_if, "__if", {"if"}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_else, "__else", {"else"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_while, "__while", {"while"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_for, "__for", {"for"}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_break, "__break", {"break"}, "", false, false, 0, 0, 0),\
@@ -210,6 +211,7 @@
 	TT_bitwise_shl,\
 	TT_bitwise_shr,\
 	TT_if,\
+	TT_else,\
 	TT_while,\
 	TT_for,\
 	TT_break,\

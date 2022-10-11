@@ -1,10 +1,12 @@
-import @io;
-
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        io::println("Hello, Instagram!");
-        return 0;
+        if(argc == 1){
+            return 69;
+        }
+        else{
+            return 420;
+        }
     } 
 
 }

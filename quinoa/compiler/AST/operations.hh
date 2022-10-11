@@ -348,14 +348,9 @@ public:
     auto lt = left->getType();
     auto rt = right->getType();
     auto common = getCommonType(lt->getLLType(), rt->getLLType());
-    
-    auto l = left->getLLValue(types, common);
+      auto l = left->getLLValue(types, common);
     auto r = right->getLLValue(types, common);
-
-    switch (op)
-    {
-    case BIN_assignment:
-    {
+      if(op==BIN_assignment){
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
@@ -370,23 +365,24 @@ public:
         builder()->CreateStore(right->getLLValue(types, typ), sub->getPtr(types));
       }
       return cast(r, expected);
-    };
-    case BIN_plus:{
-      return cast(builder()->CreateAdd(l, r), expected);
+    }
 
-    }
-    case BIN_lesser:
-      return cast(builder()->CreateICmpSLT(l, r), expected);
-    case BIN_not_equals: return cast(builder()->CreateICmpNE(l, r), expected);
-    default:
-      error("Failed to generate IR for binary expression");
-    }
-    error("Failed to generate binary expression " + std::to_string(op));
-    return nullptr;
+
+    auto result = getOp(l, r);
+    if(result==nullptr)error("Failed to generate IR for binary expression");
+    return cast(result, expected);
   }
 
 private:
-
+  llvm::Value* getOp(llvm::Value* l, llvm::Value* r){
+    switch(op){
+      case BIN_plus:return builder()->CreateAdd(l, r);
+      case BIN_lesser:return builder()->CreateICmpSLT(l, r);
+      case BIN_not_equals: return builder()->CreateICmpNE(l, r);
+      case BIN_equals: return builder()->CreateICmpEQ(l, r);
+      default: return nullptr;
+    }
+  }
 
 };
 

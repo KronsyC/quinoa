@@ -85,7 +85,6 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         else if (instanceof <WhileCond>(stm))
         {
             auto loop = (WhileCond *)stm;
-            auto cond = loop->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
 
             auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "while_eval", func);
             auto runBlock = llvm::BasicBlock::Create(*ctx(), "while_exec", func);
@@ -99,6 +98,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             // Set up the evaluator
             builder()->CreateBr(evaluatorBlock);
             builder()->SetInsertPoint(evaluatorBlock);
+            auto cond = loop->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
             builder()->CreateCondBr(cond, runBlock, continuationBlock);
 
             // Set up the content
@@ -108,6 +108,33 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
+        }
+        else if(instanceof<IfCond>(stm)){
+            auto iff = (IfCond*)stm;
+
+
+            auto execBlock = llvm::BasicBlock::Create(*ctx(), "if_exec", func);
+            auto continuationBlock = iff->returns()?nullptr:llvm::BasicBlock::Create(*ctx(), "if_cont", func);
+            auto elseBlock = iff->otherwise==nullptr?continuationBlock:llvm::BasicBlock::Create(*ctx(), "if_else", func);
+            ControlFlowInfo cf = cfi;
+            cf.exitBlock = continuationBlock;
+
+            auto cond = iff->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
+            builder()->CreateCondBr(cond, execBlock, elseBlock);
+            
+            builder()->SetInsertPoint(execBlock);
+            genSource(iff->does->items, func, vars, cf);
+            if(!iff->does->returns())builder()->CreateBr(continuationBlock);
+
+            if(iff->otherwise != nullptr){
+                builder()->SetInsertPoint(elseBlock);
+                genSource(iff->otherwise->items, func, vars, cf);
+                if(!iff->otherwise->returns())builder()->CreateBr(continuationBlock);
+            }
+            builder()->SetInsertPoint(continuationBlock);
+            
+
+
         }
         else if(instanceof<ForRange>(stm)){
             auto loop = (ForRange *)stm;

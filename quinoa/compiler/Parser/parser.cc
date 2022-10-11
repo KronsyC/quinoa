@@ -281,7 +281,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             auto cond = parseExpression(expr, block);
             auto content= parseSourceBlock(exec, *type_info);
             auto loop = new WhileCond;
-            cond->ctx = loop;
+            cond->ctx = block;
             loop->local_types = new LocalTypeTable;
             loop->insert(content);
             loop->cond = cond;
@@ -290,6 +290,27 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             loop->active = true;
             block->push(loop);
             continue;
+        }
+        if(first.is(TT_if)){
+            popf(toks);
+            auto cond = readBlock(toks, IND_parens);
+            auto condExpr = parseExpression(cond, block);
+            condExpr->ctx = block;
+
+            auto iff = new IfCond;
+            iff->cond = condExpr;
+
+            auto does = readBlock(toks, IND_braces);
+            iff->does = parseSourceBlock(does, *type_info);
+            iff->local_types = new LocalTypeTable;
+            if(toks[0].is(TT_else)){
+                popf(toks);
+                auto otherwise = readBlock(toks, IND_braces);
+                iff->otherwise = parseSourceBlock(otherwise, *type_info);
+            }
+            block->push(iff);
+            continue;
+
         }
         if(first.is(TT_for)){
             popf(toks);

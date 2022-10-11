@@ -88,7 +88,7 @@ struct ModuleMember : public AstNode
 {
 
 };
-
+class Return;
 // A Souceblock is a wrapper around a statement block
 // but contains important information such as guarantees about execution
 // and a local scope type table
@@ -97,6 +97,19 @@ class SourceBlock:public Block<Statement>{
 public:
     LocalTypeTable* local_types = nullptr;
     std::vector<std::string> declarations;
+    virtual bool returns(){
+        // true if:
+        // i have a return instruction
+        // one of my direct child blocks returns
+        for(auto inst:items){
+            if(instanceof<Return>(inst))return true;
+            else if(instanceof<SourceBlock>(inst)){
+                auto block = (SourceBlock*)inst;
+                if(block->returns())return true;
+            }
+        }
+        return false;
+    };
     // This is messy, im sorry
     SourceBlock* self = this;
     std::vector<Statement*> flatten(){
@@ -122,14 +135,14 @@ public:
                 if(i->ctx == old){
                     i->ctx = this;
                 }
-                if(i->ctx==nullptr){
-                    // point to the ctx of the prev
-                    // if prev is a codeblock, point to that
-                    if(instanceof<SourceBlock>(prev) && ((SourceBlock*)prev)->items.size()){
-                        i->ctx = ((SourceBlock*)prev);
-                    }
-                    else i->ctx = prev->ctx;
-                }
+                // if(i->ctx==nullptr){
+                //     // point to the ctx of the prev
+                //     // if prev is a codeblock, point to that
+                //     if(instanceof<SourceBlock>(prev) && ((SourceBlock*)prev)->items.size()){
+                //         i->ctx = ((SourceBlock*)prev);
+                //     }
+                //     else i->ctx = prev->ctx;
+                // }
                 prev = i;
             }
             item->ctx = this;
