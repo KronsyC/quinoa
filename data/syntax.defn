@@ -25,7 +25,7 @@
 ## ind: Specify that a token is used as a form of indentation
 ## dind: Specify that a token is used as a form of de-indentation
 #################################
-notoken
+notok
 eof
 
 comment

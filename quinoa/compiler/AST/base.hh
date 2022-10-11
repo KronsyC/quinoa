@@ -81,9 +81,12 @@ public:
     virtual bool isImport(){
         return false;
     }
+    bool isImported = false;
+
 };
 struct ModuleMember : public AstNode
 {
+
 };
 
 // A Souceblock is a wrapper around a statement block
@@ -92,7 +95,7 @@ struct ModuleMember : public AstNode
 // variables cannot be redefined within the same block and are hence guaranteed to keep the same type
 class SourceBlock:public Block<Statement>{
 public:
-    LocalTypeTable* local_types;
+    LocalTypeTable* local_types = nullptr;
     std::vector<std::string> declarations;
     // This is messy, im sorry
     SourceBlock* self = this;
@@ -119,24 +122,23 @@ public:
                 if(i->ctx == old){
                     i->ctx = this;
                 }
-                // if(i->ctx==nullptr){
-                //     // point to the ctx of the prev
-                //     // if prev is a codeblock, point to that
-                //     if(instanceof<SourceBlock>(prev) && ((SourceBlock*)prev)->items.size()){
-                //         i->ctx = ((SourceBlock*)prev);
-                //     }
-                //     else i->ctx = prev->ctx;
-                //     Logger::debug("Resolved an empty boy");
-                // }
+                if(i->ctx==nullptr){
+                    // point to the ctx of the prev
+                    // if prev is a codeblock, point to that
+                    if(instanceof<SourceBlock>(prev) && ((SourceBlock*)prev)->items.size()){
+                        i->ctx = ((SourceBlock*)prev);
+                    }
+                    else i->ctx = prev->ctx;
+                }
                 prev = i;
             }
             item->ctx = this;
             items.push_back(item);
         }
         for(auto pair:*donor->local_types){
+            if(local_types==nullptr)error("My locals are null?");
             auto my = *local_types;
             if(my[pair.first] == nullptr){
-                // Logger::debug("merging " + pair.first + " : " + pair.second->str());
                 (*local_types)[pair.first] = pair.second;
             }
 

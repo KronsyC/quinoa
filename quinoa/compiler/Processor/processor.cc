@@ -52,7 +52,7 @@ void genEntryPoint(CompilationUnit &unit) {
     vector<Param *> params;
     params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
     params.push_back(
-        new Param(TPtr::get(Primitive::get(PR_string)), Ident::get("argv")));
+        new Param(TPtr::get(TPtr::get(Primitive::get(PR_int8))), Ident::get("argv")));
     e.sig->name = Ident::get("main");
     e.sig->params = params;
     e.sig->returnType = Primitive::get(PR_int32);
@@ -94,21 +94,24 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
    * ✅ Local Initializer Hoisting (optimization)
    * ✅ Entrypoint Generation
    */
-
+  Logger::log("Doing a processor pass");
   resolveImports(unit);
-  resolveSelfReferences(unit);
   hoistVarInitializations(unit);
   if (finalize) {
+    Logger::log("Finalization pass");
+  resolveSelfReferences(unit);
+    
     injectPrimitiveFunctions(unit);
     hoistDefinitions(unit);
-    bool resolved = false;
-    while(!resolved){
-      resolved = resolveTypes(unit);
-      qualifyCalls(unit);
+    bool resolvedTypes = false;
+    bool resolvedCalls = false;
+    while(!(resolvedTypes && resolvedCalls)){
+      Logger::debug("type-qualify loop");
+      resolvedTypes = resolveTypes(unit);
+      resolvedCalls = qualifyCalls(unit);
     }
-
-
-    
     genEntryPoint(unit);
+    
   }
+  Logger::log("Completed processor pass");
 };

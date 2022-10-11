@@ -26,7 +26,7 @@ public:
   {
     if (target == nullptr || target->returnType == nullptr)
     {
-      error("Cannot get the return type of an unresolved function call " + name->str());
+      // error("Cannot get the return type of an unresolved call", true);
       return nullptr;
 
     }
@@ -62,10 +62,14 @@ public:
 
     return builder()->CreateCall(tgtFn, llparams);
   }
+  //TODO: This method cant really throw exceptions because of how type resolution works
+  // so return a string representing the error reason, these strings can then be accumulated and returned
+  // if it is decided that a type is unresolvable
   void qualify(
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
+    Logger::debug("resolving call to " + name->str());
     if(ctx==nullptr)error("Cannot Resolve a contextless call");
     if (nomangle)
     {
@@ -86,8 +90,10 @@ public:
     for (auto p : params)
     {
       auto type = p->getType();
-      if (type == nullptr)
-        error("Unknown param type: " + name->str() + "["+std::to_string(i)+"]");
+      if (type == nullptr){
+        Logger::debug("Failed to get type for param " + std::to_string(i));
+        return;
+      }
       testparams.push_back(new Param(type, nullptr));
       i++;
     }
@@ -103,6 +109,7 @@ public:
     callname.parts.pop_back();
     callname.parts.push_back((Identifier *)Ident::get(sigstr.str(), ctx));
     // attempt to find a function with the exact sig
+
     auto fn = sigs[callname.str()];
     if (fn == nullptr)
     {
@@ -120,6 +127,7 @@ public:
           continue;
         }
         int compat = getCompatabilityScore(sig->sigstr(), callsig->sigstr());
+        Logger::debug("Compat with " + name + " : " + std::to_string(compat));
         compatabilityScores.push_back(compat);
       }
       int max = -1;
@@ -139,7 +147,7 @@ public:
       }
       if (idx == -1)
       {
-        error("Failed to generate function call to " + callname.str());
+        // error("Failed to generate function call to " + callname.str());
         return;
       }
       int ind = 0;
@@ -147,6 +155,7 @@ public:
       {
         if (ind == idx)
         {
+          Logger::debug("Casted Match");
           target = pair.second;
           return;
         }
@@ -154,6 +163,7 @@ public:
       }
       return;
     }
+    Logger::debug("Direct Match");
     target = fn;
   }
 
@@ -161,11 +171,19 @@ private:
   static int getCompatabilityScore(QualifiedMethodSigStr base,
                                    QualifiedMethodSigStr target)
   {
-    if (base.name->str() != target.name->str())
+    if (base.name->str() != target.name->str()){
       return -1;
+
+    }
     // compare namespaces
-    if (base.space->str() != target.space->str())
+    if (base.space->str() != target.space->str()){
+      Logger::debug("Namespaces don't match");
+      Logger::debug(base.space->str());
+      Logger::debug(target.space->str());
       return -1;
+
+    }
+    Logger::debug("compatible name");
 
     // compare param lengths TODO: Reimplement this once varargs are implemented
     if (!base.isVariadic())
@@ -244,8 +262,9 @@ public:
     auto elementType = tgt->getType();
     if (elementType == nullptr)
       error("No Element Type");
+    Logger::debug("Child type: " + elementType->str());
     if (!(instanceof <TPtr>(elementType) || instanceof<ListType>(elementType)))
-      error("List has member type which is a non-pointer");
+      error("List has member type which is a non-pointer", true);
     if(instanceof<TPtr>(elementType))return ((TPtr *)elementType)->to;
     else return ((ListType*)elementType)->elements;
   }
@@ -261,7 +280,7 @@ public:
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
   {
     auto loaded = getPtr(vars, target);
-    return builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded);
+    return cast(builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded), target);
   }
 };
 
@@ -285,7 +304,7 @@ public:
   {
     auto alloca = of->getPtr(vars);
     auto size = alloca->getArraySize();
-    return size;
+    return cast(size, target);
   }
 };
 enum BinaryOp
@@ -358,6 +377,7 @@ public:
     }
     case BIN_lesser:
       return cast(builder()->CreateICmpSLT(l, r), expected);
+    case BIN_not_equals: return cast(builder()->CreateICmpNE(l, r), expected);
     default:
       error("Failed to generate IR for binary expression");
     }
@@ -366,37 +386,8 @@ public:
   }
 
 private:
-  bool isInt(llvm::Type *t)
-  {
-    return t->isIntegerTy();
-  }
-  llvm::Value *cast(llvm::Value *val, llvm::Type *type)
-  {
-    if (type == nullptr)
-      return val;
-    auto tape = val->getType();
-    if (isInt(tape) && isInt(type))
-      return builder()->CreateIntCast(val, type, true);
-    error("Failed to cast");
-    return nullptr;
-  }
-  llvm::Type *getCommonType(llvm::Type *t1, llvm::Type *t2)
-  {
-    if (t1 == nullptr || t2 == nullptr)
-      error("one of the types is null");
-    if (t1 == t2)
-      return t1;
-    // int casting
-    int size1 = t1->getPrimitiveSizeInBits();
-    int size2 = t2->getPrimitiveSizeInBits();
-    if (isInt(t1) && isInt(t2))
-      return builder()->getIntNTy(std::max(size1, size2));
 
-    t1->print(llvm::outs());
-    t2->print(llvm::outs());
-    error("Failed To Get Common Type");
-    return nullptr;
-  }
+
 };
 
 class InitializeVar : public Statement

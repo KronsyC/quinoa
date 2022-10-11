@@ -33,6 +33,7 @@ Module *getPrimaryExport(CompilationUnit &unit) {
     if (mod->is("Exported")) {
       if (ret != nullptr)
         error("Cannot Export Multiple Modules from a file");
+      mod->remove("Exported");
       ret = mod;
     }
   }
@@ -41,6 +42,7 @@ Module *getPrimaryExport(CompilationUnit &unit) {
 
 void prefixifyChildren(CompilationUnit &unit, std::string prefix) {
   for (auto mod : unit.getAllModules()) 
+    if(!mod->isImported)
       pushf(mod->name->parts, (Identifier *)Ident::get("[" + prefix + "]"));
 }
 void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
@@ -64,6 +66,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
 }
 void mergeUnits(CompilationUnit &tgt, CompilationUnit donor) {
   for (auto e : donor.items) {
+    e->isImported = true;
     tgt.push(e);
   }
 }
@@ -118,13 +121,15 @@ void resolveImports(CompilationUnit &unit) {
           auto filename = import->target->last();
           primary_export->name->parts.pop_back();
           primary_export->name->parts.push_back(filename);
-
           auto prefix = genRandomStr(10);
           path_aliases[rpath] = prefix;
 
 
 
           exports[rpath] = primary_export;
+
+          // Injects the cryptic namespace
+          // into the unit
           prefixifyChildren(ast, prefix);  
           mergeUnits(unit, ast);      
         }

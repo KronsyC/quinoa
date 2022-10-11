@@ -1,14 +1,16 @@
-
+import @lang::primitives as prim;
 module IO is Exported{
 
     func strlen(str:string)->i64{
-        let i:int = 0;
-        while(str[i] != 0)i++;
+        let i:i64 = 0;
+        while(str[i] != 0){
+            i=i+1;
+        }
         return i;
     }
 
     func println(message:string) -> i64{
-        primitives::__syscall__(1, 1, message, strlen(message));
+        prim::__syscall__(1, 1, message, strlen(message));
         return 0;
     }
 }

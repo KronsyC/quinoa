@@ -58,7 +58,12 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock* ctx)
 Type* parseType(vector<Token>& toks, SourceBlock* ctx){
     if(!toks.size())error("Failed To Parse Type");
     Type* ret = nullptr;
-    if(toks[0].isTypeTok())ret = Primitive::get(primitive_mappings[popf(toks).type]);
+    // Special case for strings
+    if(toks[0].is(TT_string)){
+        popf(toks);
+        ret = TPtr::get(Primitive::get(PR_int8));
+    }
+    else if(toks[0].isTypeTok())ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else{
         auto references = parseIdentifier(toks, ctx);
         ret = new CustomType(references);
@@ -156,13 +161,10 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
                 int i = 1; 
                 auto paramsList = parseCommaSeparatedValues(params);
                 vector<Expression *> params;
-                vector<Type*> types;
                 for (auto p : paramsList)
                 {
                     auto expr = parseExpression(p, ctx);
                     expr->ctx = ctx;
-                    auto t = expr->getType();
-                    types.push_back(t);
                     params.push_back(expr);
                 }
                 if(target->str() == "len" && params.size() == 1 && instanceof<Identifier>(params[0])){
@@ -277,11 +279,11 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
             auto cond = parseExpression(expr, block);
-            cond->ctx = block;
             auto content= parseSourceBlock(exec, *type_info);
             auto loop = new WhileCond;
+            cond->ctx = loop;
+            loop->local_types = new LocalTypeTable;
             loop->insert(content);
-            *loop->local_types = *block->local_types;
             loop->cond = cond;
             loop->ctx = block;
             // For some reason the loop becomes inactive at this point
@@ -317,8 +319,10 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 
             continue;
         }
+        auto f = toks[0];
         auto line = readUntil(toks, TT_semicolon, true);
-        auto f = line[0];
+        if(line.size()==0)expects(f, TT_notok);
+        f = line[0];
 
         if (f.is(TT_return))
         {

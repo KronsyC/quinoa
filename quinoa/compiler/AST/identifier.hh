@@ -41,7 +41,6 @@ public:
         auto tt = *ctx->local_types;
         // if(tt == nullptr)error("No locals for Ident ctx");
         auto type = tt[str()];
-        if(type==nullptr)error("Failed to get type for " + name);
         return type;
     }
     llvm::AllocaInst* getPtr(TVars vars){
@@ -52,7 +51,7 @@ public:
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
         auto loaded = getPtr(vars);
-        return builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded);
+        return cast(builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded), expected);
     }
     static Ident* get(std::string name, SourceBlock* ctx=nullptr){
         static std::map<std::pair<std::string, SourceBlock*>, Ident*> cache;

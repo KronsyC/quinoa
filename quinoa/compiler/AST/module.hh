@@ -169,7 +169,21 @@ public:
             if(c->name->str() == comp)return true;
         }
         return false;
-    }  
+    } 
+    void remove(std::string comp){
+        int idx = -1;
+        for(int i  = 0;i<compositors.size();i++){
+            auto c = compositors[i];
+            if(c->name->str() == comp){
+                idx = i;
+                break;
+            }
+        }
+        if(idx!=-1){
+            
+            compositors.erase(compositors.begin()+idx);
+        }
+    }
     Method* getMethod(std::string name){
         for(auto m:this->items){
             auto mt = (Method*)m;

@@ -144,7 +144,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         {
             auto ret = (Return *)stm;
             auto expr = ret->retValue->getLLValue(vars, func->getReturnType());
-            builder()->CreateRet(expr);
+            builder()->CreateRet(cast(expr, func->getReturnType()));
         }
         // interpret as expression with dumped value
         else if (instanceof <Expression>(stm))

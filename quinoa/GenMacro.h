@@ -29,7 +29,7 @@
 	
 
 #define DEFINITIONS_INITIALIZERS \
-	new TokenDefinition(TT_notoken, "__notoken", {}, "", false, false, 0, 0, 0),\
+	new TokenDefinition(TT_notok, "__notok", {}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_eof, "__eof", {}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_comment, "__comment", {}, "", false, false, 0, 0, 0),\
 	new TokenDefinition(TT_identifier, "__identifier", {}, "", false, false, 0, 0, 0),\
@@ -128,7 +128,7 @@
 	
 
 #define DEFINITIONS_ENUM_MEMBERS \
-	TT_notoken,\
+	TT_notok,\
 	TT_eof,\
 	TT_comment,\
 	TT_identifier,\

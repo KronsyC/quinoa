@@ -30,6 +30,7 @@ void expects(Token tok, TokenType expected){
     if(!tok.is(expected)){
         std::string message = tok.position();
         message += " Unexpected "+ getTokenTypeName(tok.type) + " " +tok.value+" ";
+        if(expected!=TT_notok)
         message += "( expected '" + getTokenTypeName(expected) + "' )";
         error(message);
     }

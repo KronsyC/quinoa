@@ -4,15 +4,18 @@
 #include "../util.hh"
 
 
-void qualifyCalls(SourceBlock &code,
+bool qualifyCalls(SourceBlock &code,
                   std::map<std::string, MethodSignature *> sigs) {
+  bool success = true;
   auto flat = code.flatten();
   for (auto item : flat) {
     if (instanceof <MethodCall>(item)) {
       auto call = (MethodCall *)item;
       call->qualify(sigs, *code.local_types);
+      if(call->target == nullptr)success = false;
     }
   }
+  return success;
 }
 
 std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
@@ -37,11 +40,14 @@ std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
   return sigs;
 }
 
-void qualifyCalls(CompilationUnit &unit) {
+bool qualifyCalls(CompilationUnit &unit) {
 
   auto sigs = fetchSignatures(unit);
+  bool success = true;
   // Attempt to Qualify all Calls
   for (auto method : unit.getAllMethods()) {
-      qualifyCalls(*method, sigs);
+      auto result = qualifyCalls(*method, sigs);
+      if(!result)success = false;
   }
+  return success;
 }

@@ -10,3 +10,10 @@
 llvm::LLVMContext* ctx();
 llvm::IRBuilder<>* builder();
 
+llvm::Value *cast(llvm::Value *val, llvm::Type *type);
+
+
+llvm::Type *getCommonType(llvm::Type *t1, llvm::Type *t2);
+
+bool isInt(llvm::Type *t);
+
