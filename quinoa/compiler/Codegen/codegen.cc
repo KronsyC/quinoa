@@ -127,6 +127,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             if(!iff->does->returns())builder()->CreateBr(continuationBlock);
 
             if(iff->otherwise != nullptr){
+                Logger::debug("Generating else: " + std::to_string(iff->otherwise->items.size()));
                 builder()->SetInsertPoint(elseBlock);
                 genSource(iff->otherwise->items, func, vars, cf);
                 if(!iff->otherwise->returns())builder()->CreateBr(continuationBlock);

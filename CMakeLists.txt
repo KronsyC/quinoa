@@ -15,6 +15,8 @@ string(STRIP ${LDF} LDF)
 
 link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 
+add_compile_options(-fsanitize=address -g)
+
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 # include(FetchContent)
 # FetchContent_Declare(toml11                              # name of the content

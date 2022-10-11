@@ -13,14 +13,20 @@ public:
 		return does->returns() && otherwise->returns();
 	}
 
-	IfCond(Expression* cond, SourceBlock* otherwise){
+	IfCond(Expression* cond, SourceBlock* does, SourceBlock* otherwise=nullptr){
 		this->cond = cond;
+		this->does = does;
 		this->otherwise = otherwise;
 	}
 	IfCond() = default;
 	std::vector<Statement*> flatten(){
 		std::vector<Statement*> ret = {this};
-		for(auto m:otherwise->flatten())ret.push_back(m);
+		bool hasElse = (this->otherwise) != nullptr;
+		if(hasElse){
+			auto flat = otherwise->flatten();
+			for(auto m:otherwise->flatten())ret.push_back(m);
+		}
+
 		for(auto m:does->flatten())ret.push_back(m);
 		for(auto m:cond->flatten())ret.push_back(m);
 		return ret;

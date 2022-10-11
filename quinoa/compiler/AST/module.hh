@@ -31,7 +31,7 @@ public:
         this->name = name;
     }
     Param* deVarify(){
-        if(!instanceof<ListType>(type))error("Cannot have non-list varargs");
+        if(!instanceof<ListType>(type))error("Cannot have non-list varargs: " + name->str());
         auto list = (ListType*)type;
         auto p = new Param(list->elements, name);
         return p;

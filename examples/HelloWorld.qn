@@ -1,12 +1,10 @@
+import @io;
+
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        if(argc == 1){
-            return 69;
-        }
-        else{
-            return 420;
-        }
+        io::println("Hello, World!");
+        return 0;
     } 
 
 }

@@ -95,6 +95,15 @@ class Return;
 // variables cannot be redefined within the same block and are hence guaranteed to keep the same type
 class SourceBlock:public Block<Statement>{
 public:
+    SourceBlock(std::vector<Statement*> items){
+        this->items = items;
+        this->local_types = new LocalTypeTable;
+    }
+    SourceBlock(Statement* item){
+        this->items.push_back(item);
+        this->local_types = new LocalTypeTable;
+    }
+    SourceBlock() = default;
     LocalTypeTable* local_types = nullptr;
     std::vector<std::string> declarations;
     virtual bool returns(){
@@ -102,6 +111,7 @@ public:
         // i have a return instruction
         // one of my direct child blocks returns
         for(auto inst:items){
+            if(inst==nullptr)continue;
             if(instanceof<Return>(inst))return true;
             else if(instanceof<SourceBlock>(inst)){
                 auto block = (SourceBlock*)inst;
@@ -110,8 +120,6 @@ public:
         }
         return false;
     };
-    // This is messy, im sorry
-    SourceBlock* self = this;
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret;
         for(auto i:items){

@@ -130,7 +130,7 @@ public:
         return elements->str()+"[]";
     }
     
-    static ListType* get(Type* t, Expression* n){
+    static ListType* get(Type* t, Expression* n=nullptr){
         static std::map<std::pair<Type*, Expression*>, ListType*> cache;
         auto fetched = cache[{t, n}];
         if(fetched == nullptr){
