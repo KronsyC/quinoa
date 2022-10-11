@@ -17,7 +17,6 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
 {
     auto ret = f.returnType->getLLType();
     auto name = mangle ? f.sourcename() : f.fullname()->str();
-    Logger::debug("Creating Function " + name);
     vector<llvm::Type *> args;
     for (auto a : f.params)
         args.push_back(a->type->getLLType());
@@ -40,6 +39,7 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
 
     auto sig = llvm::FunctionType::get(ret, args, isVarArg);
     auto fn = llvm::Function::Create(sig, linkage, name, mod);
+    Logger::debug("Created function " + name);
     for (int i = 0; i < fn->arg_size(); i++)
         fn->getArg(i)->setName(f.params[i]->name->str());
     return fn;

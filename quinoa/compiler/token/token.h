@@ -9,11 +9,13 @@ public:
     int line;
     TokenType type;
     std::string value;
+    std::string file;
 
-    Token(TokenType type, std::string value="", int line=0, int col=0){
+    Token(TokenType type, std::string value="", int line=0, int col=0, std::string filename=""){
         this->type = type;
         this->value = value;
         this->line=line;
+        this->file = filename;
         this->col=col;
     }
     Token() = default;

@@ -1,5 +1,14 @@
+
 module IO is Exported{
+
+    func strlen(str:string)->i64{
+        let i:int = 0;
+        while(str[i] != 0)i++;
+        return i;
+    }
+
     func println(message:string) -> i64{
-        return 69;
+        primitives::__syscall__(1, 1, message, strlen(message));
+        return 0;
     }
 }

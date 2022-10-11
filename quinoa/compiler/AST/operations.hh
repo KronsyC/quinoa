@@ -25,7 +25,11 @@ public:
   Type *getType()
   {
     if (target == nullptr || target->returnType == nullptr)
+    {
+      error("Cannot get the return type of an unresolved function call " + name->str());
       return nullptr;
+
+    }
     return target->returnType;
   }
 
@@ -62,6 +66,7 @@ public:
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
+    if(ctx==nullptr)error("Cannot Resolve a contextless call");
     if (nomangle)
     {
       for (auto pair : sigs)
@@ -77,12 +82,14 @@ public:
       error("Failed to find appropriate function call for internal method");
     }
     std::vector<Param *> testparams;
+    int i = 0;
     for (auto p : params)
     {
       auto type = p->getType();
       if (type == nullptr)
-        error("Unknown param type");
+        error("Unknown param type: " + name->str() + "["+std::to_string(i)+"]");
       testparams.push_back(new Param(type, nullptr));
+      i++;
     }
     auto callsig = new MethodSignature;
     callsig->name = name->last();
@@ -245,15 +252,10 @@ public:
 
   llvm::Value *getPtr(TVars vars, llvm::Type *target = nullptr)
   {
-    Logger::debug("a");
     auto varPtr = tgt->getPtr(vars);
     
     auto idx = item->getLLValue(vars);
-    Logger::debug("d");
-    varPtr->print(llvm::outs());
-    idx->print(llvm::outs());
     auto loaded = builder()->CreateGEP(varPtr->getType()->getPointerElementType(), varPtr, idx, "subscript-ptr");
-    Logger::debug("e");
     return loaded;
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
@@ -324,9 +326,6 @@ public:
 
   llvm::Value *getLLValue(TVars types, llvm::Type *expected)
   {
-    Logger::debug("getting llvalue for " + std::to_string(op));
-    if (expected != nullptr)
-      expected->print(llvm::outs());
     auto lt = left->getType();
     auto rt = right->getType();
     auto common = getCommonType(lt->getLLType(), rt->getLLType());
@@ -343,7 +342,6 @@ public:
         auto id = (Ident *)left;
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
-        typ->print(llvm::outs());
         builder()->CreateStore(right->getLLValue(types, typ), ptr);
       }
       if (instanceof <Subscript>(left)){
@@ -355,7 +353,6 @@ public:
       return cast(r, expected);
     };
     case BIN_plus:{
-      Logger::debug("adding");
       return cast(builder()->CreateAdd(l, r), expected);
 
     }

@@ -7,10 +7,9 @@
 #include<fstream>
 
 CompilationUnit makeAst(std::string sourceCode, std::string path, bool process){
-    auto toks = Lexer::lexify(sourceCode);
+    auto toks = Lexer::lexify(sourceCode, path);
     auto ast = Parser::makeAst(toks);
     if(process)Processor::process(ast, false);
-    Logger::debug("Brought in " + path);
     return ast;
 }
 std::string readFile(std::string path){

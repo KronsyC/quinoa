@@ -37,13 +37,11 @@ public:
     }
 
     Type* getType(){
-        Logger::debug("get type for ident " + str());
         if(ctx==nullptr)error("No Context for Ident");
         auto tt = *ctx->local_types;
         // if(tt == nullptr)error("No locals for Ident ctx");
         auto type = tt[str()];
         if(type==nullptr)error("Failed to get type for " + name);
-        Logger::debug("done");
         return type;
     }
     llvm::AllocaInst* getPtr(TVars vars){

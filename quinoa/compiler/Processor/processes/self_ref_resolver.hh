@@ -13,10 +13,8 @@ void resolveBlockSelfRefs(SourceBlock *content, CompoundIdentifier* space) {
 
       call->name->flatify();
       if (call->name->parts.size() == 1) {
-        Logger::log("Injecting Namespace for " + call->name->str());
         pushf(call->name->parts, (Identifier *)space);
         call->name->flatify();
-        Logger::log("Call is now " + call->name->str());
       }
     }
   }

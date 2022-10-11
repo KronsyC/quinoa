@@ -9,13 +9,13 @@
 using namespace std;
 int row = 1;
 int col = 1;
-
+static std::string filename;
 void newline(){
     row++;
     col=1;
 }
 Token make(TokenType type, string value=""){
-    Token tok(type, value, row, col);
+    Token tok(type, value, row, col, filename);
     return tok;
 }
 void trimStart(string& str){
@@ -163,12 +163,15 @@ Token readNextToken(string& str){
     throw exception();
 }   
 
-vector<Token> Lexer::lexify(string source){
+vector<Token> Lexer::lexify(string source, string fname){
     vector<Token> toks;
+    filename = fname;
     while(1){
         auto nextToken = readNextToken(source);
         if(nextToken.is(TT_eof))break;
         toks.push_back(nextToken);    
     }
+    row = 1;
+    col = 1;
     return toks;
 }  
