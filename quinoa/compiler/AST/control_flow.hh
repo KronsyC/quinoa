@@ -37,14 +37,18 @@ public:
 // Traditional for(init;cond;inc)
 class ForRange: public Statement, public SourceBlock{
 public:
-	Statement* init;
 	Expression* cond;
-	Statement* inc;
+	SourceBlock* inc;
 
-	ForRange(Statement* init, Expression* cond, Statement* inc, std::vector<Statement*> exec){
-		this->init = init;
+	ForRange( Expression* cond, SourceBlock* inc){
 		this->cond = cond;
 		this->inc = inc;
-		this->items = exec;
+	}
+	ForRange() = default;
+	std::vector<Statement*> flatten(){
+		std::vector<Statement*> ret = {this};
+		for(auto child:items)for(auto m:child->flatten())ret.push_back(m);
+		for(auto child:inc->items)for(auto m:child->flatten())ret.push_back(m);
+		return ret;
 	}
 };

@@ -40,7 +40,9 @@ public:
     }   
     Type *getType()
     {
-        if(value <= maxVal(8))return Primitive::get(PR_int8);
+        if(value <= maxVal(8))
+            return Primitive::get(PR_int8);
+        
         if(value <= maxVal(16))return Primitive::get(PR_int16);
         if(value <= maxVal(32))return Primitive::get(PR_int32);
         if(value <= maxVal(64))return Primitive::get(PR_int64);

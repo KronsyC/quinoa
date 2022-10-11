@@ -93,7 +93,6 @@ struct ModuleMember : public AstNode
 class SourceBlock:public Block<Statement>{
 public:
     LocalTypeTable* local_types;
-    TVars vars;
     std::vector<std::string> declarations;
     // This is messy, im sorry
     SourceBlock* self = this;
@@ -107,5 +106,41 @@ public:
             }
         }
         return ret;
+    }
+
+
+    void insert(SourceBlock* donor){
+        if(donor==nullptr)error("Cannot merge with a null donor");
+        auto old = donor;
+        for(auto item:donor->items){
+            // update the ctx
+            Statement* prev;
+            for(auto i:item->flatten()){
+                if(i->ctx == old){
+                    i->ctx = this;
+                }
+                // if(i->ctx==nullptr){
+                //     // point to the ctx of the prev
+                //     // if prev is a codeblock, point to that
+                //     if(instanceof<SourceBlock>(prev) && ((SourceBlock*)prev)->items.size()){
+                //         i->ctx = ((SourceBlock*)prev);
+                //     }
+                //     else i->ctx = prev->ctx;
+                //     Logger::debug("Resolved an empty boy");
+                // }
+                prev = i;
+            }
+            item->ctx = this;
+            items.push_back(item);
+        }
+        for(auto pair:*donor->local_types){
+            auto my = *local_types;
+            if(my[pair.first] == nullptr){
+                // Logger::debug("merging " + pair.first + " : " + pair.second->str());
+                (*local_types)[pair.first] = pair.second;
+            }
+
+        }
+        // delete donor;
     }
 };

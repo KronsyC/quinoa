@@ -9,7 +9,11 @@
 
 #include "../processor.h"
 
-void implSyscall(Method *method, CompilationUnit& unit){
+
+void implIntrinsics(CompilationUnit& unit){
+
+// glibc syscall
+{
     auto sig = new MethodSignature;
     sig->nomangle = true;
     std::vector<Param*> params;
@@ -23,6 +27,11 @@ void implSyscall(Method *method, CompilationUnit& unit){
     sig->params = params;
 
     pushf(unit.items, (TopLevelExpression*)new MethodPredeclaration(sig));
+}
+}
+
+void implSyscall(Method *method, CompilationUnit& unit){
+
 
 
     auto call = new MethodCall;
@@ -42,6 +51,7 @@ void implementPrimitive(Method *method, CompilationUnit& unit){
 
 void injectPrimitiveFunctions(CompilationUnit &unit)
 {
+    implIntrinsics(unit);
     for (auto mod : unit.getAllModules())
     {
         auto modname = mod->name->last();

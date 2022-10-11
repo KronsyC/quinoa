@@ -37,7 +37,8 @@ void hoistVarInitializations(CompilationUnit &unit)
 			if (instanceof <InitializeVar>(item))
 			{
 				auto v = (InitializeVar *)item;
-				allInitializations.push_back(new InitializeVar(*v));
+				auto copy = new InitializeVar(*v);
+				allInitializations.push_back(copy);
 				v->active = false;
 			}
 		}

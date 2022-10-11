@@ -111,7 +111,7 @@ public:
         sigs.params = params;
         sigs.space = space;
         sigs.nomangle = nomangle;
-        if(space==nullptr && !nomangle)error("Space is null?", true);
+        // if(space==nullptr && !nomangle)error("Space is null?", true);
         return sigs;
     }
     Param* getParam(int n){

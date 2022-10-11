@@ -25,6 +25,7 @@ bool resolveTypes(CompilationUnit& unit){
 				if(!instanceof<BinaryOperation>(c))continue;
 				auto op = (BinaryOperation*)c;
 				if(op->op != BIN_assignment)continue;
+
 				auto name = static_cast<Identifier*>(op->left);
 				if(name->str() == init->varname->str()){
 					//TODO: Do Some Complex Initializer
@@ -35,7 +36,9 @@ bool resolveTypes(CompilationUnit& unit){
 			}
 			if(initializer==nullptr)error("Failed to locate type for " + init->varname->str());
 			auto ctx = initializer->ctx;
-			LocalTypeTable type_table = *ctx->local_types;
+			if(ctx==nullptr)ctx=init->ctx;
+			if(ctx==nullptr)error("No ctx was found for init");
+			if(ctx->local_types==nullptr)error("Local Type Table is null", false);
 			auto exprType = initializer->getType();
 			// If a nullptr is returned, there is not enough info
 			// currently available

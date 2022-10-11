@@ -30,7 +30,6 @@ std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
     if(instanceof<MethodPredeclaration>(item)){
       auto sig = (MethodPredeclaration*)item;
       if(sig->sig->nomangle){
-        Logger::debug("Injecting sig " + sig->sig->name->str());
         sigs[sig->sig->name->str()] = sig->sig;
       }
     }

@@ -89,7 +89,8 @@
         "syncstream": "cpp",
         "typeindex": "cpp",
         "valarray": "cpp",
-        "*.def": "cpp"
+        "*.def": "cpp",
+        "stdarg.h": "c"
     },
     "discord.enabled": true
 }

@@ -9,6 +9,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Module.h"
 #include "../../lib/logger.h"
+#include "../../lib/list.h"
 using namespace std;
 
 
@@ -68,10 +69,16 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             continue;
         if (instanceof <InitializeVar>(stm))
         {
+            llvm::Value* size = nullptr;
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
-            auto alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
+            if(instanceof<ListType>(init->type)){
+                auto l = (ListType*)init->type;
+                if(l->size != nullptr)
+                    size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
+            }
+            auto alloca = builder()->CreateAlloca(type, size, "var " + varname);
 
             vars.insert({varname, alloca});
         }
@@ -80,9 +87,9 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto loop = (WhileCond *)stm;
             auto cond = loop->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
 
-            auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "while_evaluator", func);
-            auto runBlock = llvm::BasicBlock::Create(*ctx(), "while_content", func);
-            auto continuationBlock = llvm::BasicBlock::Create(*ctx(), "while_continuation", func);
+            auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "while_eval", func);
+            auto runBlock = llvm::BasicBlock::Create(*ctx(), "while_exec", func);
+            auto continuationBlock = llvm::BasicBlock::Create(*ctx(), "while_cont", func);
 
             ControlFlowInfo cf = cfi;
             cf.breakTo = continuationBlock;
@@ -102,6 +109,37 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
         }
+        else if(instanceof<ForRange>(stm)){
+            auto loop = (ForRange *)stm;
+
+            auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "for_eval", func);
+            auto incrementBlock = llvm::BasicBlock::Create(*ctx(), "for_inc", func);
+            auto runBlock = llvm::BasicBlock::Create(*ctx(), "for_exec", func);
+            auto continuationBlock = llvm::BasicBlock::Create(*ctx(), "while_cont", func);
+
+            ControlFlowInfo cf = cfi;
+            cf.breakTo = continuationBlock;
+            cf.continueTo = incrementBlock;
+            cf.exitBlock = continuationBlock;
+
+            // Set up the evaluator
+            builder()->CreateBr(evaluatorBlock);
+            builder()->SetInsertPoint(evaluatorBlock);
+            auto cond = loop->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
+            builder()->CreateCondBr(cond, runBlock, continuationBlock);
+
+            // Set up the content
+            builder()->SetInsertPoint(runBlock);
+            genSource(loop->items, func, vars, cf);
+            builder()->CreateBr(incrementBlock);
+
+
+            builder()->SetInsertPoint(incrementBlock);
+            genSource(loop->inc->items, func, vars);
+            builder()->CreateBr(evaluatorBlock);
+            // generate the continuation
+            builder()->SetInsertPoint(continuationBlock);
+        }
         else if (instanceof <Return>(stm))
         {
             auto ret = (Return *)stm;
@@ -117,7 +155,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             error("Failed Generate IR for statement");
     }
 }
-TVars varifyArgs(llvm::Function *fn)
+TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
 {
     if (fn == nullptr)
         error("Cannot varify the args of a null function", true);
@@ -130,6 +168,57 @@ TVars varifyArgs(llvm::Function *fn)
         auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
         builder()->CreateStore(arg, alloc);
         vars[arg->getName().str()] = alloc;
+    }
+
+    // Inject the var-args as a known-length list
+    if(sig!=nullptr && sig->sig->isVariadic()){
+        auto varParam = sig->sig->params[sig->sig->params.size()-1];
+        auto varParamType = (ListType*)varParam->type;
+        auto elementType = varParamType->elements->getLLType();
+        auto one = builder()->getInt32(1);
+        auto lenptr = vars["+vararg_count"];
+        auto len = builder()->CreateLoad(lenptr->getType()->getPointerElementType(), lenptr, "varargs_len");
+        auto init = builder()->CreateAlloca(elementType, len, "varargs_list");
+        vars[varParam->name->str()] = init;
+        pushf(sig->items, (Statement*)init);
+
+        auto i32 = Primitive::get(PR_int32)->getLLType();
+        auto i8p = TPtr::get(Primitive::get(PR_int8))->getLLType();
+        // auto st = llvm::StructType::create(i32, i32, i8ptr, i8ptr);
+        auto st = llvm::StructType::create(*ctx(), {i32, i32, i8p, i8p});
+        auto alloc = builder()->CreateAlloca(st, nullptr, "var_args_obj");
+        // Tracker / i
+        auto tracker = builder()->CreateAlloca(i32, nullptr, "i");
+        builder()->CreateStore(builder()->getInt32(0), tracker);
+        auto cast = builder()->CreateBitCast(alloc, i8p);
+        builder()->CreateUnaryIntrinsic(llvm::Intrinsic::vastart, cast);
+
+
+        // Create a loop to iter over each arg, and push it into the list
+        auto eval = llvm::BasicBlock::Create(*ctx(), "while_eval", fn);
+        auto body = llvm::BasicBlock::Create(*ctx(), "while_body", fn);
+        auto cont = llvm::BasicBlock::Create(*ctx(), "while_cont", fn);
+
+        builder()->CreateBr(eval);
+        builder()->SetInsertPoint(eval);
+
+        // Generate the Evaluator
+        auto loaded_i = builder()->CreateLoad(tracker->getType()->getPointerElementType(), tracker);
+        auto isSmaller = builder()->CreateICmpSLT(loaded_i, len);
+        builder()->CreateCondBr(isSmaller, body, cont);
+        builder()->SetInsertPoint(body);
+
+        // get the value and set it in the list
+        auto value = builder()->CreateVAArg(alloc, elementType);
+        auto listPtr = builder()->CreateGEP(init->getType()->getPointerElementType(),init,loaded_i);
+        builder()->CreateStore(value, listPtr);
+
+        // Increment and jump out
+        auto inc = builder()->CreateAdd(loaded_i, one);
+        builder()->CreateStore(inc, tracker);
+        builder()->CreateBr(eval);
+        builder()->SetInsertPoint(cont);
+        
     }
     return vars;
 }
@@ -156,7 +245,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
             auto entry_block = llvm::BasicBlock::Create(*ctx(), "entry_block", fn);
 
             builder()->SetInsertPoint(entry_block);
-            genSource(method->items, fn, varifyArgs(fn));
+            genSource(method->items, fn, varifyArgs(fn, method));
             if (fn->getReturnType()->isVoidTy())
                 builder()->CreateRetVoid();
             continue;
@@ -192,7 +281,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             auto efn = createFunction(*entry->sig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
             auto block = llvm::BasicBlock::Create(*ctx(), "main_entry", efn);
             builder()->SetInsertPoint(block);
-            genSource(entry->items, efn, varifyArgs(efn));
+            genSource(entry->items, efn, varifyArgs(efn, nullptr));
         }
         else if (instanceof <MethodPredeclaration>(unit))
         {

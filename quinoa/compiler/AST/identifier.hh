@@ -33,18 +33,24 @@ public:
     }
 
     Type* getType(){
-        auto tt = ctx->local_types;
-        Logger::debug("Getting Types for " + name);
-        Logger::debug("ctx is null? " + std::to_string(tt==nullptr));
-        printTypeTable(*ctx->local_types)
-        auto type = (*ctx->local_types)[str()];
+        Logger::debug("get type for ident " + str());
+        if(ctx==nullptr)error("No Context for Ident");
+        auto tt = *ctx->local_types;
+        // if(tt == nullptr)error("No locals for Ident ctx");
+        auto type = tt[str()];
+        if(type==nullptr)error("Failed to get type for " + name);
+        Logger::debug("done");
         return type;
     }
-    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+    llvm::Value* getPtr(TVars vars, llvm::Type* expected=nullptr){
         auto loaded = vars[str()];
         if (loaded == nullptr)
             error("Failed to read variable '" + str() + "'");
         return loaded;
+    }
+    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        auto loaded = getPtr(vars, expected);
+        return builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded);
     }
     static Ident* get(std::string name, SourceBlock* ctx=nullptr){
         static std::map<std::pair<std::string, SourceBlock*>, Ident*> cache;

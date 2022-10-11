@@ -118,8 +118,6 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
 
 Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
 {
-    printToks(toks);
-    Logger::debug("Parsing Expr, ctx is null? " + std::to_string(ctx==nullptr));
     if (toks.size() == 0)
         error("Cannot Generate an Expression from no tokens");
     if (toks.size() == 1)
@@ -135,7 +133,6 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
         case TT_literal_float:
             return new Float(stold(toks[0].value));
         case TT_identifier:{
-            Logger::debug("Generating ident " + toks[0].value);
             return Ident::get(toks[0].value, ctx);
 
         }
@@ -277,18 +274,46 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
             auto cond = parseExpression(expr, block);
-            cond->ctx = block->self;
+            cond->ctx = block;
             auto content= parseSourceBlock(exec, *type_info);
             auto loop = new WhileCond;
-            *loop = *(WhileCond*)content;
+            loop->insert(content);
+            *loop->local_types = *block->local_types;
             loop->cond = cond;
-            loop->ctx = block->self;
+            loop->ctx = block;
             // For some reason the loop becomes inactive at this point
             loop->active = true;
             block->push(loop);
             continue;
         }
+        if(first.is(TT_for)){
+            popf(toks);
+            auto inner = readBlock(toks, IND_parens);
+            auto exec = readBlock(toks, IND_braces);
 
+            auto init = readUntil(inner, TT_semicolon);
+            auto sc = popf(inner);
+            init.push_back(sc);
+            auto check = readUntil(inner, TT_semicolon, true);
+            inner.push_back(sc);
+            auto initCode = parseSourceBlock(init, *type_info);
+            block->insert(initCode);
+
+            auto checkCode = parseExpression(check, block);
+            auto incCode = parseSourceBlock(inner, *type_info);
+            auto source = parseSourceBlock(exec, *type_info);
+            auto loop = new ForRange;
+
+            loop->cond = checkCode;
+            loop->inc = incCode;
+            loop->ctx = block;
+            loop->local_types = new LocalTypeTable;
+            *loop->local_types = *block->local_types;
+            loop->insert(source);
+            block->push(loop);
+
+            continue;
+        }
         auto line = readUntil(toks, TT_semicolon, true);
         auto f = line[0];
 
@@ -297,8 +322,8 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             popf(line);
             auto returnValue = parseExpression(line, block);
             auto ret = new Return(returnValue);
-            ret->ctx = block->self;
-            returnValue->ctx = block->self;
+            ret->ctx = block;
+            returnValue->ctx = block;
             block->push(ret);
             continue;
         }
@@ -312,20 +337,20 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             }       
             else vartype = nullptr;
             auto name = Ident::get(varname);
-            name->ctx = block->self;
+            name->ctx = block;
 
             // Add the variable to the type table
             (*type_info)[varname] = vartype;
             block->declarations.push_back(varname);
             auto init = new InitializeVar(vartype, name);
-            init->ctx = block->self;
+            init->ctx = block;
             block->push(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line, block);
                 auto ass = new BinaryOperation(name, val, BIN_assignment);
-                ass->ctx = block->self;
-                val->ctx = block->self;
+                ass->ctx = block;
+                val->ctx = block;
                 block->push(ass);
             }
             continue;
@@ -333,7 +358,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 
         // Default to expression parsing
         auto expr = parseExpression(line, block);
-        expr->ctx = block->self;
+        expr->ctx = block;
 
         block->push(expr);
     }
@@ -378,6 +403,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
 
             Type* returnType;
             auto method = new Method();
+            method->local_types = new LocalTypeTable;
 
             // Functions implicitly return void
             if(toks[0].is(TT_arrow)){
@@ -400,12 +426,11 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             if(toks[0].is(TT_l_brace)){
                auto contentToks = readBlock(toks, IND_braces);
                 auto content = parseSourceBlock(contentToks, argTypes);
-                *method = *static_cast<Method*>(content); 
+                method->insert(content);
             }
             else{
                  expects(toks[0], TT_semicolon);
                  popf(toks);
-                 method->local_types = new LocalTypeTable;
             }
 
             // delete content;
@@ -416,7 +441,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             sig->params = params;
             sig->returnType = returnType;
             mod->push(method);
-
+            printTypeTable(*method->local_types);
             continue;
             
         }

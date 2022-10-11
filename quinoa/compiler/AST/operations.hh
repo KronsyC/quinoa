@@ -242,13 +242,17 @@ public:
     return ((TPtr *)elementType)->to;
   }
 
-  llvm::Value* getLLValue(TVars vars, llvm::Type* target=nullptr){
+  llvm::Value* getPtr(TVars vars, llvm::Type* target=nullptr){
     auto name = tgt;
     auto var = name->getLLValue(vars);
     auto varl = builder()->CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
     auto idx = item->getLLValue(vars);
     auto loaded = builder()->CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
     return loaded;
+  }
+  llvm::Value* getLLValue(TVars vars, llvm::Type* target=nullptr){
+    auto loaded = getPtr(vars, target);
+    return builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded);
 
   }
 };
@@ -282,19 +286,59 @@ public:
       flat.push_back(i);
     return flat;
   }
+  Type* getType(){
+    //TODO: Fix this up
+    return this->right->getType();
+  }
 
   llvm::Value* getLLValue(TVars types, llvm::Type* expected){
-    auto l = left->getLLValue(types);
-    auto r = right->getLLValue(types);
+    if(expected!=nullptr)expected->print(llvm::outs());
+    auto lt = left->getType();
+    auto rt = right->getType();
+    auto common = getCommonType(left->getType()->getLLType(), right->getType()->getLLType());
+    auto l = left->getLLValue(types, common);
+    auto r = right->getLLValue(types, common);
     switch(op){
       case BIN_assignment: {
-        builder()->CreateStore(r, l);
-        return r;
+        auto r = right->getLLValue(types);
+        if(instanceof<Ident>(left)){
+          auto id = (Ident*)left;
+          auto typ = types[id->str()]->getType()->getPointerElementType();
+          builder()->CreateStore(cast(r, typ), id->getPtr(types));
+        }
+        if(instanceof<Subscript>(left))builder()->CreateStore(r, ((Subscript*)left)->getPtr(types));
+        return cast(r, expected);
       };
-      case BIN_plus: return builder()->CreateAdd(l, r);
-      default: error("Failed to generate IR for expression");
+      case BIN_plus: return cast(builder()->CreateAdd(l, r), expected);
+      case BIN_lesser: return cast(builder()->CreateICmpSLT(l, r), expected);
+      default: error("Failed to generate IR for binary expression");
     }
+    error("Failed to generate binary expression " + std::to_string(op));
+    return nullptr;
+  }
+private:
+  bool isInt(llvm::Type* t){
+    return t->isIntegerTy();
+  }
+  llvm::Value* cast(llvm::Value* val, llvm::Type* type){
+    if(type==nullptr)return val;
+    auto tape = val->getType();
+    if(isInt(tape)&& isInt(type))return builder()->CreateIntCast(val, type, true);
+    error("Failed to cast");
+    return nullptr;
+  }
+  llvm::Type* getCommonType(llvm::Type* t1, llvm::Type* t2){
+    if(t1==nullptr||t2==nullptr)error("one of the types is null");
+    if(t1==t2)return t1;
+    // int casting
+    int size1 = t1->getPrimitiveSizeInBits();
+    int size2 = t2->getPrimitiveSizeInBits();
+    if(isInt(t1) && isInt(t2))return builder()->getIntNTy(std::max(size1, size2));
+    
 
+    t1->print(llvm::outs());
+    t2->print(llvm::outs());
+    error("Failed To Get Common Type");
     return nullptr;
   }
 };
