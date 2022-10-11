@@ -101,7 +101,7 @@ void implSyscall(Method *method, CompilationUnit &unit)
                             new BinaryOperation(argCount, n6, eq),
                             cb6,
                             cb6)))))))))));
-    method->items.push_back(conditional);
+    // method->items.push_back(conditional);
 }
 
 void implementPrimitive(Method *method, CompilationUnit &unit)
