@@ -237,23 +237,53 @@ public:
     auto elementType = tgt->getType();
     if (elementType == nullptr)
       error("No Element Type");
-    if (! instanceof <TPtr>(elementType))
+    if (!(instanceof <TPtr>(elementType) || instanceof<ListType>(elementType)))
       error("List has member type which is a non-pointer");
-    return ((TPtr *)elementType)->to;
+    if(instanceof<TPtr>(elementType))return ((TPtr *)elementType)->to;
+    else return ((ListType*)elementType)->elements;
   }
 
-  llvm::Value* getPtr(TVars vars, llvm::Type* target=nullptr){
-    auto name = tgt;
-    auto var = name->getLLValue(vars);
-    auto varl = builder()->CreateLoad(var->getType()->getPointerElementType(), var, "temp load for subscript");
+  llvm::Value *getPtr(TVars vars, llvm::Type *target = nullptr)
+  {
+    Logger::debug("a");
+    auto varPtr = tgt->getPtr(vars);
+    
     auto idx = item->getLLValue(vars);
-    auto loaded = builder()->CreateGEP(varl->getType()->getPointerElementType(), varl, idx, "subscript-ptr of '" + name->str() + "'");
+    Logger::debug("d");
+    varPtr->print(llvm::outs());
+    idx->print(llvm::outs());
+    auto loaded = builder()->CreateGEP(varPtr->getType()->getPointerElementType(), varPtr, idx, "subscript-ptr");
+    Logger::debug("e");
     return loaded;
   }
-  llvm::Value* getLLValue(TVars vars, llvm::Type* target=nullptr){
+  llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
+  {
     auto loaded = getPtr(vars, target);
     return builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded);
+  }
+};
 
+class ArrayLength : public Expression
+{
+public:
+  Identifier *of;
+  ArrayLength(Identifier *of)
+  {
+    this->of = of;
+  }
+  std::vector<Statement *> flatten()
+  {
+    return {this, of};
+  }
+  Type *getType()
+  {
+    return Primitive::get(PR_int64);
+  }
+  llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
+  {
+    auto alloca = of->getPtr(vars);
+    auto size = alloca->getArraySize();
+    return size;
   }
 };
 enum BinaryOp
@@ -286,55 +316,84 @@ public:
       flat.push_back(i);
     return flat;
   }
-  Type* getType(){
-    //TODO: Fix this up
+  Type *getType()
+  {
+    // TODO: Fix this up
     return this->right->getType();
   }
 
-  llvm::Value* getLLValue(TVars types, llvm::Type* expected){
-    if(expected!=nullptr)expected->print(llvm::outs());
+  llvm::Value *getLLValue(TVars types, llvm::Type *expected)
+  {
+    Logger::debug("getting llvalue for " + std::to_string(op));
+    if (expected != nullptr)
+      expected->print(llvm::outs());
     auto lt = left->getType();
     auto rt = right->getType();
-    auto common = getCommonType(left->getType()->getLLType(), right->getType()->getLLType());
+    auto common = getCommonType(lt->getLLType(), rt->getLLType());
+    
     auto l = left->getLLValue(types, common);
     auto r = right->getLLValue(types, common);
-    switch(op){
-      case BIN_assignment: {
-        auto r = right->getLLValue(types);
-        if(instanceof<Ident>(left)){
-          auto id = (Ident*)left;
-          auto typ = types[id->str()]->getType()->getPointerElementType();
-          builder()->CreateStore(cast(r, typ), id->getPtr(types));
-        }
-        if(instanceof<Subscript>(left))builder()->CreateStore(r, ((Subscript*)left)->getPtr(types));
-        return cast(r, expected);
-      };
-      case BIN_plus: return cast(builder()->CreateAdd(l, r), expected);
-      case BIN_lesser: return cast(builder()->CreateICmpSLT(l, r), expected);
-      default: error("Failed to generate IR for binary expression");
+
+    switch (op)
+    {
+    case BIN_assignment:
+    {
+      if (instanceof <Ident>(left))
+      {
+        auto id = (Ident *)left;
+        auto ptr = id->getPtr(types);
+        auto typ = ptr->getType()->getPointerElementType();
+        typ->print(llvm::outs());
+        builder()->CreateStore(right->getLLValue(types, typ), ptr);
+      }
+      if (instanceof <Subscript>(left)){
+        auto sub = (Subscript*)left;
+        auto ptr = sub->getPtr(types);
+        auto typ = sub->getLLValue(types)->getType()->getPointerElementType();
+        builder()->CreateStore(right->getLLValue(types, typ), sub->getPtr(types));
+      }
+      return cast(r, expected);
+    };
+    case BIN_plus:{
+      Logger::debug("adding");
+      return cast(builder()->CreateAdd(l, r), expected);
+
+    }
+    case BIN_lesser:
+      return cast(builder()->CreateICmpSLT(l, r), expected);
+    default:
+      error("Failed to generate IR for binary expression");
     }
     error("Failed to generate binary expression " + std::to_string(op));
     return nullptr;
   }
+
 private:
-  bool isInt(llvm::Type* t){
+  bool isInt(llvm::Type *t)
+  {
     return t->isIntegerTy();
   }
-  llvm::Value* cast(llvm::Value* val, llvm::Type* type){
-    if(type==nullptr)return val;
+  llvm::Value *cast(llvm::Value *val, llvm::Type *type)
+  {
+    if (type == nullptr)
+      return val;
     auto tape = val->getType();
-    if(isInt(tape)&& isInt(type))return builder()->CreateIntCast(val, type, true);
+    if (isInt(tape) && isInt(type))
+      return builder()->CreateIntCast(val, type, true);
     error("Failed to cast");
     return nullptr;
   }
-  llvm::Type* getCommonType(llvm::Type* t1, llvm::Type* t2){
-    if(t1==nullptr||t2==nullptr)error("one of the types is null");
-    if(t1==t2)return t1;
+  llvm::Type *getCommonType(llvm::Type *t1, llvm::Type *t2)
+  {
+    if (t1 == nullptr || t2 == nullptr)
+      error("one of the types is null");
+    if (t1 == t2)
+      return t1;
     // int casting
     int size1 = t1->getPrimitiveSizeInBits();
     int size2 = t2->getPrimitiveSizeInBits();
-    if(isInt(t1) && isInt(t2))return builder()->getIntNTy(std::max(size1, size2));
-    
+    if (isInt(t1) && isInt(t2))
+      return builder()->getIntNTy(std::max(size1, size2));
 
     t1->print(llvm::outs());
     t2->print(llvm::outs());
@@ -342,7 +401,6 @@ private:
     return nullptr;
   }
 };
-
 
 class InitializeVar : public Statement
 {

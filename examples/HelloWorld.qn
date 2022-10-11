@@ -1,13 +1,16 @@
 import @io;
 module HelloWorld is Entry{
 
+    func sum(...args:int[]) -> int{
+        let sum:int = 0;
+        for(let i:int = 0;i<len(args);i=i+1){
+            sum = sum + args[i];
+        }
+        return sum;
+    }
 
     func main(argc:int, argv:string*) -> int{
-        let num:int = 0;
-        for(let i:int = 0;i<100;i=i+1){
-            num = num +1;
-        }
-        return num;
+        return sum(1, 2, 3);
     } 
 
 

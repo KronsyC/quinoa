@@ -13,7 +13,11 @@ public:
     std::vector<Statement*> flatten(){
         return {this};
     }
-
+    
+    virtual llvm::AllocaInst* getPtr(TVars vars){
+        error("Cannot getPtr to a base identifier");
+        return nullptr;
+    }
 };
 
 class Ident:public Identifier{
@@ -42,14 +46,14 @@ public:
         Logger::debug("done");
         return type;
     }
-    llvm::Value* getPtr(TVars vars, llvm::Type* expected=nullptr){
+    llvm::AllocaInst* getPtr(TVars vars){
         auto loaded = vars[str()];
         if (loaded == nullptr)
             error("Failed to read variable '" + str() + "'");
         return loaded;
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
-        auto loaded = getPtr(vars, expected);
+        auto loaded = getPtr(vars);
         return builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded);
     }
     static Ident* get(std::string name, SourceBlock* ctx=nullptr){

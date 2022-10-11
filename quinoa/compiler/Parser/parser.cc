@@ -165,16 +165,20 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
                     types.push_back(t);
                     params.push_back(expr);
                 }
+                if(target->str() == "len" && params.size() == 1 && instanceof<Identifier>(params[0])){
+                    Logger::debug("len");
+                    auto l = new ArrayLength((Identifier*)params[0]);
+                    l->ctx = ctx;
+                    return l;
+                }
                 auto call = new MethodCall;
                 call->params = params;
                 call->target = nullptr;
                 call->ctx = ctx;
-                if(instanceof<CompoundIdentifier>(target))call->name = (CompoundIdentifier*)target;
-                else{
-                    auto id = new CompoundIdentifier(target->str());
-                    id->ctx = ctx;
-                    call->name = id;
-                }
+                call->name = target;
+                
+
+
                 return call;
             }
         }
