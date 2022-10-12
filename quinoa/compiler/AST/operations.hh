@@ -28,7 +28,6 @@ public:
     {
       // error("Cannot get the return type of an unresolved call", true);
       return nullptr;
-
     }
     return target->returnType;
   }
@@ -62,14 +61,15 @@ public:
 
     return builder()->CreateCall(tgtFn, llparams);
   }
-  //TODO: This method cant really throw exceptions because of how type resolution works
-  // so return a string representing the error reason, these strings can then be accumulated and returned
-  // if it is decided that a type is unresolvable
+  // TODO: This method cant really throw exceptions because of how type resolution works
+  //  so return a string representing the error reason, these strings can then be accumulated and returned
+  //  if it is decided that a type is unresolvable
   void qualify(
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
-    if(ctx==nullptr)error("Cannot Resolve a contextless call");
+    if (ctx == nullptr)
+      error("Cannot Resolve a contextless call");
     if (nomangle)
     {
       for (auto pair : sigs)
@@ -89,7 +89,8 @@ public:
     for (auto p : params)
     {
       auto type = p->getType();
-      if (type == nullptr){
+      if (type == nullptr)
+      {
         Logger::error("Failed to get type for param " + std::to_string(i));
         return;
       }
@@ -167,14 +168,14 @@ private:
   static int getCompatabilityScore(QualifiedMethodSigStr base,
                                    QualifiedMethodSigStr target)
   {
-    if (base.name->str() != target.name->str()){
+    if (base.name->str() != target.name->str())
+    {
       return -1;
-
     }
     // compare namespaces
-    if (base.space->str() != target.space->str()){
+    if (base.space->str() != target.space->str())
+    {
       return -1;
-
     }
 
     if (!base.isVariadic())
@@ -228,7 +229,8 @@ public:
       ret.push_back(i);
     return ret;
   }
-  bool returns(){
+  bool returns()
+  {
     return true;
   }
 };
@@ -256,10 +258,12 @@ public:
     auto elementType = tgt->getType();
     if (elementType == nullptr)
       error("No Element Type");
-    if (!(instanceof <TPtr>(elementType) || instanceof<ListType>(elementType)))
+    if (!(instanceof <TPtr>(elementType) || instanceof <ListType>(elementType)))
       error("List has member type which is a non-pointer", true);
-    if(instanceof<TPtr>(elementType))return ((TPtr *)elementType)->to;
-    else return ((ListType*)elementType)->elements;
+    if (instanceof <TPtr>(elementType))
+      return ((TPtr *)elementType)->to;
+    else
+      return ((ListType *)elementType)->elements;
   }
 
   llvm::Value *getPtr(TVars vars, llvm::Type *target = nullptr)
@@ -294,16 +298,16 @@ public:
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
   {
-     auto type_table = *ctx->local_types;
-     auto type = type_table[of->str()];
-     if(
-      type==nullptr
-      || !instanceof<ListType>(type)
-      )error("Failed to get list size");
-    
-    auto list = (ListType*)type;
+    auto type_table = *ctx->local_types;
+    auto type = type_table[of->str()];
+    if (
+        type == nullptr || ! instanceof <ListType>(type))
+      error("Failed to get list size");
+
+    auto list = (ListType *)type;
     auto size = list->size;
-    if(size==nullptr)error("Cannot get len() of list with unknown size");
+    if (size == nullptr)
+      error("Cannot get len() of list with unknown size");
     return size->getLLValue(vars, target);
   }
 };
@@ -348,9 +352,10 @@ public:
     auto lt = left->getType();
     auto rt = right->getType();
     auto common = getCommonType(lt->getLLType(), rt->getLLType());
-      auto l = left->getLLValue(types, common);
-      auto r = right->getLLValue(types, common);
-      if(op==BIN_assignment){
+
+    if (op == BIN_assignment)
+    {
+      auto r = right->getLLValue(types);
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
@@ -358,33 +363,42 @@ public:
         auto typ = ptr->getType()->getPointerElementType();
         builder()->CreateStore(cast(r, typ), ptr);
       }
-      if (instanceof <Subscript>(left)){
-        auto sub = (Subscript*)left;
+      if (instanceof <Subscript>(left))
+      {
+        auto sub = (Subscript *)left;
         auto ptr = sub->getPtr(types);
-        auto typ = sub->getLLValue(types)->getType()->getPointerElementType();
-        builder()->CreateStore(cast(r, typ), sub->getPtr(types));
+        ptr->print(llvm::outs());
+        auto typ = ptr->getType()->getPointerElementType();
+        builder()->CreateStore(cast(r, typ), ptr);
       }
       return cast(r, expected);
     }
-
-
+    auto l = left->getLLValue(types, common);
+    auto r = right->getLLValue(types, common);
     auto result = getOp(l, r);
-    if(result==nullptr)error("Failed to generate IR for binary expression");
+    if (result == nullptr)
+      error("Failed to generate IR for binary expression");
     auto casted = cast(result, expected);
     return casted;
   }
 
 private:
-  llvm::Value* getOp(llvm::Value* l, llvm::Value* r){
-    switch(op){
-      case BIN_plus:return builder()->CreateAdd(l, r);
-      case BIN_lesser:return builder()->CreateICmpSLT(l, r);
-      case BIN_not_equals: return builder()->CreateICmpNE(l, r);
-      case BIN_equals: return builder()->CreateICmpEQ(l, r);
-      default: return nullptr;
+  llvm::Value *getOp(llvm::Value *l, llvm::Value *r)
+  {
+    switch (op)
+    {
+    case BIN_plus:
+      return builder()->CreateAdd(l, r);
+    case BIN_lesser:
+      return builder()->CreateICmpSLT(l, r);
+    case BIN_not_equals:
+      return builder()->CreateICmpNE(l, r);
+    case BIN_equals:
+      return builder()->CreateICmpEQ(l, r);
+    default:
+      return nullptr;
     }
   }
-
 };
 
 class InitializeVar : public Statement

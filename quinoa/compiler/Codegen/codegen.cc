@@ -71,16 +71,19 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             continue;
         if (instanceof <InitializeVar>(stm))
         {
-            llvm::Value* size = nullptr;
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
+            llvm::AllocaInst* alloca;
             if(instanceof<ListType>(init->type)){
                 auto l = (ListType*)init->type;
-                if(l->size != nullptr)
-                    size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
+                llvm::Value* size = nullptr;;
+                if(l->size != nullptr)size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
+                auto list = builder()->CreateAlloca(type->getPointerElementType(), size, "list " + varname);
+                alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
+                builder()->CreateStore(list, alloca);
             }
-            auto alloca = builder()->CreateAlloca(type, size, "var " + varname);
+            else alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
             vars[varname] = alloca;
         }
         else if (instanceof <WhileCond>(stm))

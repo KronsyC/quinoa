@@ -55,6 +55,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock* ctx)
     id->ctx = ctx;
     return id;
 }
+Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx);
 Type* parseType(vector<Token>& toks, SourceBlock* ctx){
     if(!toks.size())error("Failed To Parse Type");
     Type* ret = nullptr;
@@ -77,9 +78,7 @@ Type* parseType(vector<Token>& toks, SourceBlock* ctx){
         // Type Array
         auto size = readBlock(toks, IND_square_brackets);
         if(size.size()==0)ret=ListType::get(ret, nullptr);
-        else{
-            error("Variable Length Arrays are currently not supported");
-        }
+        else ret = ListType::get(ret, parseExpression(size, ctx));
     }
     return ret;
 }

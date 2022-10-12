@@ -1,0 +1,8 @@
+module Test is Entry{
+
+    func main(argc: int, argv:string*)->int{
+        let list:i64[10];
+        list[0] = 1;
+        return list[0];
+    }
+}
