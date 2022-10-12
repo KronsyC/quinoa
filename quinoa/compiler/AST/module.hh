@@ -18,23 +18,24 @@ public:
 class ModuleReference:public Block<Expression>{
 public:
     Identifier* name;
-
 };
 
 class Param : public AstNode{
+
 public:
     Type* type = nullptr;
     Ident* name = nullptr;
     bool isVariadic = false;
-    Param(Type* type, Ident* name){
-        this->type = type;
-        this->name = name;
-    }
+
     Param* deVarify(){
         if(!instanceof<ListType>(type))error("Cannot have non-list varargs: " + name->str());
         auto list = (ListType*)type;
         auto p = new Param(list->elements, name);
         return p;
+    }
+    Param(Type* type, Ident* name){
+        this->type = type;
+        this->name = name;
     }
 };
 class MethodSigStr{

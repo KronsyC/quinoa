@@ -39,7 +39,7 @@ void implSyscall(Method *method, CompilationUnit &unit)
 void implementPrimitive(Method *method, CompilationUnit &unit)
 {
     auto name = method->sig->name->str();
-    if (name == "syscall")
+    if (name == "call")
         implSyscall(method, unit);
 };
 
@@ -49,7 +49,7 @@ void injectPrimitiveFunctions(CompilationUnit &unit)
     for (auto mod : unit.getAllModules())
     {
         auto modname = mod->name->last();
-        if (mod->is("CompilerImplemented") && modname->str() == "primitives")
+        if (mod->is("CompilerImplemented") && modname->str() == "syscall")
         {
             for (auto method : mod->getAllMethods())
             {

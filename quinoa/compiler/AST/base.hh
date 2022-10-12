@@ -11,8 +11,15 @@ public:
 
 class SourceBlock;
 
+template<class Class, typename KeyType>
+class Cached{
+protected:
+    inline static std::map<KeyType, Class*> cache;
+};
+
 struct Statement : public AstNode
 {
+public:
     // Statements can be deactivated if needed
     // This is useful when working with flattened asts, where it is impossible to remove nodes
     // The next best thing is deactivation
@@ -39,6 +46,7 @@ public:
         return nullptr;
     }
 };
+
 struct Expression : public Statement
 {
 public:
@@ -69,6 +77,14 @@ public:
     {
         destroy = false;
         return this->items;
+    }
+    ~Block(){
+        if(destroy){
+        for(auto i:items){
+            delete i;
+        }
+        }
+
     }
 
 private:
@@ -105,6 +121,9 @@ public:
         this->items.push_back(item);
         this->local_types = new LocalTypeTable;
     }
+    ~SourceBlock(){
+        delete local_types;
+    }
     bool returns(){
         for(auto item:items){
             if(item->returns())return true;
@@ -130,21 +149,13 @@ public:
     void insert(SourceBlock* donor){
         if(donor==nullptr)error("Cannot merge with a null donor");
         auto old = donor;
-        for(auto item:donor->items){
+        for(auto item:donor->take()){
             // update the ctx
             Statement* prev;
             for(auto i:item->flatten()){
                 if(i->ctx == old){
                     i->ctx = this;
                 }
-                // if(i->ctx==nullptr){
-                //     // point to the ctx of the prev
-                //     // if prev is a codeblock, point to that
-                //     if(instanceof<SourceBlock>(prev) && ((SourceBlock*)prev)->items.size()){
-                //         i->ctx = ((SourceBlock*)prev);
-                //     }
-                //     else i->ctx = prev->ctx;
-                // }
                 prev = i;
             }
             item->ctx = this;
@@ -158,6 +169,6 @@ public:
             }
 
         }
-        // delete donor;
+        delete donor;
     }
 };

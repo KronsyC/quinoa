@@ -42,32 +42,7 @@ void genEntryPoint(CompilationUnit &unit) {
   string entryName = "main";
   if (entry->hasMethod(entryName)) {
     auto main = entry->getMethod(entryName);
-    auto name = main->fullname();
-    for (auto p : name->parts) {
-      auto pname = p->str();
-    }
-
-    Entrypoint e(main->sig);
-    e.sig = new MethodSignature();
-    vector<Param *> params;
-    params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
-    params.push_back(
-        new Param(TPtr::get(TPtr::get(Primitive::get(PR_int8))), Ident::get("argv")));
-    e.sig->name = Ident::get("main");
-    e.sig->params = params;
-    e.sig->returnType = Primitive::get(PR_int32);
-    auto call = new MethodCall();
-    call->target = main->sig;
-    auto ret = (Primitive *)main->sig->returnType;
-    if (ret->type == PR_void) {
-      call->params = {};
-      e.items.push_back(new Return(new Integer(0)));
-    } else {
-
-      call->params = {Ident::get("argc"), Ident::get("argv")};
-      e.items.push_back(new Return(call));
-    }
-    unit.items.push_back(new Entrypoint(e));
+    unit.items.push_back(new Entrypoint(main->sig));
   } else
     error("The Entrypoint '" + entry->name->str() +
           "' does not contain a main method");

@@ -28,8 +28,9 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock* ctx)
 {
     expects(toks[0], TT_identifier);
     // Simplest Case (single-part)
-    if (toks.size() < 3 || !(toks[1].is(TT_double_colon) && toks[2].is(TT_identifier)))
-        return new CompoundIdentifier(popf(toks).value);
+    if (toks.size() < 3 || !(toks[1].is(TT_double_colon) && toks[2].is(TT_identifier))){
+        return new CompoundIdentifier(popf(toks).value, ctx);
+    }
     vector<Identifier *> parts;
     bool expectDot = false;
     for (auto t : toks)
@@ -67,7 +68,7 @@ Type* parseType(vector<Token>& toks, SourceBlock* ctx){
     else if(toks[0].isTypeTok())ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else{
         auto references = parseIdentifier(toks, ctx);
-        ret = new CustomType(references);
+        ret = CustomType::get(references);
     }
 
     while(toks.size() && toks[0].is(TT_star)){

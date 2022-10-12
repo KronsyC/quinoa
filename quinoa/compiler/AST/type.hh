@@ -77,14 +77,27 @@ public:
 };
 
 class CustomType:public Type{
-public:
-    Identifier* name;
+private:
     CustomType(Identifier* refersTo){
         name = refersTo;
     }
+public:
+    Identifier* name;
+
     llvm::Type* getLLType(){
         error("Cannot get type for customtype");
         return nullptr;
+    }
+
+    static CustomType* get(Identifier* refersTo){
+        static std::map<Identifier*, CustomType*> cache;
+        auto lookup = cache[refersTo];
+        if(lookup == nullptr){
+            auto p = CustomType::get(refersTo);
+            cache[refersTo] = p;
+            return p;
+        }
+        return lookup;
     }
 };
 class TPtr:public Type{

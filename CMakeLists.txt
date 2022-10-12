@@ -17,8 +17,8 @@ string(STRIP ${LDF} LDF)
 
 link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 
-# add_compile_options(-fsanitize=address)
-# add_link_options(-fsanitize=address)
+add_compile_options(-O3)
+add_link_options()
 
 
 add_definitions(-DLIBQ_DIR="/home/casey/quinoa/libq")

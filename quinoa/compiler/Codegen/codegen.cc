@@ -65,6 +65,7 @@ struct ControlFlowInfo
 
 void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, ControlFlowInfo cfi = {})
 {
+    Logger::debug("Generating Source of " + func->getName().str());
     for (auto stm : content)
     {
         if (!stm->active)
@@ -308,16 +309,34 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
         }
         else if (instanceof <Entrypoint>(unit))
         {
+            Logger::debug("gen entrypoint");
             auto entry = (Entrypoint *)unit;
             auto tgt = entry->calls->sourcename();
+            Logger::debug("a");
             auto fn = rootmod->getFunction(tgt);
             if (fn == nullptr)
                 error("Failed to locate entrypoint function '" + tgt + "'");
-            // Construct the entrypoint method
-            auto efn = createFunction(*entry->sig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
+            Logger::debug("b");
+
+            MethodSignature entrySig;
+            std::vector<Param*> params;
+            params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
+            params.push_back(new Param(TPtr::get(Primitive::get(PR_string)), Ident::get("argv")));
+            entrySig.name = Ident::get("main");
+            entrySig.nomangle = true;
+            entrySig.returnType = Primitive::get(PR_int32);
+            entrySig.params = params;
+            auto efn = createFunction(entrySig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
+            Logger::debug("c");
+            
             auto block = llvm::BasicBlock::Create(*ctx(), "main_entry", efn);
+            Logger::debug("d");
             builder()->SetInsertPoint(block);
-            genSource(entry->items, efn, varifyArgs(efn, nullptr));
+            auto argc = efn->getArg(0);
+            auto argv = efn->getArg(1);
+            auto retVal = builder()->CreateCall(fn, {argc, argv});
+            builder()->CreateRet(retVal);
+
         }
         else if (instanceof <MethodPredeclaration>(unit))
         {

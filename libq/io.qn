@@ -1,4 +1,4 @@
-import @lang::primitives as prim;
+import @syscall;
 module IO is Exported{
 
     func strlen(str:string)->i64{
@@ -10,6 +10,6 @@ module IO is Exported{
     }
 
     func println(message:string) -> i64{
-        return prim::syscall(1, 1, message, strlen(message));
+        return syscall::call(1, 1, message, strlen(message));
     }
 }

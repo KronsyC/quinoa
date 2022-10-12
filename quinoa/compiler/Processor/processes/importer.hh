@@ -65,7 +65,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
   }
 }
 void mergeUnits(CompilationUnit &tgt, CompilationUnit donor) {
-  for (auto e : donor.items) {
+  for (auto e : donor.take()) {
     e->isImported = true;
     tgt.push(e);
   }

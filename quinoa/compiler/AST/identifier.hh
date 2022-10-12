@@ -27,6 +27,7 @@ private:
     }
 public:
     Ident() = default;
+
     std::string name;
     std::string str(){
         auto name = this->name;
@@ -61,6 +62,7 @@ public:
             auto ident = new Ident(name);
             ident->ctx = ctx;
             cache[{name, ctx}] = ident;
+        
             return ident;
         }
         return val;
@@ -73,10 +75,9 @@ public:
         this->parts = parts;
         flatify();
     }
-    CompoundIdentifier(std::string value)
+    CompoundIdentifier(std::string value, SourceBlock* ctx = nullptr)
     {
         auto ident = Ident::get(value, ctx);
-        this->parts = {};
         this->parts.push_back(ident);
         flatify();
     }

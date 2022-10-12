@@ -58,12 +58,13 @@ bool isSymbol(string str){
 string escapeNextVal(string& str){
     auto first =  popf(str);
     switch(first){
-        case '"':{
+        case '"':
             return "\"";
-        }
+        
+        case 'n': return "\n";
     }
-    Logger::error("Failed To Escape String");
-    throw exception();
+    error("Failed To Escape String");
+    return "";
 }
 bool compareLength(string s1, string s2){
     return s1.length() > s2.length();

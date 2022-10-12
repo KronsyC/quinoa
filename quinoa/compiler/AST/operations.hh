@@ -18,8 +18,7 @@ public:
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this, name};
-    for (auto p : params)
-      ret.push_back(p);
+    for (auto p : params)for(auto f:p->flatten())ret.push_back(f);
     return ret;
   }
   Type *getType()
@@ -219,9 +218,11 @@ private:
 
 class Return : public Statement
 {
+private:
 public:
   Expression *retValue;
   Return(Expression *value) { this->retValue = value; }
+
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this};
@@ -237,6 +238,7 @@ public:
 
 class Subscript : public Expression
 {
+
 public:
   Identifier *tgt;
   Expression *item;
@@ -282,6 +284,7 @@ public:
 
 class ArrayLength : public Expression
 {
+
 public:
   Identifier *of;
   ArrayLength(Identifier *of)
@@ -319,11 +322,12 @@ enum BinaryOp
 static std::map<TokenType, BinaryOp> binary_op_mappings{INFIX_ENUM_MAPPINGS};
 class BinaryOperation : public Expression
 {
+
+
 public:
   Expression *left;
   Expression *right;
   BinaryOp op;
-
   BinaryOperation(Expression *left, Expression *right, BinaryOp op)
   {
     this->left = left;

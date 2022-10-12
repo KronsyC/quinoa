@@ -2,16 +2,17 @@
 #include "./ast.hh"
 #include <string>
 #include <cmath>
-template <typename T>
+
+template<typename U>
 class Constant : public Expression
 {
 public:
-    T value;
-    Constant(T value)
-    {
+    Constant(U value)
+    {   
         this->value = value;
     }
-    Constant() = default;
+    U value;
+
     std::vector<Statement*> flatten(){
         return {this};
     }
@@ -38,6 +39,7 @@ public:
         if(bits==64)return 18446744073709551615U;
         return ((long long)1 << bits)-1;
     }   
+
     Type *getType()
     {
         if(value <= maxVal(8))
@@ -63,18 +65,17 @@ class Float : public Constant<long double>
 {
 public:
     using Constant::Constant;
+
     Type *getType()
     {
         return Primitive::get(PR_float64);
     }
+    
 };
 class String : public Constant<std::string>
 {
-public:
-    String(std::string val){
-        this->value = val;
-    }
-    String() = default;
+    using Constant::Constant;
+
     Type *getType()
     {
         return TPtr::get(Primitive::get(PR_int8));
@@ -88,6 +89,7 @@ class Boolean : public Constant<bool>
 {
 public:
     using Constant::Constant;
+
     Type *getType()
     {
         return Primitive::get(PR_boolean);
