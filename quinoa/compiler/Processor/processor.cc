@@ -104,11 +104,23 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
     hoistDefinitions(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
+    Logger::enqueueMode(true);
+
     while(!(resolvedTypes && resolvedCalls)){
-      Logger::debug("type-qualify loop");
       resolvedTypes = resolveTypes(unit);
-      resolvedCalls = qualifyCalls(unit);
+      auto res = qualifyCalls(unit);
+      resolvedCalls = res.first;
+
+      // if the calls weren't all resolved and no calls
+      // were resolved this iteration
+      if(!resolvedCalls && res.second==0){
+        Logger::enqueueMode(false);
+        Logger::printQueue();
+        exit(1);
+      }
+      Logger::clearQueue();
     }
+    Logger::enqueueMode(false);
     injectPrimitiveFunctions(unit);
     genEntryPoint(unit);
     

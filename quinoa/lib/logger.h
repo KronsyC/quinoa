@@ -15,5 +15,7 @@ namespace Logger{
     void debug(std::string message);
     void warn(std::string message);
     void error(std::string message);
-
+    void enqueueMode(bool mode);
+    void printQueue();
+    void clearQueue();
 }

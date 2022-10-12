@@ -4,18 +4,23 @@
 #include "../util.hh"
 
 
-bool qualifyCalls(SourceBlock &code,
+std::pair<bool, int> qualifyCalls(SourceBlock &code,
                   std::map<std::string, MethodSignature *> sigs) {
-  bool success = true;
   auto flat = code.flatten();
+  int resolvedCount = 0;
+  bool success = true;
   for (auto item : flat) {
     if (instanceof <MethodCall>(item)) {
       auto call = (MethodCall *)item;
+      // Don't do redundant qualification
+      if(call->target !=nullptr)continue;
+
       call->qualify(sigs, *code.local_types);
-      if(call->target == nullptr)success = false;
+      if(call->target != nullptr)resolvedCount++;
+      else success = false;
     }
   }
-  return success;
+  return {success, resolvedCount};
 }
 
 std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
@@ -39,15 +44,16 @@ std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
   }
   return sigs;
 }
-
-bool qualifyCalls(CompilationUnit &unit) {
+std::pair<bool, int> qualifyCalls(CompilationUnit &unit) {
 
   auto sigs = fetchSignatures(unit);
+  int count = 0;
   bool success = true;
   // Attempt to Qualify all Calls
   for (auto method : unit.getAllMethods()) {
       auto result = qualifyCalls(*method, sigs);
-      if(!result)success = false;
+      if(!result.first)success=false;
+      count+=result.second;
   }
-  return success;
+  return {success, count};
 }

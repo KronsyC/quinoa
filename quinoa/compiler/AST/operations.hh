@@ -42,7 +42,6 @@ public:
     auto tgtFn = mod->getFunction(name);
     if (tgtFn == nullptr)
       error("Failed to locate function " + name);
-    Logger::debug("Generating Call to " + name);
     std::vector<llvm::Value *> llparams;
     int i = 0;
     bool generatedVarargs = false;
@@ -70,7 +69,6 @@ public:
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
-    Logger::debug("resolving call to " + name->str());
     if(ctx==nullptr)error("Cannot Resolve a contextless call");
     if (nomangle)
     {
@@ -92,7 +90,7 @@ public:
     {
       auto type = p->getType();
       if (type == nullptr){
-        Logger::debug("Failed to get type for param " + std::to_string(i));
+        Logger::error("Failed to get type for param " + std::to_string(i));
         return;
       }
       testparams.push_back(new Param(type, nullptr));
@@ -128,7 +126,6 @@ public:
           continue;
         }
         int compat = getCompatabilityScore(sig->sigstr(), callsig->sigstr());
-        Logger::debug("Compat with " + name + " : " + std::to_string(compat));
         compatabilityScores.push_back(compat);
       }
       int max = -1;
@@ -148,7 +145,7 @@ public:
       }
       if (idx == -1)
       {
-        // error("Failed to generate function call to " + callname.str());
+        Logger::error("Failed to generate function call to " + callname.str());
         return;
       }
       int ind = 0;
@@ -156,7 +153,6 @@ public:
       {
         if (ind == idx)
         {
-          Logger::debug("Casted Match");
           target = pair.second;
           return;
         }
@@ -164,7 +160,6 @@ public:
       }
       return;
     }
-    Logger::debug("Direct Match");
     target = fn;
   }
 
@@ -178,13 +173,9 @@ private:
     }
     // compare namespaces
     if (base.space->str() != target.space->str()){
-      Logger::debug("Namespaces don't match");
-      Logger::debug(base.space->str());
-      Logger::debug(target.space->str());
       return -1;
 
     }
-    Logger::debug("compatible name");
 
     if (!base.isVariadic())
     {

@@ -1,12 +1,24 @@
 #include "./logger.h"
-#include<ctime>
-#include<iomanip>
-
+#include<vector>
 #define DEBUG_MODE 1
 using namespace std;
+static bool enqueue = false;
+static std::vector<std::pair<Logger::LogLevel, std::string>> queue;
 
+void Logger::printQueue(){
+    for(auto e:queue){
+        writeLog(e.second, e.first);
+    }
+}
+void Logger::enqueueMode(bool m){
+    enqueue = m;
+}
 void Logger::writeLog(string message, Logger::LogLevel level)
 {
+    if(enqueue){
+        queue.push_back({level, message});
+        return;
+    }
     string prefix;
     switch (level)
     {
@@ -23,13 +35,7 @@ void Logger::writeLog(string message, Logger::LogLevel level)
         prefix = "\e[0;31mERROR";
         break;
     }
-    auto t = time(nullptr);
-    auto tm = *localtime(&t);
-    auto formattedTime = put_time(&tm, "%H:%M:%S");
-    stringstream st;
-    st << formattedTime;
-    auto time = st.str();
-    printf("%s [%s\e[0;0m]: %s\n", time.c_str(), prefix.c_str(), message.c_str());
+    printf("[%s\e[0;0m]: %s\n", prefix.c_str(), message.c_str());
 }
 
 void Logger::log(string message)
@@ -44,7 +50,13 @@ void Logger::warn(string message)
 {
     Logger::writeLog(message, Logger::LL_WARN);
 }
+
+
 void Logger::error(string message)
 {
     Logger::writeLog(message, Logger::LL_ERR);
+}
+
+void Logger::clearQueue(){
+    queue.clear();
 }

@@ -9,23 +9,23 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
-  %0 = call i64 @"[PDbvbOHvdP].io.fn_println(PR_int8*)"(i8* getelementptr inbounds ([23 x i8], [23 x i8]* @str, i32 0, i32 0))
+  %0 = call i64 @"[CLAndaF9HP].io.fn_println(PR_int8*)"(i8* getelementptr inbounds ([23 x i8], [23 x i8]* @str, i32 0, i32 0))
   ret i32 0
 }
 
-define i64 @"[PDbvbOHvdP].io.fn_println(PR_int8*)"(i8* %message) {
+define i64 @"[CLAndaF9HP].io.fn_println(PR_int8*)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8
   %0 = load i8*, i8** %"param message", align 8
   %1 = ptrtoint i8* %0 to i64
   %2 = load i8*, i8** %"param message", align 8
-  %3 = call i64 @"[PDbvbOHvdP].io.fn_strlen(PR_int8*)"(i8* %2)
+  %3 = call i64 @"[CLAndaF9HP].io.fn_strlen(PR_int8*)"(i8* %2)
   %4 = call i64 (i64, ...) @syscall(i64 1, i64 1, i64 %1, i64 %3)
   ret i64 %4
 }
 
-define i64 @"[PDbvbOHvdP].io.fn_strlen(PR_int8*)"(i8* %str) {
+define i64 @"[CLAndaF9HP].io.fn_strlen(PR_int8*)"(i8* %str) {
 entry_block:
   %"param str" = alloca i8*, align 8
   store i8* %str, i8** %"param str", align 8
