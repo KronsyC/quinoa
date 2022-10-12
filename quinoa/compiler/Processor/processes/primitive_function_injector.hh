@@ -29,85 +29,17 @@ void implIntrinsics(CompilationUnit &unit)
         pushf(unit.items, (TopLevelExpression *)new MethodPredeclaration(sig));
     }
 }
-static auto n1 = new Integer(1);
-static auto n2 = new Integer(2);
-static auto n3 = new Integer(3);
-static auto n4 = new Integer(4);
-static auto n5 = new Integer(5);
-static auto n6 = new Integer(6);
-MethodCall *getCall(MethodCall templ, Identifier *args, int n)
-{
-
-    auto call = new MethodCall(templ);
-    if (n >= 1)
-        call->params.push_back(new Subscript(args, n1));
-    if (n >= 2)
-        call->params.push_back(new Subscript(args, n2));
-    if (n >= 3)
-        call->params.push_back(new Subscript(args, n3));
-    if (n >= 4)
-        call->params.push_back(new Subscript(args, n4));
-    if (n >= 5)
-        call->params.push_back(new Subscript(args, n5));
-    if (n >= 6)
-        call->params.push_back(new Subscript(args, n6));
-
-    return call;
-}
 
 void implSyscall(Method *method, CompilationUnit &unit)
 {
-
-    MethodCall call;
-    auto varargs = method->sig->params[1]->name;
-    auto argCount = new ArrayLength(varargs);
-
-    call.ctx = method;
-    call.name = new CompoundIdentifier("syscall");
-    call.nomangle = true;
-    call.params.push_back(method->sig->params[0]->name);
-    auto call1 = getCall(call, varargs, 1);
-    auto call2 = getCall(call, varargs, 2);
-    auto call3 = getCall(call, varargs, 3);
-    auto call4 = getCall(call, varargs, 4);
-    auto call5 = getCall(call, varargs, 5);
-    auto call6 = getCall(call, varargs, 6);
-
-    // Generate the code blocks
-    auto cb1 = new SourceBlock(new Return(call1));
-    auto cb2 = new SourceBlock(new Return(call2));
-    auto cb3 = new SourceBlock(new Return(call3));
-    auto cb4 = new SourceBlock(new Return(call4));
-    auto cb5 = new SourceBlock(new Return(call5));
-    auto cb6 = new SourceBlock(new Return(call6));
-    auto eq = BIN_equals;
-    // generate the conditional
-    auto conditional = new IfCond(
-        new BinaryOperation(argCount, n1, eq),
-        cb1,
-        new SourceBlock(new IfCond(
-            new BinaryOperation(argCount, n2, eq),
-            cb2,
-            new SourceBlock(new IfCond(
-                new BinaryOperation(argCount, n3, eq),
-                cb3,
-                new SourceBlock(new IfCond(
-                    new BinaryOperation(argCount, n4, eq),
-                    cb4,
-                    new SourceBlock(new IfCond(
-                        new BinaryOperation(argCount, n5, eq),
-                        cb5,
-                        new SourceBlock(new IfCond(
-                            new BinaryOperation(argCount, n6, eq),
-                            cb6,
-                            cb6)))))))))));
-    // method->items.push_back(conditional);
+    method->sig->nomangle = true;
+    method->sig->name = Ident::get("syscall");
 }
 
 void implementPrimitive(Method *method, CompilationUnit &unit)
 {
     auto name = method->sig->name->str();
-    if (name == "__syscall__")
+    if (name == "syscall")
         implSyscall(method, unit);
 };
 

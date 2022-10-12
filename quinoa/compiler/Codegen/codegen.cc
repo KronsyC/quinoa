@@ -32,7 +32,9 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
             {
                 auto t = Primitive::get(PR_int32);
                 args.push_back(t->getLLType());
-                f.params[f.params.size() - 1] = new Param(t, Ident::get("+vararg_count"));
+                auto arglen = Ident::get("+vararg_count");
+                f.params[f.params.size() - 1] = new Param(t, arglen);
+                //
             }
         }
     }
@@ -79,8 +81,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
                     size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
             }
             auto alloca = builder()->CreateAlloca(type, size, "var " + varname);
-
-            vars.insert({varname, alloca});
+            vars[varname] = alloca;
         }
         else if (instanceof <WhileCond>(stm))
         {
@@ -127,7 +128,6 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             if(!iff->does->returns())builder()->CreateBr(continuationBlock);
 
             if(iff->otherwise != nullptr){
-                Logger::debug("Generating else: " + std::to_string(iff->otherwise->items.size()));
                 builder()->SetInsertPoint(elseBlock);
                 genSource(iff->otherwise->items, func, vars, cf);
                 if(!iff->otherwise->returns())builder()->CreateBr(continuationBlock);
@@ -205,10 +205,15 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         auto elementType = varParamType->elements->getLLType();
         auto one = builder()->getInt32(1);
         auto lenptr = vars["+vararg_count"];
+        varParamType->size = Ident::get("+vararg_count");
         auto len = builder()->CreateLoad(lenptr->getType()->getPointerElementType(), lenptr, "varargs_len");
-        auto init = builder()->CreateAlloca(elementType, len, "varargs_list");
+        
+        auto list = builder()->CreateAlloca(elementType, len, "varargs_list");
+        auto init = builder()->CreateAlloca(elementType->getPointerTo());
+        builder()->CreateStore(list, init);
         vars[varParam->name->str()] = init;
-        pushf(sig->items, (Statement*)init);
+        Logger::debug("varargs: " + varParam->name->str());
+        pushf(sig->items, (Statement*)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
         auto i8p = TPtr::get(Primitive::get(PR_int8))->getLLType();
@@ -238,7 +243,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
 
         // get the value and set it in the list
         auto value = builder()->CreateVAArg(alloc, elementType);
-        auto listPtr = builder()->CreateGEP(init->getType()->getPointerElementType(),init,loaded_i);
+        auto listPtr = builder()->CreateGEP(list->getType()->getPointerElementType(),list,loaded_i);
         builder()->CreateStore(value, listPtr);
 
         // Increment and jump out

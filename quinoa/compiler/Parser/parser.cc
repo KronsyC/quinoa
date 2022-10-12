@@ -301,8 +301,9 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             iff->cond = condExpr;
 
             auto does = readBlock(toks, IND_braces);
-            iff->does = parseSourceBlock(does, *type_info);
-            iff->local_types = new LocalTypeTable;
+            auto doesA = parseSourceBlock(does, *type_info);
+            if(doesA==nullptr)error("Failed to parse conditional block");
+            iff->does = doesA;
             if(toks[0].is(TT_else)){
                 popf(toks);
                 auto otherwise = readBlock(toks, IND_braces);
@@ -450,6 +451,8 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                 argTypes[param->name->str()] = param->type;
                 params.push_back(param);
             }
+            // keep track of the arg types too
+            *method->local_types = argTypes;
             auto sig = new MethodSignature();
             if(toks[0].is(TT_l_brace)){
                auto contentToks = readBlock(toks, IND_braces);

@@ -1,9 +1,8 @@
 import @io;
-
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        io::println("Hello, World!");
+        io::println("Greetings, Brave Coder");
         return 0;
     } 
 

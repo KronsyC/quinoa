@@ -42,6 +42,7 @@ public:
     auto tgtFn = mod->getFunction(name);
     if (tgtFn == nullptr)
       error("Failed to locate function " + name);
+    Logger::debug("Generating Call to " + name);
     std::vector<llvm::Value *> llparams;
     int i = 0;
     bool generatedVarargs = false;
@@ -185,7 +186,6 @@ private:
     }
     Logger::debug("compatible name");
 
-    // compare param lengths TODO: Reimplement this once varargs are implemented
     if (!base.isVariadic())
     {
       if (base.params.size() != target.params.size())
@@ -237,6 +237,9 @@ public:
       ret.push_back(i);
     return ret;
   }
+  bool returns(){
+    return true;
+  }
 };
 
 class Subscript : public Expression
@@ -262,7 +265,6 @@ public:
     auto elementType = tgt->getType();
     if (elementType == nullptr)
       error("No Element Type");
-    Logger::debug("Child type: " + elementType->str());
     if (!(instanceof <TPtr>(elementType) || instanceof<ListType>(elementType)))
       error("List has member type which is a non-pointer", true);
     if(instanceof<TPtr>(elementType))return ((TPtr *)elementType)->to;
@@ -271,15 +273,14 @@ public:
 
   llvm::Value *getPtr(TVars vars, llvm::Type *target = nullptr)
   {
-    auto varPtr = tgt->getPtr(vars);
-    
+    auto varPtr = tgt->getLLValue(vars);
     auto idx = item->getLLValue(vars);
-    auto loaded = builder()->CreateGEP(varPtr->getType()->getPointerElementType(), varPtr, idx, "subscript-ptr");
-    return loaded;
+    auto gep = builder()->CreateGEP(varPtr->getType()->getPointerElementType(), varPtr, idx, "subscript-ptr");
+    return gep;
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
   {
-    auto loaded = getPtr(vars, target);
+    auto loaded = getPtr(vars);
     return cast(builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded), target);
   }
 };
@@ -302,9 +303,17 @@ public:
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
   {
-    auto alloca = of->getPtr(vars);
-    auto size = alloca->getArraySize();
-    return cast(size, target);
+     auto type_table = *ctx->local_types;
+     auto type = type_table[of->str()];
+     if(
+      type==nullptr
+      || !instanceof<ListType>(type)
+      )error("Failed to get list size");
+    
+    auto list = (ListType*)type;
+    auto size = list->size;
+    if(size==nullptr)error("Cannot get len() of list with unknown size");
+    return size->getLLValue(vars, target);
   }
 };
 enum BinaryOp
@@ -349,20 +358,20 @@ public:
     auto rt = right->getType();
     auto common = getCommonType(lt->getLLType(), rt->getLLType());
       auto l = left->getLLValue(types, common);
-    auto r = right->getLLValue(types, common);
+      auto r = right->getLLValue(types, common);
       if(op==BIN_assignment){
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
-        builder()->CreateStore(right->getLLValue(types, typ), ptr);
+        builder()->CreateStore(cast(r, typ), ptr);
       }
       if (instanceof <Subscript>(left)){
         auto sub = (Subscript*)left;
         auto ptr = sub->getPtr(types);
         auto typ = sub->getLLValue(types)->getType()->getPointerElementType();
-        builder()->CreateStore(right->getLLValue(types, typ), sub->getPtr(types));
+        builder()->CreateStore(cast(r, typ), sub->getPtr(types));
       }
       return cast(r, expected);
     }
@@ -370,7 +379,8 @@ public:
 
     auto result = getOp(l, r);
     if(result==nullptr)error("Failed to generate IR for binary expression");
-    return cast(result, expected);
+    auto casted = cast(result, expected);
+    return casted;
   }
 
 private:

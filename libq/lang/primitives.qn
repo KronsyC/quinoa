@@ -1,3 +1,3 @@
 module Primitives is Exported, CompilerImplemented{
-	func __syscall__(callNo:i64, ...args:i64[]) -> i64;
+	func syscall(callNo:i64, ...args:i64[]) -> i64;
 }

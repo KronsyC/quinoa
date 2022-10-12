@@ -101,7 +101,6 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
     Logger::log("Finalization pass");
   resolveSelfReferences(unit);
     
-    injectPrimitiveFunctions(unit);
     hoistDefinitions(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
@@ -110,6 +109,7 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
       resolvedTypes = resolveTypes(unit);
       resolvedCalls = qualifyCalls(unit);
     }
+    injectPrimitiveFunctions(unit);
     genEntryPoint(unit);
     
   }

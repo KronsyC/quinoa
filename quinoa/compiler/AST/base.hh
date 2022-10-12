@@ -23,6 +23,9 @@ struct Statement : public AstNode
         error("Cannot Flatten a raw Statement");
         return {};
     }
+    virtual bool returns(){
+        return false;
+    };
 };
 struct Type : public AstNode
 {
@@ -88,7 +91,6 @@ struct ModuleMember : public AstNode
 {
 
 };
-class Return;
 // A Souceblock is a wrapper around a statement block
 // but contains important information such as guarantees about execution
 // and a local scope type table
@@ -103,27 +105,19 @@ public:
         this->items.push_back(item);
         this->local_types = new LocalTypeTable;
     }
+    bool returns(){
+        for(auto item:items){
+            if(item->returns())return true;
+        }
+        return false;
+    }
     SourceBlock() = default;
     LocalTypeTable* local_types = nullptr;
     std::vector<std::string> declarations;
-    virtual bool returns(){
-        // true if:
-        // i have a return instruction
-        // one of my direct child blocks returns
-        for(auto inst:items){
-            if(inst==nullptr)continue;
-            if(instanceof<Return>(inst))return true;
-            else if(instanceof<SourceBlock>(inst)){
-                auto block = (SourceBlock*)inst;
-                if(block->returns())return true;
-            }
-        }
-        return false;
-    };
+
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret;
         for(auto i:items){
-            auto flatChild = i->flatten();
             for(auto m:i->flatten()){
                 ret.push_back(m);
 

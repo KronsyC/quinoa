@@ -45,6 +45,7 @@ public:
     }
     llvm::AllocaInst* getPtr(TVars vars){
         auto loaded = vars[str()];
+        
         if (loaded == nullptr)
             error("Failed to read variable '" + str() + "'");
         return loaded;

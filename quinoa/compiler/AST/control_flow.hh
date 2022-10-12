@@ -2,10 +2,10 @@
 #include "./ast.hh"
 
 
-class IfCond:public Statement, public SourceBlock{
+class IfCond:public Statement{
 public:
 	Expression* cond;
-	SourceBlock* does = nullptr;
+	SourceBlock* does;
 	SourceBlock* otherwise = nullptr;
 
 	bool returns(){
@@ -14,9 +14,14 @@ public:
 	}
 
 	IfCond(Expression* cond, SourceBlock* does, SourceBlock* otherwise=nullptr){
+		if(instanceof<IfCond>(otherwise)){
+			auto cond = (IfCond*)otherwise;
+			this->otherwise = new SourceBlock(cond);
+		}
+		else this->otherwise = otherwise;
 		this->cond = cond;
 		this->does = does;
-		this->otherwise = otherwise;
+
 	}
 	IfCond() = default;
 	std::vector<Statement*> flatten(){
