@@ -8,6 +8,6 @@ void hoistDefinitions(CompilationUnit &unit) {
 
   for(auto method:unit.getAllMethods()){
     auto dec = new MethodPredeclaration(method->sig);
-    pushf(unit.items, (TopLevelExpression*)dec);
+    pushf(unit, (TopLevelExpression*)dec);
   }
 }

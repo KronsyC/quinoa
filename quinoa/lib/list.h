@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "./error.h"
+#include "../compiler/AST/ast.hh"
 #include<algorithm>
 template <typename T>
 std::size_t push(std::vector<T> &vec, T item);

@@ -30,11 +30,12 @@ std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
   // All Implemented Functions
   for (auto method : unit.getAllMethods()) {
     auto name = method->sig->sourcename();
+    Logger::debug("Fetch sig: " + name);
     sigs[name] = method->sig;
   }
 
   // All Unimplemented Functions
-  for(auto item:unit.items){
+  for(auto item:unit){
     if(instanceof<MethodPredeclaration>(item)){
       auto sig = (MethodPredeclaration*)item;
       if(sig->sig->nomangle){

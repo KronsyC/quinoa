@@ -7,9 +7,9 @@ public:
     CompilationUnit(){
         this->take();
     }
-    std::vector<Module*> getAllModules(){
-        std::vector<Module*> ret;
-        for(auto child:items){
+    Block<Module> getAllModules(){
+        Block<Module> ret(false);
+        for(auto child:*this){
             if(child==nullptr)continue;
             auto isMod = child->isModule();
 
@@ -18,11 +18,11 @@ public:
         return ret;
     }
 
-    std::vector<Method*> getAllMethods(){
-        std::vector<Method*> ret;
+    Block<Method> getAllMethods(){
+        Block<Method> ret(false);
         auto mods = getAllModules();
         for(auto mod:mods){
-            for(auto child:mod->items){
+            for(auto child:*mod){
                 if(instanceof<Method>(child))ret.push_back((Method*)child);
             }
         }

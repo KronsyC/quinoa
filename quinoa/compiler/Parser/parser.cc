@@ -288,7 +288,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             loop->ctx = block;
             // For some reason the loop becomes inactive at this point
             loop->active = true;
-            block->push(loop);
+            block->push_back(loop);
             continue;
         }
         if(first.is(TT_if)){
@@ -309,7 +309,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
                 auto otherwise = readBlock(toks, IND_braces);
                 iff->otherwise = parseSourceBlock(otherwise, *type_info);
             }
-            block->push(iff);
+            block->push_back(iff);
             continue;
 
         }
@@ -337,7 +337,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             loop->local_types = new LocalTypeTable;
             *loop->local_types = *block->local_types;
             loop->insert(source);
-            block->push(loop);
+            block->push_back(loop);
 
             continue;
         }
@@ -353,7 +353,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             auto ret = new Return(returnValue);
             ret->ctx = block;
             returnValue->ctx = block;
-            block->push(ret);
+            block->push_back(ret);
             continue;
         }
         else if(f.is(TT_let)){
@@ -373,14 +373,14 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             block->declarations.push_back(varname);
             auto init = new InitializeVar(vartype, name);
             init->ctx = block;
-            block->push(init);
+            block->push_back(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line, block);
                 auto ass = new BinaryOperation(name, val, BIN_assignment);
                 ass->ctx = block;
                 val->ctx = block;
-                block->push(ass);
+                block->push_back(ass);
             }
             continue;
         }
@@ -389,7 +389,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
         auto expr = parseExpression(line, block);
         expr->ctx = block;
 
-        block->push(expr);
+        block->push_back(expr);
     }
 
  
@@ -444,7 +444,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             }
 
             auto argsCSV = parseCommaSeparatedValues(argsTokens);
-            vector<Param*> params;
+            Block<Param> params;
             LocalTypeTable argTypes;
             for(auto a:argsCSV){
                 auto param = parseParameter(a);
@@ -464,14 +464,13 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
                  popf(toks);
             }
 
-            // delete content;
             method->sig = sig;
-
             sig->name = Ident::get(nameTok.value);
             sig->space = mod->name;
-            sig->params = params;
+
+            sig->params = Block<Param>(params.take());
             sig->returnType = returnType;
-            mod->push(method);
+            mod->push_back(method);
             continue;
             
         }
@@ -518,7 +517,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 alias = new CompoundIdentifier(popf(importExprToks).value);
                 if(importExprToks.size())error("An Import Alias may only be a single identifier");
             }
-            unit.push(new Import(target, isStd, alias));
+            unit.push_back(new Import(target, isStd, alias));
             // Import Path foo.bar.baz
             break;
         }
@@ -540,7 +539,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             mod->name = new CompoundIdentifier(name.value);
             mod->compositors = compositors;
             parseModuleContent(moduleToks, mod);
-            unit.push(mod);
+            unit.push_back(mod);
             break;
         }
         default:

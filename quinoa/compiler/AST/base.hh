@@ -45,6 +45,7 @@ public:
         error("Cannot get LL Type for base Type Class");
         return nullptr;
     }
+
 };
 
 struct Expression : public Statement
@@ -61,26 +62,26 @@ public:
         return nullptr;
     }
 };
+
 template <typename T>
-class Block : public AstNode
+class Block : public AstNode, public std::vector<T*>
 {
 public:
-    std::vector<T *> items;
-
-    size_t push(T *item)
-    {
-        items.push_back(item);
-        return items.size();
-    }
-
     std::vector<T *> take()
     {
         destroy = false;
-        return this->items;
+        return *this;
     }
+    Block(bool memoryAware){
+        destroy = memoryAware;
+    }
+    Block(std::vector<T*> init){
+        for(auto item:init)this->push_back(item);
+    }
+    Block() = default;
     ~Block(){
         if(destroy){
-        for(auto i:items){
+        for(auto i:*this){
             delete i;
         }
         }
@@ -88,7 +89,7 @@ public:
     }
 
 private:
-    bool destroy = true;
+    bool destroy = false;
 };
 
 struct TopLevelExpression : public AstNode
@@ -113,19 +114,19 @@ struct ModuleMember : public AstNode
 // variables cannot be redefined within the same block and are hence guaranteed to keep the same type
 class SourceBlock:public Block<Statement>{
 public:
-    SourceBlock(std::vector<Statement*> items){
-        this->items = items;
+    SourceBlock(std::vector<Statement*> items)
+    : Block(items){
         this->local_types = new LocalTypeTable;
     }
     SourceBlock(Statement* item){
-        this->items.push_back(item);
+        this->push_back(item);
         this->local_types = new LocalTypeTable;
     }
     ~SourceBlock(){
         delete local_types;
     }
     bool returns(){
-        for(auto item:items){
+        for(auto item:*this){
             if(item->returns())return true;
         }
         return false;
@@ -136,7 +137,7 @@ public:
 
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret;
-        for(auto i:items){
+        for(auto i:*this){
             for(auto m:i->flatten()){
                 ret.push_back(m);
 
@@ -159,7 +160,7 @@ public:
                 prev = i;
             }
             item->ctx = this;
-            items.push_back(item);
+            this->push_back(item);
         }
         for(auto pair:*donor->local_types){
             if(local_types==nullptr)error("My locals are null?");
@@ -169,6 +170,6 @@ public:
             }
 
         }
-        delete donor;
+        // delete donor;
     }
 };

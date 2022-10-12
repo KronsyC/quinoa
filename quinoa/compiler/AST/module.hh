@@ -41,8 +41,10 @@ public:
 class MethodSigStr{
 public:
     Ident* name;
-    std::vector<Param*> params;
+    Block<Param> params;
     bool nomangle = false;
+
+
     std::string str(){
         if(nomangle)return name->str();
         std::string n = "fn_";
@@ -89,7 +91,7 @@ public:
     Ident* name = nullptr;
     bool nomangle = false;
     CompoundIdentifier* space = nullptr;
-    std::vector<Param*> params;
+    Block<Param> params;
     Type* returnType = nullptr;
 
     CompoundIdentifier* fullname(){
@@ -186,7 +188,7 @@ public:
         }
     }
     Method* getMethod(std::string name){
-        for(auto m:this->items){
+        for(auto m:*this){
             auto mt = (Method*)m;
             if(instanceof<Method>(m) && mt->sig->name->str() == name)return mt;
 
@@ -195,7 +197,7 @@ public:
     }
     std::vector<Method*> getAllMethods(){
         std::vector<Method*> ret;
-        for(auto m:this->items){
+        for(auto m:*this){
             auto mt = (Method*)m;
             if(instanceof<Method>(m))ret.push_back(mt);
         }

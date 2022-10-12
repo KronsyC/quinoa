@@ -52,7 +52,7 @@ public:
 	}
 	std::vector<Statement*> flatten(){
 		std::vector<Statement*> ret = {this};
-		for(auto child:items){
+		for(auto child:*this){
 			for(auto m:child->flatten())ret.push_back(m);
 		}
 		for(auto m:cond->flatten())ret.push_back(m);
@@ -76,7 +76,7 @@ public:
 	ForRange() = default;
 	std::vector<Statement*> flatten(){
 		std::vector<Statement*> ret = {this};
-		for(auto child:items)for(auto m:child->flatten())ret.push_back(m);
+		for(auto child:*this)for(auto m:child->flatten())ret.push_back(m);
 		for(auto child:inc->flatten())ret.push_back(child);
 		return ret;
 	}

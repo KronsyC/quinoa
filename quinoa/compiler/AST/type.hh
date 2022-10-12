@@ -32,6 +32,7 @@ public:
             cache[t] = prim;
             return prim;
         }
+        Logger::debug("Fetching Primitive Cached Type");
         return fetched;
     }
 
@@ -97,6 +98,7 @@ public:
             cache[refersTo] = p;
             return p;
         }
+        Logger::debug("Fetching Custom Type from cache");
         return lookup;
     }
 };
@@ -122,6 +124,7 @@ public:
             cache[t] = val;
             return val;
         }
+        Logger::debug("Fetching Cached TPtr");
         return fetched;
     }
 };

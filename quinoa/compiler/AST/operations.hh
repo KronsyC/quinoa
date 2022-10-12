@@ -90,7 +90,7 @@ public:
       auto type = p->getType();
       if (type == nullptr)
       {
-        Logger::error("Failed to get type for param " + std::to_string(i));
+        Logger::error("Failed to get type for param "+name->str() + "["+std::to_string(i)+"]");
         return;
       }
       testparams.push_back(new Param(type, nullptr));
@@ -167,6 +167,7 @@ private:
   static int getCompatabilityScore(QualifiedMethodSigStr base,
                                    QualifiedMethodSigStr target)
   {
+    Logger::debug("comparing " + base.str() + " against " + target.str());
     if (base.name->str() != target.name->str())
     {
       return -1;
@@ -179,8 +180,10 @@ private:
 
     if (!base.isVariadic())
     {
-      if (base.params.size() != target.params.size())
+      if (base.params.size() != target.params.size()){
+        Logger::debug("Fails on arg len");
         return -1;
+      }
     }
 
     // Start with a base score, each infraction has a cost based on how

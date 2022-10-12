@@ -59,7 +59,7 @@ STRUCTURE = {}
 
 # Resolve Types Into the structure, the structure will be used as a template for the 'definition' class
 for defi in ALL_DEFINITIONS:
-    for k, v in defi.properties.items():
+    for k, v in defi.properties():
         TARGET_TYPE=None
         if type(v) == bool:
             TARGET_TYPE = PROPTYPE_BOOL
@@ -98,7 +98,7 @@ def toArrayLiteral(val: List):
 definitions_str = ""
 definitions_args = ""
 definitions_default_assignments=""
-for k, v in STRUCTURE.items():
+for k, v in STRUCTURE():
     val = ""
     if v == PROPTYPE_BOOL: val = f"bool {k} = false"
     if v == PROPTYPE_NUMBER: val = f"int {k} = 0"
@@ -118,7 +118,7 @@ for defi in ALL_DEFINITIONS:
     definitions_initializers+="TokenDefinition("
     definitions_initializers+=defname + ", " + json.dumps("__"+defi.id)
 
-    for k, v in STRUCTURE.items():
+    for k, v in STRUCTURE():
         definitions_initializers+=", "
         value = None
         try:

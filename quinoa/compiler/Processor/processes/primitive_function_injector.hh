@@ -26,7 +26,7 @@ void implIntrinsics(CompilationUnit &unit)
         sig->returnType = i64;
         sig->params = params;
 
-        pushf(unit.items, (TopLevelExpression *)new MethodPredeclaration(sig));
+        pushf(unit, (TopLevelExpression *)new MethodPredeclaration(sig));
     }
 }
 

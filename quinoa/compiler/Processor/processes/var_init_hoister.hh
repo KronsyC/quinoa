@@ -9,7 +9,7 @@ void mangleVarNames(SourceBlock &code)
 	std::vector<std::string> occupiedNames;
 	// 
 	std::vector<InitializeVar*> traversedInits; 
-	for (auto member : code.items)
+	for (auto member : code)
 	{
 		if (instanceof <InitializeVar>(member))
 		{
@@ -50,7 +50,7 @@ void hoistVarInitializations(CompilationUnit &unit)
 		// insert all declarations into the top
 		for (auto init : allInitializations)
 		{
-			pushf(method->items, (Statement *)init);
+			pushf(*method, (Statement *)init);
 		}
 	}
 }

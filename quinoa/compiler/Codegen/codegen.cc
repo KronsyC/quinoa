@@ -108,7 +108,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             // Set up the content
             builder()->SetInsertPoint(runBlock);
-            genSource(loop->items, func, vars, cf);
+            genSource(*loop, func, vars, cf);
             builder()->CreateBr(evaluatorBlock);
 
             // generate the continuation
@@ -128,12 +128,12 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             builder()->CreateCondBr(cond, execBlock, elseBlock);
             
             builder()->SetInsertPoint(execBlock);
-            genSource(iff->does->items, func, vars, cf);
+            genSource(*iff->does, func, vars, cf);
             if(!iff->does->returns())builder()->CreateBr(continuationBlock);
 
             if(iff->otherwise != nullptr){
                 builder()->SetInsertPoint(elseBlock);
-                genSource(iff->otherwise->items, func, vars, cf);
+                genSource(*iff->otherwise, func, vars, cf);
                 if(!iff->otherwise->returns())builder()->CreateBr(continuationBlock);
             }
             builder()->SetInsertPoint(continuationBlock);
@@ -162,12 +162,12 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             // Set up the content
             builder()->SetInsertPoint(runBlock);
-            genSource(loop->items, func, vars, cf);
+            genSource(*loop, func, vars, cf);
             builder()->CreateBr(incrementBlock);
 
 
             builder()->SetInsertPoint(incrementBlock);
-            genSource(loop->inc->items, func, vars);
+            genSource(*loop->inc, func, vars);
             builder()->CreateBr(evaluatorBlock);
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
@@ -217,7 +217,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         builder()->CreateStore(list, init);
         vars[varParam->name->str()] = init;
         Logger::debug("varargs: " + varParam->name->str());
-        pushf(sig->items, (Statement*)list);
+        pushf(*sig, (Statement*)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
         auto i8p = TPtr::get(Primitive::get(PR_int8))->getLLType();
@@ -268,7 +268,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
     {
         createFunction(d, m);
     }
-    for (auto child : mod.items)
+    for (auto child : mod)
     {
         if (instanceof <Method>(child))
         {
@@ -277,12 +277,12 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
             auto fn = llmod->getFunction(fname);
             if (fn == nullptr)
                 error("Function " + fname + " could not be found");
-            if (!method->items.size())
+            if (!method->size())
                 continue;
             auto entry_block = llvm::BasicBlock::Create(*ctx(), "entry_block", fn);
 
             builder()->SetInsertPoint(entry_block);
-            genSource(method->items, fn, varifyArgs(fn, method));
+            genSource(*method, fn, varifyArgs(fn, method));
             if (fn->getReturnType()->isVoidTy())
                 builder()->CreateRetVoid();
             continue;
@@ -298,7 +298,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
     auto rootmod = new llvm::Module("Quinoa Program", *ctx());
     std::vector<MethodSignature> defs;
     // Generate all of the modules, and link them into the root module "Quinoa Program"
-    for (auto unit : ast.items)
+    for (auto unit : ast)
     {
         if (instanceof <Module>(unit))
         {
@@ -312,11 +312,9 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             Logger::debug("gen entrypoint");
             auto entry = (Entrypoint *)unit;
             auto tgt = entry->calls->sourcename();
-            Logger::debug("a");
             auto fn = rootmod->getFunction(tgt);
             if (fn == nullptr)
                 error("Failed to locate entrypoint function '" + tgt + "'");
-            Logger::debug("b");
 
             MethodSignature entrySig;
             std::vector<Param*> params;
@@ -325,12 +323,10 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             entrySig.name = Ident::get("main");
             entrySig.nomangle = true;
             entrySig.returnType = Primitive::get(PR_int32);
-            entrySig.params = params;
+            entrySig.params = Block<Param>(params);
             auto efn = createFunction(entrySig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
-            Logger::debug("c");
             
             auto block = llvm::BasicBlock::Create(*ctx(), "main_entry", efn);
-            Logger::debug("d");
             builder()->SetInsertPoint(block);
             auto argc = efn->getArg(0);
             auto argv = efn->getArg(1);

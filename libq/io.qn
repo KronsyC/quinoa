@@ -10,6 +10,6 @@ module IO is Exported{
     }
 
     func println(message:string) -> i64{
-        return syscall::call(1, 1, message, strlen(message));
+        return syscall::write(1, message, strlen(message));
     }
 }

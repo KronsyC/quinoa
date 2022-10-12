@@ -67,7 +67,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
 void mergeUnits(CompilationUnit &tgt, CompilationUnit donor) {
   for (auto e : donor.take()) {
     e->isImported = true;
-    tgt.push(e);
+    tgt.push_back(e);
   }
 }
 // Keeps track of the absolute paths of every single file currently imported
@@ -102,8 +102,8 @@ void resolveImports(CompilationUnit &unit) {
    *
    */
   int removals = 0;
-  for (int i = 0; i < unit.items.size(); i++) {
-    auto item = unit.items[i - removals];
+  for (int i = 0; i < unit.size(); i++) {
+    auto item = unit[i - removals];
     if (item->isImport()) {
       auto import = (Import *)item;
       // TODO: Implement config-file based imports (allows custom stdlib and a
@@ -145,7 +145,7 @@ void resolveImports(CompilationUnit &unit) {
 
       else
         error("Non-stdlib imports are not yet supported");
-      unit.items.erase(unit.items.begin() + i - removals);
+      unit.erase(unit.begin() + i - removals);
       removals++;
     }
   }

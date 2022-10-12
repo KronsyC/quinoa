@@ -3,13 +3,8 @@ import @io;
 module Test is Entry{
 
     func main(argc: int, argv:string*)->int{
-        let len = io::println(argv[1]);
-        let i:int = 0;
-        while(i < 10){
-            io::println("This is a cool message\n");
-            i = i + 1;
-        }
+        io::println("Hello World!");
         
-        return i;
+        return 0;
     }
 }

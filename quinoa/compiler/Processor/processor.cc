@@ -25,7 +25,7 @@ using namespace std;
 
 void genEntryPoint(CompilationUnit &unit) {
   vector<Module *> entryPointCandidates;
-  for (auto member : unit.items) {
+  for (auto member : unit) {
     if (instanceof <Module>(member)) {
       auto mod = (Module *)member;
       if (mod->is("Entry"))
@@ -42,7 +42,7 @@ void genEntryPoint(CompilationUnit &unit) {
   string entryName = "main";
   if (entry->hasMethod(entryName)) {
     auto main = entry->getMethod(entryName);
-    unit.items.push_back(new Entrypoint(main->sig));
+    unit.push_back(new Entrypoint(main->sig));
   } else
     error("The Entrypoint '" + entry->name->str() +
           "' does not contain a main method");
