@@ -16,7 +16,7 @@ for(auto pair:tt){ \
 template <typename Base, typename T>
 inline bool instanceof (T * item)
 {
-    return dynamic_cast<Base *>(item) != nullptr;
+    return dynamic_cast<Base *>(item) ;
 }
 
 
@@ -25,8 +25,13 @@ inline bool instanceof (T * item)
 #include "./base.hh"
 #include "./identifier.hh"
 #include "./type.hh"
+
+Type *getCommonType(Type *t1, Type *t2);
+
 #include "./module.hh"
 #include "./constant.hh"
 #include "./operations.hh"
 #include "./control_flow.hh"
 #include "./compilation_unit.hh"
+
+

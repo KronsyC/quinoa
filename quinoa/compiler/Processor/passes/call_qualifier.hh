@@ -13,10 +13,10 @@ std::pair<bool, int> qualifyCalls(SourceBlock &code,
     if (instanceof <MethodCall>(item)) {
       auto call = (MethodCall *)item;
       // Don't do redundant qualification
-      if(call->target !=nullptr)continue;
+      if(call->target )continue;
 
       call->qualify(sigs, *code.local_types);
-      if(call->target != nullptr)resolvedCount++;
+      if(call->target )resolvedCount++;
       else success = false;
     }
   }
@@ -30,7 +30,6 @@ std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
   // All Implemented Functions
   for (auto method : unit.getAllMethods()) {
     auto name = method->sig->sourcename();
-    Logger::debug("Fetch sig: " + name);
     sigs[name] = method->sig;
   }
 

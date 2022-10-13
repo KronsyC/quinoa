@@ -48,6 +48,5 @@ int main(int argc, char **argv)
     }
     else
         error("Unrecognized Command '" + command + "'");
-
     return 0;
 };

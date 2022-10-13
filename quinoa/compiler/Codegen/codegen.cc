@@ -41,7 +41,7 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
 
     auto sig = llvm::FunctionType::get(ret, args, isVarArg);
     auto fn = llvm::Function::Create(sig, linkage, name, mod);
-    Logger::debug("Created function " + name);
+    // Logger::debug("Created function " + name);
     for (int i = 0; i < fn->arg_size(); i++)
         fn->getArg(i)->setName(f.params[i]->name->str());
     return fn;
@@ -76,13 +76,23 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
             llvm::AllocaInst* alloca;
-            if(instanceof<ListType>(init->type)){
-                auto l = (ListType*)init->type;
-                llvm::Value* size = nullptr;;
-                if(l->size != nullptr)size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
-                auto list = builder()->CreateAlloca(type->getPointerElementType(), size, "list " + varname);
-                alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
-                builder()->CreateStore(list, alloca);
+            if(init->type->list()){
+                auto l = init->type->list();
+                llvm::Value* size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
+                if(!size)error("You must know the size of an array while allocating it");
+                
+                // decide on static or dynamic type
+                if(l->isStatic()){
+                    if(!instanceof<Integer>(l->size))error("Cannot initialize list with non-integer length");
+                    auto size = ((Integer*)l->size)->value;
+                    auto arrayType = llvm::ArrayType::get(l->elements->getLLType(), size);
+                    alloca = builder()->CreateAlloca(arrayType);
+                }
+                else{
+                    alloca = builder()->CreateAlloca(type->getPointerElementType(), size, "list " + varname);
+                }
+                
+
             }
             else alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
             
@@ -121,7 +131,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             auto execBlock = llvm::BasicBlock::Create(*ctx(), "if_exec", func);
             auto continuationBlock = iff->returns()?nullptr:llvm::BasicBlock::Create(*ctx(), "if_cont", func);
-            auto elseBlock = iff->otherwise==nullptr?continuationBlock:llvm::BasicBlock::Create(*ctx(), "if_else", func);
+            auto elseBlock = iff->otherwise?llvm::BasicBlock::Create(*ctx(), "if_else", func):continuationBlock;
             ControlFlowInfo cf = cfi;
             cf.exitBlock = continuationBlock;
 
@@ -132,7 +142,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             genSource(*iff->does, func, vars, cf);
             if(!iff->does->returns())builder()->CreateBr(continuationBlock);
 
-            if(iff->otherwise != nullptr){
+            if(iff->otherwise ){
                 builder()->SetInsertPoint(elseBlock);
                 genSource(*iff->otherwise, func, vars, cf);
                 if(!iff->otherwise->returns())builder()->CreateBr(continuationBlock);
@@ -204,7 +214,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
     }
 
     // Inject the var-args as a known-length list
-    if(sig!=nullptr && sig->sig->isVariadic()){
+    if(sig && sig->sig->isVariadic()){
         auto varParam = sig->sig->params[sig->sig->params.size()-1];
         auto varParamType = (ListType*)varParam->type;
         auto elementType = varParamType->elements->getLLType();

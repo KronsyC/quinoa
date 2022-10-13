@@ -84,6 +84,7 @@ public:
       }
       error("Failed to find appropriate function call for internal method");
     }
+    
     std::vector<Param *> testparams;
     int i = 0;
     for (auto p : params)
@@ -159,6 +160,7 @@ public:
         }
         ind++;
       }
+      Logger::error("Somehow failed to find index");
       return;
     }
     target = fn;
@@ -269,18 +271,51 @@ public:
     else
       return ((ListType *)elementType)->elements;
   }
+  llvm::Value* getPtr(TVars vars){
+    return this->tgt->getPtr(vars);
+  }
+  llvm::Value* getIdxPtr(TVars vars){
+    auto ptr = getPtr(vars);
+    auto type = ptr->getType()->getPointerElementType();
+    auto idx = getIdx(vars);
 
-  llvm::Value *getPtr(TVars vars, llvm::Type *target = nullptr)
-  {
-    auto varPtr = tgt->getLLValue(vars);
-    auto idx = item->getLLValue(vars);
-    auto gep = bld.CreateGEP(varPtr->getType()->getPointerElementType(), varPtr, idx, "subscript-ptr");
+    llvm::Value* gep;
+    // Load the array directly
+    if(type->isArrayTy()){
+      auto ptrEquiv = type->getArrayElementType()->getPointerTo();
+      auto casted = bld.CreateBitCast(ptr, ptrEquiv);
+      gep=bld.CreateGEP(ptrEquiv->getPointerElementType(), casted, idx);
+    }
+    // The array is proxied by an alloca
+    else{
+      auto list = bld.CreateLoad(type, ptr);
+      gep = bld.CreateGEP(type->getPointerElementType(), list, idx);
+    }
     return gep;
+  }
+  llvm::Value* getList(TVars vars){
+    auto list = this->tgt->getLLValue(vars);
+    return list;
+  }
+  llvm::Value* getIdx(TVars vars){
+    return this->item->getLLValue(vars);
+  }
+  llvm::Type* getElementType(llvm::Value* list){
+    auto actualList = list->getType()->getPointerElementType();
+    if(actualList->isArrayTy())return actualList->getArrayElementType();
+    else return actualList->getPointerElementType();
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
   {
-    auto loaded = getPtr(vars);
-    return cast(bld.CreateLoad(loaded->getType()->getPointerElementType(), loaded), target);
+    auto list = getIdxPtr(vars);
+    auto typ = list->getType()->getPointerElementType();
+    return cast(bld.CreateLoad(typ, list), target);
+  }
+  void setAs(llvm::Value* value, TVars vars){
+    auto insertPtr = getIdxPtr(vars);
+    auto typ = insertPtr->getType()->getPointerElementType();
+    bld.CreateStore(cast(value, typ), insertPtr);
+    // bld.CreateInsertElement(getPtr(vars), cast(value, typ), idx);
   }
 };
 
@@ -464,7 +499,8 @@ public:
   {
     auto lt = left->getType();
     auto rt = right->getType();
-    auto common = getCommonType(lt->getLLType(), rt->getLLType());
+    auto common_t = getCommonType(lt, rt);
+    auto common = common_t->getLLType();
 
     if (op == BIN_assignment)
     {
@@ -474,15 +510,21 @@ public:
         auto id = (Ident *)left;
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
-        bld.CreateStore(cast(r, typ), ptr);
+        auto casted = cast(r, typ);
+        if(r->getType()->isArrayTy()){
+          // Allocating array to variable, memcpy
+          auto newVal = bld.CreateAlloca(typ);
+          bld.CreateStore(casted, newVal);
+          Logger::debug("Assigning array literal");
+          ptr->print(llvm::outs());
+          newVal->print(llvm::outs());
+        }
+        else bld.CreateStore(casted, ptr);
       }
       if (instanceof <Subscript>(left))
       {
         auto sub = (Subscript *)left;
-        auto ptr = sub->getPtr(types);
-        ptr->print(llvm::outs());
-        auto typ = ptr->getType()->getPointerElementType();
-        bld.CreateStore(cast(r, typ), ptr);
+        sub->setAs(r, types);
       }
       return cast(r, expected);
     }
@@ -533,15 +575,17 @@ class InitializeVar : public Statement
 public:
   Type *type;
   Identifier *varname;
-  InitializeVar(Type *t, Identifier *name)
+  Expression* initializer = nullptr;
+  InitializeVar(Type *t, Identifier *name, Expression* initializer=nullptr)
   {
     type = t;
+    this->initializer = initializer;
     varname = name;
   }
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this};
-    for (auto i : varname->flatten())
+    for (auto i : initializer->flatten())
       ret.push_back(i);
     return ret;
   }

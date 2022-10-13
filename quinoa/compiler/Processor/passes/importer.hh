@@ -31,7 +31,7 @@ Module *getPrimaryExport(CompilationUnit &unit) {
   Module *ret = nullptr;
   for (auto mod : unit.getAllModules()) {
     if (mod->is("Exported")) {
-      if (ret != nullptr)
+      if (ret )
         error("Cannot Export Multiple Modules from a file");
       mod->remove("Exported");
       ret = mod;
@@ -135,7 +135,7 @@ void resolveImports(CompilationUnit &unit) {
         }
 
         auto mod = exports[rpath];
-        if(mod==nullptr)error("Failed to Locate Module " + rpath);
+        if(!mod)error("Failed to Locate Module " + rpath);
 
         // Replace all references to the alias with the actual name
         auto name = mod->name;

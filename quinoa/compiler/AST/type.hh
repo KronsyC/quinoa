@@ -20,7 +20,9 @@ private:
     }
 public:
     PrimitiveType type;
-
+    Primitive* primitive(){
+        return this;
+    }
     std::string str(){
         return primitive_names[type];
     }
@@ -34,7 +36,25 @@ public:
         }
         return fetched;
     }
+    bool is(PrimitiveType t){
+        return this->type == t;
+    }
+    Primitive* getMutual(Primitive* w, bool secondPass=false){
+        if(this==w)return this;
+        if(is(PR_int8) && w->is(PR_int16))return w;
 
+        if(is(PR_int8) && w->is(PR_int32))return w;
+        if(is(PR_int16) && w->is(PR_int32))return w;
+
+
+        if(is(PR_int8) && w->is(PR_int64))return w;
+        if(is(PR_int16) && w->is(PR_int64))return w;
+        if(is(PR_int32) && w->is(PR_int64))return w;
+
+        if(secondPass)error("Failed to generate mutual primitive type for " + str() + " and " + w->str());
+        return w->getMutual(this, true);
+
+    }
     llvm::Type* getLLType(){
         switch (type)
         {
@@ -75,13 +95,15 @@ public:
         return nullptr;
     }
 };
-
 class CustomType:public Type{
 private:
     CustomType(Identifier* refersTo){
         name = refersTo;
     }
 public:
+    CustomType* custom(){
+        return this;
+    }
     Identifier* name;
 
     llvm::Type* getLLType(){
@@ -106,6 +128,9 @@ private:
         to = type;
     }
 public:
+    TPtr* ptr(){
+        return this;
+    }
     Type* to;
 
     std::string str(){
@@ -125,7 +150,7 @@ public:
         return fetched;
     }
 };
-
+class Constant;
 class ListType:public Type{
 private:
     ListType(Type* eT, Expression* n){
@@ -133,6 +158,9 @@ private:
         size = n;
     }
 public:
+    ListType* list(){
+        return this;
+    }
     Type* elements;
     Expression* size = nullptr;
     ListType() = default;
@@ -142,7 +170,9 @@ public:
     std::string str(){
         return elements->str()+"[]";
     }
-    
+    bool isStatic(){
+        return instanceof<Constant>(size);
+    }
     static ListType* get(Type* t, Expression* n=nullptr){
         static std::map<std::pair<Type*, Expression*>, ListType*> cache;
         auto fetched = cache[{t, n}];
@@ -154,3 +184,4 @@ public:
         return fetched;
     }
 };
+

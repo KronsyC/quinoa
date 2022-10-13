@@ -28,8 +28,8 @@ public:
     bool isVariadic = false;
 
     Param* deVarify(){
-        if(!instanceof<ListType>(type))error("Cannot have non-list varargs: " + name->str());
-        auto list = (ListType*)type;
+        auto list = type->list();
+        if(!list)error("Cannot have non-list varargs: " + name->str());
         auto p = new Param(list->elements, name);
         return p;
     }
@@ -96,13 +96,13 @@ public:
 
     CompoundIdentifier* fullname(){
 
-        if(space==nullptr)return new CompoundIdentifier({name});
+        if(!space)return new CompoundIdentifier({name});
         return  new CompoundIdentifier({space, name});
     }
 
     std::string sourcename(){
         std::string ret;
-        if(space!=nullptr){
+        if(space){
             ret+=space->str()+".";
         }
         ret+=sigstr().str();
@@ -114,7 +114,7 @@ public:
         sigs.params = params;
         sigs.space = space;
         sigs.nomangle = nomangle;
-        // if(space==nullptr && !nomangle)error("Space is null?", true);
+        if(space==nullptr && !nomangle)error("Space is null?", true);
         return sigs;
     }
     Param* getParam(int n){
@@ -204,7 +204,7 @@ public:
         return ret;
     }
     bool hasMethod(std::string name){
-        return this->getMethod(name) != nullptr;
+        return this->getMethod(name) ;
     } 
 };
 

@@ -34,6 +34,11 @@ public:
         return false;
     };
 };
+
+class Primitive;
+class ListType;
+class TPtr;
+class CustomType;
 struct Type : public AstNode
 {
 public:
@@ -43,6 +48,19 @@ public:
     }
     virtual llvm::Type* getLLType(){
         error("Cannot get LL Type for base Type Class");
+        return nullptr;
+    }
+
+    virtual Primitive* primitive(){
+        return nullptr;
+    }
+    virtual CustomType* custom(){
+        return nullptr;
+    }
+    virtual TPtr* ptr(){
+        return nullptr;
+    }
+    virtual ListType* list(){
         return nullptr;
     }
 
@@ -148,7 +166,7 @@ public:
 
 
     void insert(SourceBlock* donor){
-        if(donor==nullptr)error("Cannot merge with a null donor");
+        if(!donor)error("Cannot merge with a null donor");
         auto old = donor;
         for(auto item:donor->take()){
             // update the ctx
@@ -163,7 +181,7 @@ public:
             this->push_back(item);
         }
         for(auto pair:*donor->local_types){
-            if(local_types==nullptr)error("My locals are null?");
+            if(!local_types)error("My locals are null?");
             auto my = *local_types;
             if(my[pair.first] == nullptr){
                 (*local_types)[pair.first] = pair.second;

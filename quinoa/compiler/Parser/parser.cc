@@ -194,6 +194,19 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
         toks = initial;
     }
 
+    if(c.is(TT_l_square_bracket)){
+        auto content = readBlock(toks, IND_square_brackets);
+        auto entries = parseCommaSeparatedValues(content);
+        
+        auto list = new List;
+
+        for(auto entry:entries){
+            auto entryExpr = parseExpression(entry, ctx);
+            list->push_back(entryExpr);
+        }
+        return list;
+    }
+
     if (c.is(TT_l_paren))
     {
         auto initial = toks;
@@ -325,7 +338,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 
             auto does = readBlock(toks, IND_braces);
             auto doesA = parseSourceBlock(does, *type_info);
-            if(doesA==nullptr)error("Failed to parse conditional block");
+            if(!doesA)error("Failed to parse conditional block");
             iff->does = doesA;
             if(toks[0].is(TT_else)){
                 popf(toks);
@@ -396,15 +409,13 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             block->declarations.push_back(varname);
             auto init = new InitializeVar(vartype, name);
             init->ctx = block;
-            block->push_back(init);
             if(line.size() != 0){
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line, block);
-                auto ass = new BinaryOperation(name, val, BIN_assignment);
-                ass->ctx = block;
                 val->ctx = block;
-                block->push_back(ass);
+                init->initializer = val;
             }
+            block->push_back(init);
             continue;
         }
 

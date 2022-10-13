@@ -10,7 +10,7 @@ public:
     Block<Module> getAllModules(){
         Block<Module> ret(false);
         for(auto child:*this){
-            if(child==nullptr)continue;
+            if(!child)continue;
             auto isMod = child->isModule();
 
             if(isMod)ret.push_back((Module*)child);

@@ -9,7 +9,7 @@ public:
 	SourceBlock* otherwise = nullptr;
 
 	bool returns(){
-		if(does==nullptr || otherwise == nullptr)return false;
+		if(!does || !otherwise)return false;
 		return does->returns() && otherwise->returns();
 	}
 
@@ -26,7 +26,7 @@ public:
 	IfCond() = default;
 	std::vector<Statement*> flatten(){
 		std::vector<Statement*> ret = {this};
-		bool hasElse = (this->otherwise) != nullptr;
+		bool hasElse = (this->otherwise) ;
 		if(hasElse){
 			auto flat = otherwise->flatten();
 			for(auto m:otherwise->flatten())ret.push_back(m);

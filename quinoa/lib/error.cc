@@ -16,6 +16,8 @@ void print_trace() {
     }
 }
 void error(string reason, bool trace){
+    Logger::enqueueMode(false);
+    Logger::printQueue();
     Logger::error(reason);
     if(trace)
     print_trace();

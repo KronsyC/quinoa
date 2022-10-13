@@ -14,7 +14,7 @@ void newline(){
     row++;
     col=1;
 }
-Token make(TokenType type, string value=""){
+Token make(TokenType type, std::string value=""){
     Token tok(type, value, row, col, filename);
     return tok;
 }
@@ -26,7 +26,7 @@ void trimStart(string& str){
         popf(str);
     }
 }
-bool startsWith(string str, string substr){
+bool startsWith(string str, std::string substr){
     if(substr.size() > str.size())return false;
     if(substr.size() == 0)return true;
     if(substr.size() == 1)return str[0] == substr[0];
@@ -63,10 +63,10 @@ string escapeNextVal(string& str){
         
         case 'n': return "\n";
     }
-    error("Failed To Escape String");
+    error("Failed To Escape std::string");
     return "";
 }
-bool compareLength(string s1, string s2){
+bool compareLength(string s1, std::string s2){
     return s1.length() > s2.length();
 }
 Token readNextToken(string& str){
@@ -74,9 +74,9 @@ Token readNextToken(string& str){
     trimStart(str);
     if(str.length()==0)return make(TT_eof);
 
-    // String Check
+    // std::string Check
     if(startsWith(str, "\"")){
-        string val;
+        std::string val;
         popf(str);
         bool escapeNext = false;
         while(str.length()){
@@ -106,7 +106,7 @@ Token readNextToken(string& str){
     
     // Number Check
     if(isNumber(str[0])){
-        string constructedNumber;
+        std::string constructedNumber;
         while(isNumber(str[0])){
             constructedNumber+=str[0];
             popf(str);
@@ -150,7 +150,7 @@ Token readNextToken(string& str){
     
     // Literal Parsing, accepts literally Anything
     if(isAlphaChar(str[0]) || isExtVarChar(str[0])){
-        string ident;
+        std::string ident;
         while(str.length()&& (isAlphaChar(str[0]) || isNumber(str[0]) || isExtVarChar(str[0]))){
             ident+=popf(str);
         }
@@ -158,13 +158,13 @@ Token readNextToken(string& str){
         if(ident!="")
         return make(TT_identifier, ident);
     }
-    string s;
+    std::string s;
     s+=str[0];
     error("Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
     throw exception();
 }   
 
-vector<Token> Lexer::lexify(string source, string fname){
+vector<Token> Lexer::lexify(string source, std::string fname){
     vector<Token> toks;
     filename = fname;
     while(1){
