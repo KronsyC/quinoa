@@ -42,7 +42,7 @@
 	new TokenDefinition(TT_literal_char, "__literal_char", {}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_void, "__void", {"void"}, {"void"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_boolean, "__boolean", {"bool"}, {"integer"}, false, false, 0, false, false),\
-	new TokenDefinition(TT_string, "__string", {"string"}, {"pointer"}, false, false, 0, false, false),\
+	new TokenDefinition(TT_string, "__string", {"c_str"}, {"pointer"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_int8, "__int8", {"i8", "char"}, {"integer"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_int16, "__int16", {"i16"}, {"integer"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_int32, "__int32", {"i32", "int"}, {"integer"}, false, false, 0, false, false),\

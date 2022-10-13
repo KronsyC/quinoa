@@ -2,7 +2,7 @@ import @io;
 
 module Test is Entry{
 
-    func main(argc: int, argv:string*)->int{
+    func main(argc: int, argv:c_str*)->int{
         io::println("Hello World!");
         
         return 0;

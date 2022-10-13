@@ -1,14 +1,14 @@
 import @syscall;
 module IO is Exported{
 
-    func strlen(str:string)->i64{
+    func strlen(str:c_str)->i64{
         let i:i64 = 0;
         while(str[i] != 0){
             i++;
         }
         return i;
     }
-    func read(str:string, len:i64)->i64{
+    func read(str:c_str, len:i64)->i64{
         let readLen = syscall::read(0, str, len);
         return readLen;
     }
@@ -16,7 +16,7 @@ module IO is Exported{
         let ref = &ch;
         syscall::write(1, ref, 1);
     }
-    func println(message:string) -> i64{
+    func println(message:c_str) -> i64{
         let len = syscall::write(1, message, strlen(message));
         putc(10);
         return len+1;

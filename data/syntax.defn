@@ -59,7 +59,7 @@ void
 @type integer
 boolean
 
-@alias string
+@alias c_str
 @type pointer
 string
 
