@@ -13,6 +13,7 @@
 #include "./passes/self_ref_resolver.hh"
 #include "./passes/call_qualifier.hh"
 #include "./passes/type_resolver.hh"
+#include "./passes/separate_initialzers.hh"
 #include "./passes/primitive_function_injector.hh"
 using namespace std;
 
@@ -74,7 +75,6 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
    */
   Logger::log("Doing a processor pass");
   resolveImports(unit);
-  hoistVarInitializations(unit);
   if (finalize) {
     Logger::log("Finalization pass");
   resolveSelfReferences(unit);
@@ -101,6 +101,8 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
       Logger::clearQueue();
       Logger::enqueueMode(false);
     }
+    split_initializers(unit);
+    // hoistVarInitializations(unit);
     injectPrimitiveFunctions(unit);
     genEntryPoint(unit);
     

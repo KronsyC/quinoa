@@ -4,7 +4,7 @@
 Type *getCommonType(Type *t1, Type *t2)
 {
     if (t1 == nullptr || t2 == nullptr)
-      error("one of the types is null");
+      error("one of the types is null", true);
     if (t1 == t2)
       return t1;
 

@@ -497,8 +497,10 @@ public:
 
   llvm::Value *getLLValue(TVars types, llvm::Type *expected)
   {
-    auto lt = left->getType();
     auto rt = right->getType();
+    auto lt = left->getType();
+
+
     auto common_t = getCommonType(lt, rt);
     auto common = common_t->getLLType();
 
@@ -584,9 +586,12 @@ public:
   }
   std::vector<Statement *> flatten()
   {
-    std::vector<Statement *> ret{this};
-    for (auto i : initializer->flatten())
+    std::vector<Statement *> ret{this, varname};
+    if(initializer)for (auto i : initializer->flatten())
       ret.push_back(i);
     return ret;
+  }
+  std::string str(){
+    return "let " + varname->str() + " : " + type->str();
   }
 };
