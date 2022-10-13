@@ -2,7 +2,8 @@ import @io;
 module HelloWorld is Entry{
 
     func main(argc:int, argv:string*) -> int{
-        io::println("Greetings, Brave Coder");
+        io::println("Hello, World!");
+
         return 0;
     } 
 

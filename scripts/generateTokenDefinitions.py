@@ -59,7 +59,7 @@ STRUCTURE = {}
 
 # Resolve Types Into the structure, the structure will be used as a template for the 'definition' class
 for defi in ALL_DEFINITIONS:
-    for k, v in defi.properties():
+    for k, v in defi.properties.items():
         TARGET_TYPE=None
         if type(v) == bool:
             TARGET_TYPE = PROPTYPE_BOOL
@@ -98,7 +98,7 @@ def toArrayLiteral(val: List):
 definitions_str = ""
 definitions_args = ""
 definitions_default_assignments=""
-for k, v in STRUCTURE():
+for k, v in STRUCTURE.items():
     val = ""
     if v == PROPTYPE_BOOL: val = f"bool {k} = false"
     if v == PROPTYPE_NUMBER: val = f"int {k} = 0"
@@ -118,7 +118,7 @@ for defi in ALL_DEFINITIONS:
     definitions_initializers+="TokenDefinition("
     definitions_initializers+=defname + ", " + json.dumps("__"+defi.id)
 
-    for k, v in STRUCTURE():
+    for k, v in STRUCTURE.items():
         definitions_initializers+=", "
         value = None
         try:
@@ -142,9 +142,23 @@ for defi in ALL_DEFINITIONS:
         indentation_types+=enum_name + ",\n "
         indentation_mappings+=f"{{{enum_name}, {{TT_l_{generic_name}, TT_r_{generic_name}}}}},\n"
 
+
+
+
 infix_enum_members = ""
+unary_enum_members = ""
 infix_enum_mappings = ""
+postfix_enum_mappings = ""
+prefix_enum_mappings = ""
 for defi in ALL_DEFINITIONS:
+    if "prefix" in defi.properties:
+        ename = "PRE_"+defi.id
+        unary_enum_members+=ename+", \n"
+        prefix_enum_mappings+="{ TT_"+defi.id+", "+ ename +"}, \n"
+    if "postfix" in defi.properties:
+        ename = "POST_"+defi.id
+        unary_enum_members+=ename+", \n"
+        postfix_enum_mappings+="{ TT_"+defi.id+", "+ ename +"}, \n"
     if "infix" in defi.properties:
         ename = "BIN_"+defi.id
         infix_enum_members+=ename+", \n"
@@ -176,6 +190,11 @@ MACRO_KVP = {
 
     "INFIX_ENUM_MEMBERS": infix_enum_members,
     "INFIX_ENUM_MAPPINGS": infix_enum_mappings,
+
+    "UNARY_ENUM_MEMBERS": unary_enum_members,
+
+    "PREFIX_ENUM_MAPPINGS": prefix_enum_mappings,
+    "POSTFIX_ENUM_MAPPINGS": postfix_enum_mappings,
 
     "PRIMITIVES_ENUM_MEMBERS": primitives_enum_members,
     "PRIMITIVES_ENUM_MAPPINGS": primitives_enum_mappings,

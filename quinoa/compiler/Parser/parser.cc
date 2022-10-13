@@ -213,7 +213,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
         }
     }
 
-    vector<vector<int>> weightMap;
+    vector<std::pair<int, int>> weightMap;
     int depth = 0;
     for (int i = 0; i < toks.size(); i++)
     {
@@ -232,8 +232,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
         int weight = precedences[t.type];
         if (weight == 0)
             continue;
-        vector<int> entry = {i, weight};
-        weightMap.push_back(entry);
+        weightMap.push_back({i, weight});
     }
 
     // find the best place to split the expression
@@ -242,16 +241,40 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
     for (int i = 0; i < weightMap.size(); i++)
     {
         auto pair = weightMap[i];
-        int index = pair[0];
-        int weight = pair[1];
+        int index = pair.first;
+        int weight = pair.second;
         if (splitPoint == -1 || (splitWeight <= weight))
         {
             splitPoint = index;
             splitWeight = weight;
         }
     }
-    if (splitPoint == -1)
+    if (splitPoint == -1 || splitPoint==0 || splitPoint==toks.size()-1)
     {
+        // no split, start split or end split should cover all cases
+
+
+        // Construct prefix ops
+        std::vector<TokenType> prefix_ops;
+        std::vector<TokenType> postfix_ops;
+        for(auto def:defs){
+            if(def->prefix)prefix_ops.push_back(def->ttype);
+            if(def->postfix)postfix_ops.push_back(def->ttype);
+        }
+
+        if(includes(prefix_ops, toks[0].type)){
+            auto op = popf(toks);
+            auto expr = parseExpression(toks, ctx);
+            auto pfxop = prefix_op_mappings[op.type];
+            return new UnaryOperation(expr, pfxop);
+        }
+        else if(includes(postfix_ops, toks[toks.size()-1].type)){
+            auto op = toks[toks.size()-1];
+            toks.pop_back();
+            auto postop = postfix_op_mappings[op.type];
+            auto expr = parseExpression(toks, ctx);
+            return new UnaryOperation(expr, postop);
+        }
         printToks(toks);
         error("Failed To Parse Expression");
     }

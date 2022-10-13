@@ -85,6 +85,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
                 builder()->CreateStore(list, alloca);
             }
             else alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
+            
             vars[varname] = alloca;
         }
         else if (instanceof <WhileCond>(stm))
@@ -216,7 +217,6 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         auto init = builder()->CreateAlloca(elementType->getPointerTo());
         builder()->CreateStore(list, init);
         vars[varParam->name->str()] = init;
-        Logger::debug("varargs: " + varParam->name->str());
         pushf(*sig, (Statement*)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();

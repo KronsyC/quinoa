@@ -4,12 +4,21 @@ module IO is Exported{
     func strlen(str:string)->i64{
         let i:i64 = 0;
         while(str[i] != 0){
-            i=i+1;
+            i++;
         }
         return i;
     }
-
+    func read(str:string, len:i64)->i64{
+        let readLen = syscall::read(0, str, len);
+        return readLen;
+    }
+    func putc(ch:char){
+        let ref = &ch;
+        syscall::write(1, ref, 1);
+    }
     func println(message:string) -> i64{
-        return syscall::write(1, message, strlen(message));
+        let len = syscall::write(1, message, strlen(message));
+        putc(10);
+        return len+1;
     }
 }

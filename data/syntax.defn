@@ -174,72 +174,33 @@ backslash
 @alias %
 percent
 
-@infix 5
-@alias **
-powerOf
 
-@postfix 3
-@prefix 3
+@postfix
+@prefix
 @alias ++
 increment
 
-@postfix 3
-@prefix 3
+@alias ~
+@prefix
+bitwise_not
+
+@postfix
+@prefix
 @alias --
 decrement
 
-@alias +=
-@infix 16
-increment_by
-
-@alias -=
-@infix 16
-decrement_by
-
-@alias *=
-@infix 16
-mul_by
-
-@alias /=
-@infix 16
-div_by
-
-@alias **=
-@infix 16
-pow_of
-
-@alias <<=
-@infix 16
-bitwise_shl_by
-
-@alias >>=
-@infix 16
-bitwise_shr_by
-
-@alias |=
-@infix 16
-bitwise_or_by
-
-@alias &=
-@infix 16
-bitwise_and_by
-
-@alias ^=
-@infix 16
-bitwise_xor_by
-
-@postfix 2
-subscript
 
 # Unary Operators
 
-@prefix 3
-@alias create
-instantiate_object
 
-@prefix 3
+@prefix
 @alias !
 bang
+
+
+@prefix
+@alias &
+amperand
 
 # Binary Operators
 
@@ -253,6 +214,7 @@ plus
 
 @alias -
 @infix 6
+@prefix
 minus
 
 @alias ||
@@ -311,9 +273,7 @@ bitwise_and
 @infix 13
 bitiwse_or
 
-@alias ~
-@infix 3
-bitwise_not
+
 
 @alias ^
 @infix 13
