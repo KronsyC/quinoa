@@ -90,7 +90,8 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "*.def": "cpp",
-        "stdarg.h": "c"
+        "stdarg.h": "c",
+        "*.inc": "cpp"
     },
     "discord.enabled": true
 }

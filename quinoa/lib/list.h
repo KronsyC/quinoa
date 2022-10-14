@@ -24,6 +24,15 @@ T popf(std::vector<T> &vec){
     vec.erase(vec.begin());
     return first;
 }
+template<typename T>
+size_t indexof(std::vector<T> items, T item){
+    int idx = 0;
+    for(auto i:items){
+        if(i==item)return idx;
+        idx++;
+    }
+    return -1;
+}
 
 char popf(std::string &str);
 

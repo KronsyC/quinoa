@@ -69,7 +69,7 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
    * Unreachable Code Warning / Removal
    * Static Statement Resolution ( 11 + 4 -> 15 )
    * Literal Array Checking (performs any necessary casts / erroing)
-   * Initializer Separation
+   * ✅ Initializer Separation
    * ✅ Local Initializer Hoisting (optimization)
    * ✅ Entrypoint Generation
    */

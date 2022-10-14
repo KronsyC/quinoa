@@ -7,30 +7,33 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
+  %"var def" = alloca i8, align 1
+  store i8 69, i8* %"var def", align 1
   %"var abc" = alloca i8, align 1
-  store i8 123, i8* %"var abc", align 1
-  %0 = load i8, i8* %"var abc", align 1
-  %1 = sext i8 %0 to i32
-  ret i32 %1
+  %0 = load i8, i8* %"var def", align 1
+  store i8 %0, i8* %"var abc", align 1
+  %1 = load i8, i8* %"var abc", align 1
+  %2 = sext i8 %1 to i32
+  ret i32 %2
 }
 
-define i64 @"[EshQBQFXPJ].io.fn_println(PR_int8*)"(i8* %message) {
+define i64 @"[dgzGkFcYFO].io.fn_println(PR_int8*)"(i8* %message) {
 entry_block:
   %"param message" = alloca i8*, align 8
   store i8* %message, i8** %"param message", align 8
   %"var len" = alloca i64, align 8
   %0 = load i8*, i8** %"param message", align 8
   %1 = load i8*, i8** %"param message", align 8
-  %2 = call i64 @"[EshQBQFXPJ].io.fn_strlen(PR_int8*)"(i8* %1)
-  %3 = call i64 @"[cubtDYAR1f].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 1, i8* %0, i64 %2)
+  %2 = call i64 @"[dgzGkFcYFO].io.fn_strlen(PR_int8*)"(i8* %1)
+  %3 = call i64 @"[67ubqSVN0p].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 1, i8* %0, i64 %2)
   store i64 %3, i64* %"var len", align 4
-  call void @"[EshQBQFXPJ].io.fn_putc(PR_int8)"(i8 10)
+  call void @"[dgzGkFcYFO].io.fn_putc(PR_int8)"(i8 10)
   %4 = load i64, i64* %"var len", align 4
   %5 = add i64 %4, 1
   ret i64 %5
 }
 
-define i64 @"[EshQBQFXPJ].io.fn_strlen(PR_int8*)"(i8* %str) {
+define i64 @"[dgzGkFcYFO].io.fn_strlen(PR_int8*)"(i8* %str) {
 entry_block:
   %"param str" = alloca i8*, align 8
   store i8* %str, i8** %"param str", align 8
@@ -57,18 +60,18 @@ while_cont:                                       ; preds = %while_eval
   ret i64 %7
 }
 
-define void @"[EshQBQFXPJ].io.fn_putc(PR_int8)"(i8 %ch) {
+define void @"[dgzGkFcYFO].io.fn_putc(PR_int8)"(i8 %ch) {
 entry_block:
   %"param ch" = alloca i8, align 1
   store i8 %ch, i8* %"param ch", align 1
   %"var ref" = alloca i8*, align 8
   store i8* %"param ch", i8** %"var ref", align 8
   %0 = load i8*, i8** %"var ref", align 8
-  %1 = call i64 @"[cubtDYAR1f].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 1, i8* %0, i64 1)
+  %1 = call i64 @"[67ubqSVN0p].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 1, i8* %0, i64 1)
   ret void
 }
 
-define i64 @"[EshQBQFXPJ].io.fn_read(PR_int8*,PR_int64)"(i8* %str, i64 %len) {
+define i64 @"[dgzGkFcYFO].io.fn_read(PR_int8*,PR_int64)"(i8* %str, i64 %len) {
 entry_block:
   %"param str" = alloca i8*, align 8
   store i8* %str, i8** %"param str", align 8
@@ -77,13 +80,13 @@ entry_block:
   %"var readLen" = alloca i64, align 8
   %0 = load i8*, i8** %"param str", align 8
   %1 = load i64, i64* %"param len", align 4
-  %2 = call i64 @"[cubtDYAR1f].syscall.fn_read(PR_int64,PR_int8*,PR_int64)"(i64 0, i8* %0, i64 %1)
+  %2 = call i64 @"[67ubqSVN0p].syscall.fn_read(PR_int64,PR_int8*,PR_int64)"(i64 0, i8* %0, i64 %1)
   store i64 %2, i64* %"var readLen", align 4
   %3 = load i64, i64* %"var readLen", align 4
   ret i64 %3
 }
 
-define i64 @"[cubtDYAR1f].syscall.fn_close(PR_int64)"(i64 %fd) {
+define i64 @"[67ubqSVN0p].syscall.fn_close(PR_int64)"(i64 %fd) {
 entry_block:
   %"param fd" = alloca i64, align 8
   store i64 %fd, i64* %"param fd", align 4
@@ -94,7 +97,7 @@ entry_block:
 
 declare i64 @syscall(i64, ...)
 
-define i64 @"[cubtDYAR1f].syscall.fn_open(PR_int8*,PR_int32,PR_int32)"(i8* %filename, i32 %flags, i32 %mode) {
+define i64 @"[67ubqSVN0p].syscall.fn_open(PR_int8*,PR_int32,PR_int32)"(i8* %filename, i32 %flags, i32 %mode) {
 entry_block:
   %"param filename" = alloca i8*, align 8
   store i8* %filename, i8** %"param filename", align 8
@@ -112,7 +115,7 @@ entry_block:
   ret i64 %6
 }
 
-define i64 @"[cubtDYAR1f].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
+define i64 @"[67ubqSVN0p].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
 entry_block:
   %"param fd" = alloca i64, align 8
   store i64 %fd, i64* %"param fd", align 4
@@ -128,7 +131,7 @@ entry_block:
   ret i64 %4
 }
 
-define i64 @"[cubtDYAR1f].syscall.fn_read(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
+define i64 @"[67ubqSVN0p].syscall.fn_read(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
 entry_block:
   %"param fd" = alloca i64, align 8
   store i64 %fd, i64* %"param fd", align 4

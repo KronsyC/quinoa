@@ -165,7 +165,7 @@ public:
     }
 
 
-    void insert(SourceBlock* donor){
+    void gobble(SourceBlock* donor){
         if(!donor)error("Cannot merge with a null donor");
         auto old = donor;
         for(auto item:donor->take()){

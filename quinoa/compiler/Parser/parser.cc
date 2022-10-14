@@ -319,7 +319,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             auto loop = new WhileCond;
             cond->ctx = block;
             loop->local_types = new LocalTypeTable;
-            loop->insert(content);
+            loop->gobble(content);
             loop->cond = cond;
             loop->ctx = block;
             // For some reason the loop becomes inactive at this point
@@ -360,7 +360,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             auto check = readUntil(inner, TT_semicolon, true);
             inner.push_back(sc);
             auto initCode = parseSourceBlock(init, *type_info);
-            block->insert(initCode);
+            block->gobble(initCode);
 
             auto checkCode = parseExpression(check, block);
             auto incCode = parseSourceBlock(inner, *type_info);
@@ -372,7 +372,7 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             loop->ctx = block;
             loop->local_types = new LocalTypeTable;
             *loop->local_types = *block->local_types;
-            loop->insert(source);
+            loop->gobble(source);
             block->push_back(loop);
 
             continue;
@@ -490,7 +490,7 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             if(toks[0].is(TT_l_brace)){
                auto contentToks = readBlock(toks, IND_braces);
                 auto content = parseSourceBlock(contentToks, argTypes);
-                method->insert(content);
+                method->gobble(content);
             }
             else{
                  expects(toks[0], TT_semicolon);

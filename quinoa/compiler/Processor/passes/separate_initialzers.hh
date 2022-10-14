@@ -18,17 +18,13 @@ void split_initializers(CompilationUnit &unit)
                 if (init->initializer)
                 {
                     // separate the init
-                    // disable the init
-                    // push the new nodes to the context
-                    auto newInit = new InitializeVar(init->type, init->varname);
-                    init->active = false;
-                    newInit->ctx = init->ctx;
-                    Logger::debug(newInit->str());
-                    auto newAss = new BinaryOperation(init->varname, init->initializer, BIN_assignment);
-                    newAss->ctx = init->ctx;
-                    pushf(*init->ctx, (Statement*)newAss);
-                    pushf(*init->ctx, (Statement*)newInit);
-                
+                    // push the new node to the context, after the init
+                    auto assignment = new BinaryOperation(init->varname, init->initializer, BIN_assignment);
+                    assignment->ctx = init->ctx;
+                    auto idx = indexof(*init->ctx, (Statement*)init);
+                    if(idx==-1)error("Failed to get index of " + init->str());
+                    // push the assignment into the context
+                    init->ctx->insert(init->ctx->begin()+idx+1, assignment);
                 }
 
                 
