@@ -13,4 +13,7 @@ module Syscall is Exported, CompilerImplemented{
 	func close(fd:i64)->i64{
 		return call(3, fd);
 	}
+	func exit(status:i64)->i64{
+		return call(60, status);
+	}
 }

@@ -92,16 +92,16 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
       resolvedCalls = res.first;
       resolvedTypes = typeres.first;
 
-      // if the calls weren't all resolved and no calls
-      // were resolved this iteration
-      if((!resolvedCalls && res.second==0) && (!resolvedTypes && typeres.second==0)){
+      // if no calls or types were resolved this iteration
+      if(!res.second && !typeres.second){
         Logger::enqueueMode(false);
         Logger::printQueue();
         error("Type-Call Resolution Failed");
       }
-      Logger::clearQueue();
-      Logger::enqueueMode(false);
+
     }
+        Logger::clearQueue();
+      Logger::enqueueMode(false);
     validateLiteralArrays(unit);
     split_initializers(unit);
     hoistVarInitializations(unit);

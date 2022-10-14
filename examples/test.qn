@@ -1,9 +1,9 @@
+import @syscall;
+
 module Test is Entry{
 
     func main(argc: int, argv:c_str*)->int{
-        let numbers:int[3] = [21, 2, 3];
-
-        let test:i32* = &(numbers[0]);
-        return *test;
+        syscall::exit(21);
+        return 0;
     }
 }
