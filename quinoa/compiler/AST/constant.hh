@@ -195,14 +195,14 @@ public:
             auto mod = builder()->GetInsertBlock()->getModule();
             auto initialValues = *(std::vector<llvm::Constant*>*)&members;
             auto initializer = llvm::ConstantArray::get(arrType, initialValues);
-            auto arr = new llvm::GlobalVariable(*mod, arrType, true, llvm::GlobalValue::InternalLinkage, initializer);
+            auto arr = new llvm::GlobalVariable(*mod, arrType, true, llvm::GlobalValue::InternalLinkage, initializer, "constant_array");
             return arr;
             // list = llvm::ConstantArray::get(constType, const_members);
         }
         else{
             // attempt to emulate a global value's access pattern to
             // simplify code
-            auto alloc = builder()->CreateAlloca(arrType);
+            auto alloc = builder()->CreateAlloca(arrType, nullptr, "literal_list");
 
             // Write each member of the alloc
             int i = 0;

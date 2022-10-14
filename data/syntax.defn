@@ -206,6 +206,7 @@ amperand
 
 @alias *
 @infix 5
+@prefix
 star
 
 @alias +

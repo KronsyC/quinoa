@@ -75,8 +75,10 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
+            Logger::debug("Variable Initializer: " + init->str());
             llvm::AllocaInst* alloca;
             if(init->type->list()){
+                Logger::debug("initializing as list");
                 auto l = init->type->list();
                 llvm::Value* size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
                 if(!size)error("You must know the size of an array while allocating it");

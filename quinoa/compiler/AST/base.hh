@@ -79,6 +79,10 @@ public:
         error("Cannot get llvm value for base expression type", true);
         return nullptr;
     }
+    virtual llvm::Value* getPtr(TVars vars){
+        error("Cannot get ptr to base expression type");
+        return nullptr;
+    }
 };
 
 template <typename T>

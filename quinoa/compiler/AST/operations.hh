@@ -19,7 +19,9 @@ public:
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this, name};
-    for (auto p : params)for(auto f:p->flatten())ret.push_back(f);
+    for (auto p : params)
+      for (auto f : p->flatten())
+        ret.push_back(f);
     return ret;
   }
   Type *getType()
@@ -84,7 +86,7 @@ public:
       }
       error("Failed to find appropriate function call for internal method");
     }
-    
+
     std::vector<Param *> testparams;
     int i = 0;
     for (auto p : params)
@@ -92,7 +94,7 @@ public:
       auto type = p->getType();
       if (type == nullptr)
       {
-        Logger::error("Failed to get type for param "+name->str() + "["+std::to_string(i)+"]");
+        Logger::error("Failed to get type for param " + name->str() + "[" + std::to_string(i) + "]");
         return;
       }
       testparams.push_back(new Param(type, nullptr));
@@ -182,7 +184,8 @@ private:
 
     if (!base.isVariadic())
     {
-      if (base.params.size() != target.params.size()){
+      if (base.params.size() != target.params.size())
+      {
         return -1;
       }
     }
@@ -196,7 +199,7 @@ private:
       auto taram = target.getParam(i)->type;
       if (baram == taram)
         continue;
-      if (instanceof<Primitive>(baram) && instanceof<Primitive>(taram))
+      if (instanceof <Primitive>(baram) && instanceof <Primitive>(taram))
       {
         // same group, different type is +10, otherwise no match
 
@@ -264,46 +267,55 @@ public:
     auto elementType = tgt->getType();
     if (elementType == nullptr)
       error("No Element Type");
-    if (!(instanceof<TPtr>(elementType) || instanceof<ListType>(elementType)))
+    if (!(instanceof <TPtr>(elementType) || instanceof <ListType>(elementType)))
       error("List has member type which is a non-pointer", true);
-    if (instanceof<TPtr>(elementType))
+    if (instanceof <TPtr>(elementType))
       return ((TPtr *)elementType)->to;
     else
       return ((ListType *)elementType)->elements;
   }
-  llvm::Value* getPtr(TVars vars){
+  llvm::Value *getPtr(TVars vars)
+  {
     return this->tgt->getPtr(vars);
   }
-  llvm::Value* getIdxPtr(TVars vars){
+  llvm::Value *getIdxPtr(TVars vars)
+  {
     auto ptr = getPtr(vars);
     auto type = ptr->getType()->getPointerElementType();
     auto idx = getIdx(vars);
 
-    llvm::Value* gep;
+    llvm::Value *gep;
     // Load the array directly
-    if(type->isArrayTy()){
+    if (type->isArrayTy())
+    {
       auto ptrEquiv = type->getArrayElementType()->getPointerTo();
       auto casted = bld.CreateBitCast(ptr, ptrEquiv);
-      gep=bld.CreateGEP(ptrEquiv->getPointerElementType(), casted, idx);
+      gep = bld.CreateGEP(ptrEquiv->getPointerElementType(), casted, idx);
     }
     // The array is proxied by an alloca
-    else{
+    else
+    {
       auto list = bld.CreateLoad(type, ptr);
       gep = bld.CreateGEP(type->getPointerElementType(), list, idx);
     }
     return gep;
   }
-  llvm::Value* getList(TVars vars){
+  llvm::Value *getList(TVars vars)
+  {
     auto list = this->tgt->getLLValue(vars);
     return list;
   }
-  llvm::Value* getIdx(TVars vars){
+  llvm::Value *getIdx(TVars vars)
+  {
     return this->item->getLLValue(vars);
   }
-  llvm::Type* getElementType(llvm::Value* list){
+  llvm::Type *getElementType(llvm::Value *list)
+  {
     auto actualList = list->getType()->getPointerElementType();
-    if(actualList->isArrayTy())return actualList->getArrayElementType();
-    else return actualList->getPointerElementType();
+    if (actualList->isArrayTy())
+      return actualList->getArrayElementType();
+    else
+      return actualList->getPointerElementType();
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
   {
@@ -311,7 +323,8 @@ public:
     auto typ = list->getType()->getPointerElementType();
     return cast(bld.CreateLoad(typ, list), target);
   }
-  void setAs(llvm::Value* value, TVars vars){
+  void setAs(llvm::Value *value, TVars vars)
+  {
     auto insertPtr = getIdxPtr(vars);
     auto typ = insertPtr->getType()->getPointerElementType();
     bld.CreateStore(cast(value, typ), insertPtr);
@@ -341,7 +354,7 @@ public:
     auto type_table = *ctx->local_types;
     auto type = type_table[of->str()];
     if (
-        type == nullptr || ! instanceof<ListType>(type))
+        type == nullptr || ! instanceof <ListType>(type))
       error("Failed to get list size");
 
     auto list = (ListType *)type;
@@ -352,7 +365,8 @@ public:
   }
 };
 
-enum UnaryOp{
+enum UnaryOp
+{
   UNARY_ENUM_MEMBERS
 };
 static std::map<TokenType, UnaryOp> prefix_op_mappings{PREFIX_ENUM_MAPPINGS};
@@ -365,13 +379,15 @@ enum BinaryOp
 
 static std::map<TokenType, BinaryOp> binary_op_mappings{INFIX_ENUM_MAPPINGS};
 
-class UnaryOperation:public Expression{
+class UnaryOperation : public Expression
+{
 public:
-  Expression* operand;
+  Expression *operand;
   UnaryOp op;
-  UnaryOperation(Expression* operand, UnaryOp op){
+  UnaryOperation(Expression *operand, UnaryOp op)
+  {
     this->operand = operand;
-    this->op=op;
+    this->op = op;
   }
   std::vector<Statement *> flatten()
   {
@@ -380,93 +396,133 @@ public:
       flat.push_back(i);
     return flat;
   }
-  Type* getType(){
+  Type *getType()
+  {
     auto i64 = Primitive::get(PR_int64);
     auto boo = Primitive::get(PR_boolean);
     auto same = operand->getType();
     auto sameptr = TPtr::get(same);
-    switch(op){
-      case PRE_amperand:return sameptr;
-      case PRE_bang: return boo;
-      case PRE_increment:return same;
-      //TODO: this may cause issues in the case of an unsigned integer
-      case PRE_minus: return same;
-      case PRE_bitwise_not:return same;
-      case PRE_decrement: return same;
-      case POST_increment: return same;
-      case POST_decrement: return same;
+    Type *pointed = nullptr;
+    if (auto pt = same->ptr())
+      pointed = pt->to;
+    else if (auto pt = same->list())
+      pointed = pt->elements;
+    switch (op)
+    {
+    case PRE_amperand:
+      return sameptr;
+    case PRE_bang:
+      return boo;
+    case PRE_increment:
+      return same;
+    case PRE_star:
+      return pointed;
+    // TODO: this may cause issues in the case of an unsigned integer
+    case PRE_minus:
+      return same;
+    case PRE_bitwise_not:
+      return same;
+    case PRE_decrement:
+      return same;
+    case POST_increment:
+      return same;
+    case POST_decrement:
+      return same;
     }
     error("Failed to get type for unary op: " + std::to_string(op));
     return nullptr;
   }
-  llvm::Value *getLLValue(TVars types, llvm::Type *expected){
+  llvm::Value *getLLValue(TVars types, llvm::Type *expected)
+  {
     auto boo = Primitive::get(PR_boolean)->getLLType();
-    switch(op){
-      case PRE_amperand:{
-        if(instanceof<Ident>(operand)){
-          auto id = (Ident*)operand;
-          auto ptr = id->getPtr(types);
-          return cast(ptr, expected);
-        }
-        else if(instanceof<Subscript>(operand)){
-          auto subsc = (Subscript*)operand;
-          auto ptr = subsc->getPtr(types);
-          return cast(ptr, expected);
-        }
-        else error("Cannot get memory address of non-identifier/subscript");
+    switch (op)
+    {
+    case PRE_amperand:
+    {
+      auto ptr = operand->getPtr(types);
+      return cast(ptr, expected);
+    }
+    case PRE_bang:
+      return cast(bld.CreateNot(operand->getLLValue(types, boo)), expected);
+    case PRE_minus:
+      return cast(bld.CreateNeg(operand->getLLValue(types)), expected);
+    case PRE_bitwise_not:
+      return cast(bld.CreateNot(operand->getLLValue(types)), expected);
+    case PRE_star:
+    {
+      auto typ = operand->getType();
+      if (typ->list())
+      {
+        auto ptr = operand->getPtr(types);
+        auto el = ptr->getType()->getPointerElementType();
+        auto gep = bld.CreateConstGEP2_32(el, ptr, 0, 0);
+        auto load = bld.CreateLoad(gep->getType()->getPointerElementType(), gep);
+        return cast(load, expected);
       }
-      case PRE_bang: return cast(bld.CreateNot(operand->getLLValue(types, boo)), expected);
-      case PRE_minus: return cast(bld.CreateNeg(operand->getLLValue(types)), expected);
-      case PRE_bitwise_not: return cast(bld.CreateNot(operand->getLLValue(types)), expected);
-      case PRE_increment: {
-        if(!instanceof<Ident>(operand))error("Cannot Increment non-identifiers");
-        auto var = (Ident*)operand;
-        auto val = var->getLLValue(types);
-        auto typ = val->getType();
-        auto ptr = var->getPtr(types);
-        auto inc = bld.CreateAdd(val, cast(bld.getInt32(1), typ));
-        bld.CreateStore(inc, ptr);
-        return cast(inc, expected);
+      else if (typ->ptr())
+      {
+        auto val = operand->getLLValue(types);
+        auto loaded = bld.CreateLoad(val->getType()->getPointerElementType(), val);
+        return cast(loaded, expected);
       }
-      case PRE_decrement: {
-        if(!instanceof<Ident>(operand))error("Cannot Increment non-identifiers");
-        auto var = (Ident*)operand;
-        auto val = var->getLLValue(types);
-        auto typ = val->getType();
-        auto ptr = var->getPtr(types);
-        auto inc = bld.CreateSub(val, cast(bld.getInt32(1), typ));
-        bld.CreateStore(inc, ptr);
-        return cast(inc, expected);
-      }
-      case POST_increment:{
-        if(!instanceof<Ident>(operand))error("Cannot Increment non-identifiers");
-        auto var = (Ident*)operand;
-        auto val = var->getLLValue(types);
-        auto typ = val->getType();
-        auto ptr = var->getPtr(types);
-        auto inc = bld.CreateAdd(val, cast(bld.getInt32(1), typ));
-        bld.CreateStore(inc, ptr);
-        return cast(val, expected);
-      }
-      case POST_decrement:{
-        if(!instanceof<Ident>(operand))error("Cannot Increment non-identifiers");
-        auto var = (Ident*)operand;
-        auto val = var->getLLValue(types);
-        auto typ = val->getType();
-        auto ptr = var->getPtr(types);
-        auto inc = bld.CreateSub(val, cast(bld.getInt32(1), typ));
-        bld.CreateStore(inc, ptr);
-        return cast(val, expected);
-      }
+      else
+        error("Cannot dereference type: " + typ->str());
+    }
+    case PRE_increment:
+    {
+      if (! instanceof <Ident>(operand))
+        error("Cannot Increment non-identifiers");
+      auto var = (Ident *)operand;
+      auto val = var->getLLValue(types);
+      auto typ = val->getType();
+      auto ptr = var->getPtr(types);
+      auto inc = bld.CreateAdd(val, cast(bld.getInt32(1), typ));
+      bld.CreateStore(inc, ptr);
+      return cast(inc, expected);
+    }
+    case PRE_decrement:
+    {
+      if (! instanceof <Ident>(operand))
+        error("Cannot Increment non-identifiers");
+      auto var = (Ident *)operand;
+      auto val = var->getLLValue(types);
+      auto typ = val->getType();
+      auto ptr = var->getPtr(types);
+      auto inc = bld.CreateSub(val, cast(bld.getInt32(1), typ));
+      bld.CreateStore(inc, ptr);
+      return cast(inc, expected);
+    }
+    case POST_increment:
+    {
+      if (! instanceof <Ident>(operand))
+        error("Cannot Increment non-identifiers");
+      auto var = (Ident *)operand;
+      auto val = var->getLLValue(types);
+      auto typ = val->getType();
+      auto ptr = var->getPtr(types);
+      auto inc = bld.CreateAdd(val, cast(bld.getInt32(1), typ));
+      bld.CreateStore(inc, ptr);
+      return cast(val, expected);
+    }
+    case POST_decrement:
+    {
+      if (! instanceof <Ident>(operand))
+        error("Cannot Increment non-identifiers");
+      auto var = (Ident *)operand;
+      auto val = var->getLLValue(types);
+      auto typ = val->getType();
+      auto ptr = var->getPtr(types);
+      auto inc = bld.CreateSub(val, cast(bld.getInt32(1), typ));
+      bld.CreateStore(inc, ptr);
+      return cast(val, expected);
+    }
     }
     error("Failed to generate llvalue for unary operation: " + std::to_string(op));
   }
-
 };
 
 class BinaryOperation : public Expression
 {
-
 
 public:
   Expression *left;
@@ -500,26 +556,22 @@ public:
     auto rt = right->getType();
     auto lt = left->getType();
 
-
     auto common_t = getCommonType(lt, rt);
     auto common = common_t->getLLType();
 
     if (op == BIN_assignment)
     {
-      auto r = right->getLLValue(types);
-      if (instanceof<Ident>(left))
+      if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
-        Logger::debug("Direct Assignment");
-        r->print(llvm::outs());
-        r->getType()->print(llvm::outs());
-        if(r->getType()->isPointerTy()){
+        auto r = right->getLLValue(types, typ);
+        if (r->getType()->isPointerTy())
+        {
           auto elType = r->getType()->getPointerElementType();
-          if(elType->isArrayTy()){
-            Logger::debug("Assigning array literal");
-            
+          if (elType->isArrayTy())
+          {
             // Allocating array to variable, memcpy
             auto size = elType->getArrayNumElements() * (elType->getArrayElementType()->getPrimitiveSizeInBits() / 8);
 
@@ -527,16 +579,25 @@ public:
             // auto rightAlign = ((llvm::Constant*)casted)->getAlign();
             bld.CreateMemCpy(ptr, leftAlign, r, leftAlign, size);
           }
-
+          else
+            bld.CreateStore(cast(r, typ), ptr);
         }
-        else bld.CreateStore(cast(r, typ), ptr);
+        else{
+          bld.CreateStore(cast(r, typ), ptr);
+        }
+        return cast(r, expected);
       }
-      if (instanceof<Subscript>(left))
+      else if (instanceof <Subscript>(left))
       {
+        auto r = right->getLLValue(types);
         auto sub = (Subscript *)left;
         sub->setAs(r, types);
+        return cast(r, expected);
       }
-      return cast(r, expected);
+      else
+      {
+        error("Failed to generate Assignment");
+      }
     }
     auto l = left->getLLValue(types, common);
     auto r = right->getLLValue(types, common);
@@ -550,32 +611,52 @@ public:
 private:
   llvm::Value *getOp(llvm::Value *l, llvm::Value *r)
   {
-    #define b return bld
+#define b return bld
     switch (op)
     {
-    case BIN_assignment:error("Assignment Operators are not supported by this function");
-    case BIN_dot:error("Dot Operators are not supported by this function");
-    case BIN_plus:b.CreateAdd(l, r);
-    case BIN_minus:b.CreateSub(l, r);
-    case BIN_star:b.CreateMul(l, r);
-    case BIN_slash:b.CreateSDiv(l, r);
-    case BIN_percent:b.CreateSRem(l, r);
+    case BIN_assignment:
+      error("Assignment Operators are not supported by this function");
+    case BIN_dot:
+      error("Dot Operators are not supported by this function");
+    case BIN_plus:
+      b.CreateAdd(l, r);
+    case BIN_minus:
+      b.CreateSub(l, r);
+    case BIN_star:
+      b.CreateMul(l, r);
+    case BIN_slash:
+      b.CreateSDiv(l, r);
+    case BIN_percent:
+      b.CreateSRem(l, r);
 
-    case BIN_lesser:b.CreateICmpSLT(l, r);
-    case BIN_greater:b.CreateICmpSGT(l, r);
-    case BIN_lesser_eq:b.CreateICmpSLE(l, r);
-    case BIN_greater_eq:b.CreateICmpSGE(l, r);
-    case BIN_not_equals:b.CreateICmpNE(l, r);
-    case BIN_equals:b.CreateICmpEQ(l, r);
+    case BIN_lesser:
+      b.CreateICmpSLT(l, r);
+    case BIN_greater:
+      b.CreateICmpSGT(l, r);
+    case BIN_lesser_eq:
+      b.CreateICmpSLE(l, r);
+    case BIN_greater_eq:
+      b.CreateICmpSGE(l, r);
+    case BIN_not_equals:
+      b.CreateICmpNE(l, r);
+    case BIN_equals:
+      b.CreateICmpEQ(l, r);
 
-    case BIN_bitiwse_or:b.CreateOr(l, r);
-    case BIN_bitwise_and:b.CreateAnd(l, r);
-    case BIN_bitwise_shl:b.CreateShl(l, r);
-    case BIN_bitwise_shr:b.CreateAShr(l, r);
-    case BIN_bitwise_xor:b.CreateXor(l, r);
+    case BIN_bitiwse_or:
+      b.CreateOr(l, r);
+    case BIN_bitwise_and:
+      b.CreateAnd(l, r);
+    case BIN_bitwise_shl:
+      b.CreateShl(l, r);
+    case BIN_bitwise_shr:
+      b.CreateAShr(l, r);
+    case BIN_bitwise_xor:
+      b.CreateXor(l, r);
 
-    case BIN_bool_and:b.CreateLogicalAnd(l, r);
-    case BIN_bool_or:b.CreateLogicalOr(l, r);
+    case BIN_bool_and:
+      b.CreateLogicalAnd(l, r);
+    case BIN_bool_or:
+      b.CreateLogicalOr(l, r);
     }
   }
 };
@@ -585,8 +666,8 @@ class InitializeVar : public Statement
 public:
   Type *type;
   Identifier *varname;
-  Expression* initializer = nullptr;
-  InitializeVar(Type *t, Identifier *name, Expression* initializer=nullptr)
+  Expression *initializer = nullptr;
+  InitializeVar(Type *t, Identifier *name, Expression *initializer = nullptr)
   {
     type = t;
     this->initializer = initializer;
@@ -595,11 +676,13 @@ public:
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this, varname};
-    if(initializer)for (auto i : initializer->flatten())
-      ret.push_back(i);
+    if (initializer)
+      for (auto i : initializer->flatten())
+        ret.push_back(i);
     return ret;
   }
-  std::string str(){
+  std::string str()
+  {
     return "let " + varname->str() + " : " + type->str();
   }
 };

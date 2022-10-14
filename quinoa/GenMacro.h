@@ -78,7 +78,7 @@
 	new TokenDefinition(TT_decrement, "__decrement", {"--"}, "", false, false, 0, true, true),\
 	new TokenDefinition(TT_bang, "__bang", {"!"}, "", false, false, 0, false, true),\
 	new TokenDefinition(TT_amperand, "__amperand", {"&"}, "", false, false, 0, false, true),\
-	new TokenDefinition(TT_star, "__star", {"*"}, "", false, false, 5, false, false),\
+	new TokenDefinition(TT_star, "__star", {"*"}, "", false, false, 5, false, true),\
 	new TokenDefinition(TT_plus, "__plus", {"+"}, "", false, false, 6, false, false),\
 	new TokenDefinition(TT_minus, "__minus", {"-"}, "", false, false, 6, false, true),\
 	new TokenDefinition(TT_bool_or, "__bool_or", {"||"}, "", false, false, 15, false, false),\
@@ -270,6 +270,7 @@
 	POST_decrement, \
 	PRE_bang, \
 	PRE_amperand, \
+	PRE_star, \
 	PRE_minus, \
 	
 
@@ -279,6 +280,7 @@
 	{ TT_decrement, PRE_decrement}, \
 	{ TT_bang, PRE_bang}, \
 	{ TT_amperand, PRE_amperand}, \
+	{ TT_star, PRE_star}, \
 	{ TT_minus, PRE_minus}, \
 	
 

@@ -27,22 +27,14 @@ llvm::Value *cast(llvm::Value *val, llvm::Type *type)
     if(tape->isPointerTy() && type->isIntegerTy())
         return builder()->CreatePtrToInt(val, type);
 
-    // if(tape->isArrayTy() && type->isPointerTy()){
-    //   auto alloc = builder()->CreateAlloca(tape);
-    //   builder()->CreateStore(val, alloc);
-    //   return builder()->CreateBitCast(alloc, type);
-    // }
-    if(tape->isArrayTy() && type->isArrayTy()){
+    if(tape->isPointerTy() && type->isPointerTy()){
       return builder()->CreateBitCast(val, type);
-      auto myElType = tape->getArrayElementType();
-      auto tgtElType = type->getArrayElementType();
     }
-    if(tape->isArrayTy() && type->isIntegerTy()){
-      Logger::debug("cast array element to int");
-      int i = 0;
-      auto extr = builder()->CreateExtractElement(val, i);
-      return extr;
-    }
+    // if(tape->isArrayTy() && type->isArrayTy()){
+    //   return builder()->CreateBitCast(val, type);
+    //   auto myElType = tape->getArrayElementType();
+    //   auto tgtElType = type->getArrayElementType();
+    // }
     
     Logger::debug("val type: ");
     tape->print(llvm::outs());
