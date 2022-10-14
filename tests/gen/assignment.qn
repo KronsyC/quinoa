@@ -1,0 +1,13 @@
+
+import @lang.assertions as __ASSERT__; 
+
+module Test is Entry{
+
+    func main(argc:int, argv:c_str*){
+	let a = 1;
+	__ASSERT__::equals(a, 1);
+	let b = a;
+	__ASSERT__::equals(a, b);
+        return 0;
+    }
+}

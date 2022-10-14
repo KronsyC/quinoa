@@ -1,0 +1,7 @@
+let a = 1;
+
+[= expects a equals 1 =]
+
+let b = a;
+
+[= expects a equals b =]
