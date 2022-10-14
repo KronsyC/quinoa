@@ -13,6 +13,7 @@
 #include "./passes/self_ref_resolver.hh"
 #include "./passes/call_qualifier.hh"
 #include "./passes/type_resolver.hh"
+#include "./passes/array_validator.hh"
 #include "./passes/separate_initialzers.hh"
 #include "./passes/primitive_function_injector.hh"
 using namespace std;
@@ -27,7 +28,7 @@ using namespace std;
 void genEntryPoint(CompilationUnit &unit) {
   vector<Module *> entryPointCandidates;
   for (auto member : unit) {
-    if (instanceof <Module>(member)) {
+    if (instanceof<Module>(member)) {
       auto mod = (Module *)member;
       if (mod->is("Entry"))
         entryPointCandidates.push_back(mod);
@@ -101,8 +102,9 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
       Logger::clearQueue();
       Logger::enqueueMode(false);
     }
+    validateLiteralArrays(unit);
     split_initializers(unit);
-    // hoistVarInitializations(unit);
+    hoistVarInitializations(unit);
     injectPrimitiveFunctions(unit);
     genEntryPoint(unit);
     

@@ -10,7 +10,7 @@ std::pair<bool, int> qualifyCalls(SourceBlock &code,
   int resolvedCount = 0;
   bool success = true;
   for (auto item : flat) {
-    if (instanceof <MethodCall>(item)) {
+    if (instanceof<MethodCall>(item)) {
       auto call = (MethodCall *)item;
       // Don't do redundant qualification
       if(call->target )continue;

@@ -196,7 +196,7 @@ private:
       auto taram = target.getParam(i)->type;
       if (baram == taram)
         continue;
-      if (instanceof <Primitive>(baram) && instanceof <Primitive>(taram))
+      if (instanceof<Primitive>(baram) && instanceof<Primitive>(taram))
       {
         // same group, different type is +10, otherwise no match
 
@@ -264,9 +264,9 @@ public:
     auto elementType = tgt->getType();
     if (elementType == nullptr)
       error("No Element Type");
-    if (!(instanceof <TPtr>(elementType) || instanceof <ListType>(elementType)))
+    if (!(instanceof<TPtr>(elementType) || instanceof<ListType>(elementType)))
       error("List has member type which is a non-pointer", true);
-    if (instanceof <TPtr>(elementType))
+    if (instanceof<TPtr>(elementType))
       return ((TPtr *)elementType)->to;
     else
       return ((ListType *)elementType)->elements;
@@ -341,7 +341,7 @@ public:
     auto type_table = *ctx->local_types;
     auto type = type_table[of->str()];
     if (
-        type == nullptr || ! instanceof <ListType>(type))
+        type == nullptr || ! instanceof<ListType>(type))
       error("Failed to get list size");
 
     auto list = (ListType *)type;
@@ -507,23 +507,31 @@ public:
     if (op == BIN_assignment)
     {
       auto r = right->getLLValue(types);
-      if (instanceof <Ident>(left))
+      if (instanceof<Ident>(left))
       {
         auto id = (Ident *)left;
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
-        auto casted = cast(r, typ);
-        if(r->getType()->isArrayTy()){
-          // Allocating array to variable, memcpy
-          auto newVal = bld.CreateAlloca(typ);
-          bld.CreateStore(casted, newVal);
-          Logger::debug("Assigning array literal");
-          ptr->print(llvm::outs());
-          newVal->print(llvm::outs());
+        Logger::debug("Direct Assignment");
+        r->print(llvm::outs());
+        r->getType()->print(llvm::outs());
+        if(r->getType()->isPointerTy()){
+          auto elType = r->getType()->getPointerElementType();
+          if(elType->isArrayTy()){
+            Logger::debug("Assigning array literal");
+            
+            // Allocating array to variable, memcpy
+            auto size = elType->getArrayNumElements() * (elType->getArrayElementType()->getPrimitiveSizeInBits() / 8);
+
+            auto leftAlign = ptr->getAlign();
+            // auto rightAlign = ((llvm::Constant*)casted)->getAlign();
+            bld.CreateMemCpy(ptr, leftAlign, r, leftAlign, size);
+          }
+
         }
-        else bld.CreateStore(casted, ptr);
+        else bld.CreateStore(cast(r, typ), ptr);
       }
-      if (instanceof <Subscript>(left))
+      if (instanceof<Subscript>(left))
       {
         auto sub = (Subscript *)left;
         sub->setAs(r, types);

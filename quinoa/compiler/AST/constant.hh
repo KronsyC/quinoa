@@ -138,6 +138,7 @@ private:
 
         return getCommonType(left_t, right_t);
     }
+    Type* elementType;
 
 public:
     List() = default;
@@ -149,8 +150,14 @@ public:
                 ret.push_back(m);
         return ret;
     }
+    void setElementsType(Type* type){
+        this->elementType = type;
+    }
     Type *getElementsType()
     {
+        // if there is a set type, use that
+        if(elementType)return elementType;
+        // otherwise, infer the type from the members
         return getTypeOf(*this);
     }
     Type *getType()
@@ -181,14 +188,32 @@ public:
             members.push_back(val);
         }
         llvm::Value *list;
+        auto arrType = llvm::ArrayType::get(getElementsType()->getLLType(), members.size());
         if (isStatic())
         {
             Logger::debug("Static List");
-            auto constType = llvm::ArrayType::get(getElementsType()->getLLType(), members.size());
-            auto const_members = *(std::vector<llvm::Constant*>*)(&members);
-            list = llvm::ConstantArray::get(constType, const_members);
+            auto mod = builder()->GetInsertBlock()->getModule();
+            auto initialValues = *(std::vector<llvm::Constant*>*)&members;
+            auto initializer = llvm::ConstantArray::get(arrType, initialValues);
+            auto arr = new llvm::GlobalVariable(*mod, arrType, true, llvm::GlobalValue::InternalLinkage, initializer);
+            return arr;
+            // list = llvm::ConstantArray::get(constType, const_members);
         }
-        else error("nonstatic arrays are currently not supported");
+        else{
+            // attempt to emulate a global value's access pattern to
+            // simplify code
+            auto alloc = builder()->CreateAlloca(arrType);
+
+            // Write each member of the alloc
+            int i = 0;
+            for(auto item:*this){
+                auto val = cast(item->getLLValue(vars), getElementsType()->getLLType());
+                auto gep = builder()->CreateConstInBoundsGEP2_64(arrType, alloc, 0, i);
+                builder()->CreateStore(val, gep);
+                i++;
+            }
+            return alloc;
+        }
         return list;
     }
 };

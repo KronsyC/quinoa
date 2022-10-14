@@ -3,6 +3,8 @@ import @io;
 module Test is Entry{
 
     func main(argc: int, argv:c_str*)->int{
-        return 0;
+        let age = 16;
+        let numbers:int[3] = [1, 2, argc];
+        return numbers[2];
     }
 }

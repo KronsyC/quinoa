@@ -51,7 +51,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
     auto content = method->flatten();
 
     for (auto member : content) {
-      if (instanceof <CompoundIdentifier>(member)) {
+      if (instanceof<CompoundIdentifier>(member)) {
         auto ident = (CompoundIdentifier*)member;
         auto ns = ident->all_but_last();
         if(ns->equals(alias)){

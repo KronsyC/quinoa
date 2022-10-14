@@ -70,7 +70,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
     {
         if (!stm->active)
             continue;
-        if (instanceof <InitializeVar>(stm))
+        if (instanceof<InitializeVar>(stm))
         {
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
@@ -98,7 +98,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             
             vars[varname] = alloca;
         }
-        else if (instanceof <WhileCond>(stm))
+        else if (instanceof<WhileCond>(stm))
         {
             auto loop = (WhileCond *)stm;
 
@@ -183,14 +183,14 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
         }
-        else if (instanceof <Return>(stm))
+        else if (instanceof<Return>(stm))
         {
             auto ret = (Return *)stm;
             auto expr = ret->retValue->getLLValue(vars, func->getReturnType());
             builder()->CreateRet(cast(expr, func->getReturnType()));
         }
         // interpret as expression with dumped value
-        else if (instanceof <Expression>(stm))
+        else if (instanceof<Expression>(stm))
         {
             ((Expression *)stm)->getLLValue(vars);
         }
@@ -280,7 +280,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
     }
     for (auto child : mod)
     {
-        if (instanceof <Method>(child))
+        if (instanceof<Method>(child))
         {
             auto method = (Method *)child;
             auto fname = method->sig->sourcename();
@@ -310,14 +310,14 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
     // Generate all of the modules, and link them into the root module "Quinoa Program"
     for (auto unit : ast)
     {
-        if (instanceof <Module>(unit))
+        if (instanceof<Module>(unit))
         {
             auto mod = (Module *)unit;
             auto llmodptr = generateModule(*mod, defs);
 
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
-        else if (instanceof <Entrypoint>(unit))
+        else if (instanceof<Entrypoint>(unit))
         {
             Logger::debug("gen entrypoint");
             auto entry = (Entrypoint *)unit;
@@ -344,7 +344,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             builder()->CreateRet(retVal);
 
         }
-        else if (instanceof <MethodPredeclaration>(unit))
+        else if (instanceof<MethodPredeclaration>(unit))
         {
             auto dec = (MethodPredeclaration *)unit;
             defs.push_back(*dec->sig);

@@ -7,7 +7,7 @@ void resolveBlockSelfRefs(SourceBlock *content, CompoundIdentifier* space) {
   auto flat = content->flatten();
 
   for (auto m : flat) {
-    if (instanceof <MethodCall>(m)) {
+    if (instanceof<MethodCall>(m)) {
       auto call = (MethodCall *)m;
       auto ctx = call->ctx;
 

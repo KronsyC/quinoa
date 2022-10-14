@@ -11,7 +11,7 @@ void split_initializers(CompilationUnit &unit)
         auto flat = method->flatten();
         for (auto stm : flat)
         {
-            if (instanceof <InitializeVar>(stm))
+            if (instanceof<InitializeVar>(stm))
             {
                 auto init = (InitializeVar *)stm;
 

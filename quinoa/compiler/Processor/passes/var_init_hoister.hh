@@ -11,7 +11,7 @@ void mangleVarNames(SourceBlock &code)
 	std::vector<InitializeVar*> traversedInits; 
 	for (auto member : code)
 	{
-		if (instanceof <InitializeVar>(member))
+		if (instanceof<InitializeVar>(member))
 		{
 			auto var = (InitializeVar *)member;
 			if(!var->active)continue;
@@ -39,7 +39,7 @@ void hoistVarInitializations(CompilationUnit &unit)
 		for (int i = 0; i < flat.size(); i++)
 		{
 			auto item = flat[i];
-			if (instanceof <InitializeVar>(item))
+			if (instanceof<InitializeVar>(item))
 			{
 				auto v = (InitializeVar *)item;
 				auto copy = new InitializeVar(*v);
