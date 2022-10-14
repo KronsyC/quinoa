@@ -16,7 +16,7 @@ TESTS = {}
 ASSERT = "__ASSERT__"
 
 BOILERPLATE_BEFORE = f"""
-import @lang.assertions as {ASSERT}; 
+import @lang::assertions as {ASSERT}; 
 
 module Test is Entry{{
 
