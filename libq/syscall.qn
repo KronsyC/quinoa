@@ -7,11 +7,17 @@ module Syscall is Exported, CompilerImplemented{
 	func write(fd:i64, ptr:char*, len:i64)->i64{
 		return call(1, fd, ptr, len);
 	}
-	func open(filename:char*, flags:int, mode:int)->i64{
+	func open(filename:c_str, flags:int, mode:int)->i64{
 		return call(2, filename, flags, mode);
 	}
 	func close(fd:i64)->i64{
 		return call(3, fd);
+	}
+	func lseek(fd:i64, offset:i64, whence:i64)->i64{
+		return call(8, fd, offset, whence);
+	}
+	func mmap(addr:i64, len:i64, prot:i64, flags:i64, fd:i64, off:i64)->i64{
+		return call(9, addr, len, prot, flags, fd, off);
 	}
 	func exit(status:i64)->i64{
 		return call(60, status);

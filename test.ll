@@ -7,11 +7,11 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
-  %0 = call i64 @"[YKH0hYd3ld].syscall.fn_exit(PR_int64)"(i64 21)
+  %0 = call i64 @"[cQB4Jz22Gi].syscall.fn_exit(PR_int64)"(i64 21)
   ret i32 0
 }
 
-define i64 @"[YKH0hYd3ld].syscall.fn_exit(PR_int64)"(i64 %status) {
+define i64 @"[cQB4Jz22Gi].syscall.fn_exit(PR_int64)"(i64 %status) {
 entry_block:
   %"param status" = alloca i64, align 8
   store i64 %status, i64* %"param status", align 4
@@ -22,7 +22,46 @@ entry_block:
 
 declare i64 @syscall(i64, ...)
 
-define i64 @"[YKH0hYd3ld].syscall.fn_close(PR_int64)"(i64 %fd) {
+define i64 @"[cQB4Jz22Gi].syscall.fn_mmap(PR_int64,PR_int64,PR_int64,PR_int64,PR_int64,PR_int64)"(i64 %addr, i64 %len, i64 %prot, i64 %flags, i64 %fd, i64 %off) {
+entry_block:
+  %"param addr" = alloca i64, align 8
+  store i64 %addr, i64* %"param addr", align 4
+  %"param len" = alloca i64, align 8
+  store i64 %len, i64* %"param len", align 4
+  %"param prot" = alloca i64, align 8
+  store i64 %prot, i64* %"param prot", align 4
+  %"param flags" = alloca i64, align 8
+  store i64 %flags, i64* %"param flags", align 4
+  %"param fd" = alloca i64, align 8
+  store i64 %fd, i64* %"param fd", align 4
+  %"param off" = alloca i64, align 8
+  store i64 %off, i64* %"param off", align 4
+  %0 = load i64, i64* %"param addr", align 4
+  %1 = load i64, i64* %"param len", align 4
+  %2 = load i64, i64* %"param prot", align 4
+  %3 = load i64, i64* %"param flags", align 4
+  %4 = load i64, i64* %"param fd", align 4
+  %5 = load i64, i64* %"param off", align 4
+  %6 = call i64 (i64, ...) @syscall(i64 9, i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5)
+  ret i64 %6
+}
+
+define i64 @"[cQB4Jz22Gi].syscall.fn_lseek(PR_int64,PR_int64,PR_int64)"(i64 %fd, i64 %offset, i64 %whence) {
+entry_block:
+  %"param fd" = alloca i64, align 8
+  store i64 %fd, i64* %"param fd", align 4
+  %"param offset" = alloca i64, align 8
+  store i64 %offset, i64* %"param offset", align 4
+  %"param whence" = alloca i64, align 8
+  store i64 %whence, i64* %"param whence", align 4
+  %0 = load i64, i64* %"param fd", align 4
+  %1 = load i64, i64* %"param offset", align 4
+  %2 = load i64, i64* %"param whence", align 4
+  %3 = call i64 (i64, ...) @syscall(i64 8, i64 %0, i64 %1, i64 %2)
+  ret i64 %3
+}
+
+define i64 @"[cQB4Jz22Gi].syscall.fn_close(PR_int64)"(i64 %fd) {
 entry_block:
   %"param fd" = alloca i64, align 8
   store i64 %fd, i64* %"param fd", align 4
@@ -31,7 +70,7 @@ entry_block:
   ret i64 %1
 }
 
-define i64 @"[YKH0hYd3ld].syscall.fn_open(PR_int8*,PR_int32,PR_int32)"(i8* %filename, i32 %flags, i32 %mode) {
+define i64 @"[cQB4Jz22Gi].syscall.fn_open(PR_int8*,PR_int32,PR_int32)"(i8* %filename, i32 %flags, i32 %mode) {
 entry_block:
   %"param filename" = alloca i8*, align 8
   store i8* %filename, i8** %"param filename", align 8
@@ -49,7 +88,7 @@ entry_block:
   ret i64 %6
 }
 
-define i64 @"[YKH0hYd3ld].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
+define i64 @"[cQB4Jz22Gi].syscall.fn_write(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
 entry_block:
   %"param fd" = alloca i64, align 8
   store i64 %fd, i64* %"param fd", align 4
@@ -65,7 +104,7 @@ entry_block:
   ret i64 %4
 }
 
-define i64 @"[YKH0hYd3ld].syscall.fn_read(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
+define i64 @"[cQB4Jz22Gi].syscall.fn_read(PR_int64,PR_int8*,PR_int64)"(i64 %fd, i8* %ptr, i64 %len) {
 entry_block:
   %"param fd" = alloca i64, align 8
   store i64 %fd, i64* %"param fd", align 4
