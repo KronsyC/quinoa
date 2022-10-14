@@ -1,7 +1,12 @@
 # Quinoa
 
-### The Purely Compositional Language
+## The Purely Compositional Language
 
+---
+
+## Disclaimer:
+
+### This project only works on x86-64 linux based systems
 ---
 
 ## Dependencies
