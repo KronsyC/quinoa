@@ -12,10 +12,9 @@ class MethodCall : public Expression
 {
 public:
   MethodSignature *target = nullptr;
-  bool nomangle = false;
   CompoundIdentifier *name;
-  std::vector<Expression *> params;
-
+  Block<Expression> params;
+  Block<Type> generic_params;
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this, name};
@@ -26,16 +25,40 @@ public:
   }
   Type *getType()
   {
+    if(builtin()){
+      auto name = this->name->str();
+      if(name == "cast")return generic_params[0];
+      if(name == "len")return Primitive::get(PR_int64);
+      Logger::error("Failed to get return type for builtin " + name);
+      return nullptr;
+    }
     if (target == nullptr || target->returnType == nullptr)
     {
-      // error("Cannot get the return type of an unresolved call", true);
+      Logger::error("Cannot get the return type of an unresolved call");
       return nullptr;
     }
     return target->returnType;
   }
-
+  bool builtin(){
+    auto name = this->name->str();
+    for(auto d:defs){
+      if(d->builtin == name)return true;
+      
+    }
+    return false;
+  }
   llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
   {
+    if(builtin()){
+      auto name = this->name->str();
+      if(name == "cast"){
+        if(params.size() != 1)error("cast<T>() takes one parameter");
+        auto type = generic_params[0]->getLLType();
+        auto val = params[0]->getLLValue(vars, type);
+        return val;
+      }
+      error("Failed to generate builtin " + name, true);
+    }
     if (target == nullptr)
       error("Call to " + name->str() + " is unresolved");
     auto mod = bld.GetInsertBlock()->getParent()->getParent();
@@ -73,21 +96,7 @@ public:
     Logger::debug("Qualifying call to " + name->str());
     if (ctx == nullptr)
       error("Cannot Resolve a contextless call");
-    if (nomangle)
-    {
-      for (auto pair : sigs)
-      {
-        auto signame = pair.first;
-        auto sig = pair.second;
-        if (signame == name->str() && sig->nomangle)
-        {
-          target = sig;
-          return;
-        }
-      }
-      error("Failed to find appropriate function call for internal method");
-    }
-
+    if(builtin())return;
     std::vector<Param *> testparams;
     int i = 0;
     for (auto p : params)
@@ -108,7 +117,6 @@ public:
     callsig->name = name->last();
     callsig->params = testparams;
     callsig->space = name->all_but_last();
-    callsig->nomangle = nomangle;
 
     auto sigstr = callsig->sigstr();
 
@@ -240,11 +248,9 @@ private:
         std::vector<Type*> sharedTypeParams;
         int i = 0;
         for(auto p:base.params){
-          if(auto ct = p->type->custom()){
-            auto tgt = ct->refersTo;
-            if(tgt->generic()){
-              sharedTypeParams.push_back(target.params[i]->type);
-            }
+          auto dr = p->type->drill();
+          if(dr->generic()){
+            sharedTypeParams.push_back(target.params[i]->type);
           }
           i++;
         }
@@ -252,11 +258,6 @@ private:
         Logger::debug("Implicit generic type: " + genericType->str());
         base.generics[0]->resolveTo = genericType;
 
-        auto p1t = base.params[0]->type;
-        if(p1t != base.generics[0]){
-          Logger::debug(p1t->str() + " - " + base.generics[0]->str());
-          Logger::debug("generic instances dont match, should");
-        }
       }
     }
 
@@ -387,39 +388,6 @@ public:
   }
 };
 
-class ArrayLength : public Expression
-{
-
-public:
-  Identifier *of;
-  ArrayLength(Identifier *of)
-  {
-    this->of = of;
-  }
-  std::vector<Statement *> flatten()
-  {
-    return {this, of};
-  }
-  Type *getType()
-  {
-    return Primitive::get(PR_int64);
-  }
-  llvm::Value *getLLValue(TVars vars, llvm::Type *target = nullptr)
-  {
-    auto type_table = *ctx->local_types;
-    auto type = type_table[of->str()];
-    if (
-        type == nullptr || ! instanceof <ListType>(type))
-      error("Failed to get list size");
-
-    auto list = (ListType *)type;
-    auto size = list->size;
-    if (size == nullptr)
-      error("Cannot get len() of list with unknown size");
-    return size->getLLValue(vars, target);
-  }
-};
-
 enum UnaryOp
 {
   UNARY_ENUM_MEMBERS
@@ -456,7 +424,7 @@ public:
     auto i64 = Primitive::get(PR_int64);
     auto boo = Primitive::get(PR_boolean);
     auto same = operand->getType();
-    auto sameptr = TPtr::get(same);
+    auto sameptr = new TPtr(same);
     Type *pointed = nullptr;
     if (auto pt = same->ptr())
       pointed = pt->to;

@@ -18,9 +18,9 @@ Type *getCommonType(Type *t1, Type *t2)
     auto t1l = t1->list()->elements;
     auto t2l = t2->list()->elements;
     auto mut = getCommonType(t1l, t2l);
-    return ListType::get(mut);
+    return new ListType(mut);
   }
-  error("Failed To Get Common Type Between " + t1->str() + " and " + t2->str());
+  error("Failed To Get Common Type Between " + t1->str() + " and " + t2->str(), true);
   return nullptr;
 }
 Type *getCommonType(std::vector<Type *> items)

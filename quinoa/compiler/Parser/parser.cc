@@ -68,29 +68,29 @@ Type *parseType(vector<Token> &toks, SourceBlock *ctx)
     if (toks[0].is(TT_string))
     {
         popf(toks);
-        ret = TPtr::get(Primitive::get(PR_int8));
+        ret = new TPtr(Primitive::get(PR_int8));
     }
     else if (toks[0].isTypeTok())
         ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else
     {
         auto references = parseIdentifier(toks, ctx);
-        ret = CustomType::get(references);
+        ret = new CustomType(references);
     }
 
     while (toks.size() && toks[0].is(TT_star))
     {
         popf(toks);
-        ret = TPtr::get(ret);
+        ret = new TPtr(ret);
     }
     if (toks.size() && toks[0].is(TT_l_square_bracket))
     {
         // Type Array
         auto size = readBlock(toks, IND_square_brackets);
         if (size.size() == 0)
-            ret = ListType::get(ret, nullptr);
+            ret = new ListType(ret, nullptr);
         else
-            ret = ListType::get(ret, parseExpression(size, ctx));
+            ret = new ListType(ret, parseExpression(size, ctx));
     }
     return ret;
 }
@@ -164,36 +164,35 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
     if (c.is(TT_identifier))
     {
         auto initial = toks;
-        auto target = parseIdentifier(toks, ctx);
+        CompoundIdentifier* target = parseIdentifier(toks, ctx);
         target->ctx = ctx;
-        if (toks[0].is(TT_l_paren))
+        if (toks[0].is(TT_l_paren) || toks[0].is(TT_lesser))
         {
-            auto params = readBlock(toks, IND_parens);
-            if (toks.size() == 0)
-            {
-                int i = 1;
-                auto paramsList = parseCommaSeparatedValues(params);
-                vector<Expression *> params;
-                for (auto p : paramsList)
-                {
-                    auto expr = parseExpression(p, ctx);
-                    expr->ctx = ctx;
-                    params.push_back(expr);
+            Block<Type> generic_args;
+            if(toks[0].is(TT_lesser)){
+                auto bl = readBlock(toks, IND_angles);
+                auto args = parseCommaSeparatedValues(bl);
+                for(auto arg:args){
+                    auto type = parseType(arg, ctx);
+                    generic_args.push_back(type);
                 }
-                if (target->str() == "len" && params.size() == 1 && instanceof <Identifier>(params[0]))
-                {
-                    auto l = new ArrayLength((Identifier *)params[0]);
-                    l->ctx = ctx;
-                    return l;
-                }
-                auto call = new MethodCall;
-                call->params = params;
-                call->target = nullptr;
-                call->ctx = ctx;
-                call->name = target;
-
-                return call;
             }
+            
+            Block<Expression> params;
+            auto paramsBlock = readBlock(toks, IND_parens);
+            auto paramsList = parseCommaSeparatedValues(paramsBlock);
+            for(auto p:paramsList){
+                auto par = parseExpression(p, ctx);
+                par->ctx = ctx;
+                params.push_back(par);
+            }
+            auto call = new MethodCall;
+            call->params = params;
+            call->generic_params = generic_args;
+            call->target = nullptr;
+            call->ctx = ctx;
+            call->name = target;
+            return call;
         }
         else if (toks[0].is(TT_l_square_bracket))
         {
@@ -555,9 +554,9 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             {
                 auto param = parseParameter(a);
                 // try to resolve parameters to generic types if at all possible
-                if (auto tp = param->type->custom())
-                {
-                    for (auto g : generic_args)
+                auto bottom = param->type->drill();
+                if(auto tp = bottom->custom()){
+                for (auto g : generic_args)
                     {
                         if (g->name->str() == tp->name->str())
                         {
@@ -565,6 +564,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
                         }
                     }
                 }
+
                 argTypes[param->name->str()] = param->type;
                 params.push_back(param);
             }

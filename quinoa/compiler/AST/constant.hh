@@ -89,7 +89,7 @@ class String : public ConstantValue<std::string>
 
     Type *getType()
     {
-        return TPtr::get(Primitive::get(PR_int8));
+        return new TPtr(Primitive::get(PR_int8));
     }
     llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
     {
@@ -147,7 +147,7 @@ public:
         // get the common type for each pair of elements
         // and propogate upwards to one common type
         // put this within a list and return it
-        return ListType::get(getElementsType());
+        return new ListType(getElementsType());
     }
     bool isStatic()
     {

@@ -14,6 +14,7 @@ std::pair<bool, int> qualifyCalls(SourceBlock &code,
       auto call = (MethodCall *)item;
       // Don't do redundant qualification
       if(call->target )continue;
+      if(call->builtin())continue;
 
       call->qualify(sigs, *code.local_types);
       if(call->target )resolvedCount++;

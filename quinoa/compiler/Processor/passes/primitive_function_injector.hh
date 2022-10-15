@@ -19,7 +19,7 @@ void implIntrinsics(CompilationUnit &unit)
         std::vector<Param *> params;
         auto i64 = Primitive::get(PR_int64);
         params.push_back(new Param(i64, Ident::get("callno")));
-        auto varargs = new Param(ListType::get(i64), Ident::get("params"));
+        auto varargs = new Param(new ListType(i64), Ident::get("params"));
         varargs->isVariadic = true;
         params.push_back(varargs);
         sig->name = Ident::get("syscall");

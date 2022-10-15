@@ -1,61 +1,80 @@
 #pragma once
 #include "./ast.hh"
 #include "../../GenMacro.h"
-#include<map>
+#include <map>
 #include "../token/TokenDef.h"
-enum PrimitiveType{
+enum PrimitiveType
+{
     PRIMITIVES_ENUM_MEMBERS
 };
 
 static std::map<TokenType, PrimitiveType> primitive_mappings{
-  PRIMITIVES_ENUM_MAPPINGS  
-};
+    PRIMITIVES_ENUM_MAPPINGS};
 static std::map<PrimitiveType, std::string> primitive_names{
-    PRIMITIVES_ENUM_NAMES
-};
-class Primitive:public Type{
+    PRIMITIVES_ENUM_NAMES};
+class Primitive : public Type
+{
 private:
-    Primitive(PrimitiveType t){
+    Primitive(PrimitiveType t)
+    {
         type = t;
     }
+
 public:
     PrimitiveType type;
-    Primitive* primitive(){
+    Primitive *primitive()
+    {
         return this;
     }
-    std::string str(){
+    std::string str()
+    {
         return primitive_names[type];
     }
-    static Primitive* get(PrimitiveType t){
-        static std::map<PrimitiveType, Primitive*> cache;
+    Type *drill() { return this; }
+    Type* copy(){
+        return this;
+    }
+    static Primitive *get(PrimitiveType t)
+    {
+        static std::map<PrimitiveType, Primitive *> cache;
         auto fetched = cache[t];
-        if(fetched == nullptr){
+        if (fetched == nullptr)
+        {
             auto prim = new Primitive(t);
             cache[t] = prim;
             return prim;
         }
         return fetched;
     }
-    bool is(PrimitiveType t){
+    bool is(PrimitiveType t)
+    {
         return this->type == t;
     }
-    Primitive* getMutual(Primitive* w, bool secondPass=false){
-        if(this==w)return this;
-        if(is(PR_int8) && w->is(PR_int16))return w;
+    Primitive *getMutual(Primitive *w, bool secondPass = false)
+    {
+        if (this == w)
+            return this;
+        if (is(PR_int8) && w->is(PR_int16))
+            return w;
 
-        if(is(PR_int8) && w->is(PR_int32))return w;
-        if(is(PR_int16) && w->is(PR_int32))return w;
+        if (is(PR_int8) && w->is(PR_int32))
+            return w;
+        if (is(PR_int16) && w->is(PR_int32))
+            return w;
 
+        if (is(PR_int8) && w->is(PR_int64))
+            return w;
+        if (is(PR_int16) && w->is(PR_int64))
+            return w;
+        if (is(PR_int32) && w->is(PR_int64))
+            return w;
 
-        if(is(PR_int8) && w->is(PR_int64))return w;
-        if(is(PR_int16) && w->is(PR_int64))return w;
-        if(is(PR_int32) && w->is(PR_int64))return w;
-
-        if(secondPass)error("Failed to generate mutual primitive type for " + str() + " and " + w->str());
+        if (secondPass)
+            error("Failed to generate mutual primitive type for " + str() + " and " + w->str());
         return w->getMutual(this, true);
-
     }
-    llvm::Type* getLLType(){
+    llvm::Type *getLLType()
+    {
         switch (type)
         {
         case PR_int8:
@@ -95,119 +114,150 @@ public:
         return nullptr;
     }
 };
-class Generic:public Type{
+class Generic : public Type
+{
 public:
-    Type* resolveTo = nullptr;
-    Type* constraint = nullptr;
-    Ident* name;
-
-    std::string str(){
-        if(resolveTo)return resolveTo->str();
-        return "GEN_"+name->str();
+    Type *resolveTo = nullptr;
+    Type *constraint = nullptr;
+    Ident *name;
+    std::string str()
+    {
+        if (resolveTo)
+            return resolveTo->str();
+        return "GEN_" + name->str();
     }
-    llvm::Type* getLLType(){
-        if(resolveTo)return resolveTo->getLLType();
+    llvm::Type *getLLType()
+    {
+        if (resolveTo)
+            return resolveTo->getLLType();
         error("Cannot get LL type for generic " + name->str() + ", this should have been resolved in the preprocessor");
         return nullptr;
     }
-    Generic* generic(){
+    Generic *generic()
+    {
         return this;
+    }
+    Type* drill(){
+        if(resolveTo)return resolveTo->drill();
+        return this;
+    }
+
+    Type* copy(){
+        auto gen = new Generic;
+        if(resolveTo)gen->resolveTo = resolveTo->copy();
+        if(constraint)gen->constraint = constraint->copy();
+        gen->name = name;
+        return gen;
     }
 };
 
-class CustomType:public Type{
-private:
-    CustomType(Identifier* refersTo){
+class CustomType : public Type
+{
+public:
+    Type* copy(){
+        auto ct = new CustomType(name);
+        if(refersTo)ct->refersTo = refersTo->copy();
+        return ct;
+    }
+    CustomType(Identifier *refersTo)
+    {
         name = refersTo;
     }
-public:
-    CustomType* custom(){
+    CustomType *custom()
+    {
         return this;
     }
-    Type* refersTo;
-    Identifier* name;
+    Type* drill(){
+        if(refersTo)return refersTo->drill();
+        return this;
+    }
+    Type *refersTo;
+    Identifier *name;
 
-    llvm::Type* getLLType(){
-        if(refersTo)return refersTo->getLLType();
+    llvm::Type *getLLType()
+    {
+        if (refersTo)
+            return refersTo->getLLType();
         error("Cannot get type for unresolved type reference");
         return nullptr;
     }
-    std::string str(){
-        if(refersTo)return refersTo->str();
+    std::string str()
+    {
+        if (refersTo)
+            return refersTo->str();
         error("Cannot get name for unresolved type reference");
         return nullptr;
     }
-    static CustomType* get(Identifier* refersTo){
-        static std::map<Identifier*, CustomType*> cache;
-        auto lookup = cache[refersTo];
-        if(lookup == nullptr){
-            auto p = new CustomType(refersTo);
-            cache[refersTo] = p;
-            return p;
-        }
-        return lookup;
-    }
 };
-class TPtr:public Type{
-private:
-    TPtr(Type* type){
+class TPtr : public Type
+{
+public:
+    TPtr(Type *type)
+    {
         to = type;
     }
-public:
-    TPtr* ptr(){
+    Type* copy(){
+        auto pt = new TPtr(to->copy());
+        return pt;
+    }
+    TPtr *ptr()
+    {
         return this;
     }
-    Type* to;
-
-    std::string str(){
-        return to->str()+"*";
+    Type *to;
+    Type* drill(){
+        if(to)return to->drill();
+        return this;
     }
-    llvm::Type* getLLType(){
+    std::string str()
+    {
+        return to->str() + "*";
+    }
+    llvm::Type *getLLType()
+    {
         return to->getLLType()->getPointerTo();
-    }
-    static TPtr* get(Type* t){
-        static std::map<Type*, TPtr*> cache;
-        auto fetched = cache[t];
-        if(fetched == nullptr){
-            auto val = new TPtr(t);
-            cache[t] = val;
-            return val;
-        }
-        return fetched;
     }
 };
 class Constant;
-class ListType:public Type{
+class ListType : public Type
+{
 private:
-    ListType(Type* eT, Expression* n){
+
+
+public:
+    ListType *list()
+    {
+        return this;
+    }
+    Type* copy(){
+        auto lt = new ListType(
+            elements->copy(),
+            size
+        );
+        return lt;        
+    }
+    Type *elements;
+    Expression *size = nullptr;
+    ListType() = default;
+    Type* drill(){
+        if(elements)return elements->drill();
+        return this;
+    }
+    llvm::Type *getLLType()
+    {
+        return elements->getLLType()->getPointerTo();
+    }
+    std::string str()
+    {
+        return elements->str() + "[]";
+    }
+    bool isStatic()
+    {
+        return instanceof <Constant>(size);
+    }
+    ListType(Type *eT, Expression *n=nullptr)
+    {
         elements = eT;
         size = n;
     }
-public:
-    ListType* list(){
-        return this;
-    }
-    Type* elements;
-    Expression* size = nullptr;
-    ListType() = default;
-    llvm::Type* getLLType(){
-        return elements->getLLType()->getPointerTo();
-    }
-    std::string str(){
-        return elements->str()+"[]";
-    }
-    bool isStatic(){
-        return instanceof<Constant>(size);
-    }
-    static ListType* get(Type* t, Expression* n=nullptr){
-        static std::map<std::pair<Type*, Expression*>, ListType*> cache;
-        auto fetched = cache[{t, n}];
-        if(fetched == nullptr){
-            auto val = new ListType(t, n);
-            cache[{t, n}] = val;
-            return val;
-        }
-        return fetched;
-    }
 };
-

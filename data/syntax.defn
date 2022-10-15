@@ -336,3 +336,12 @@ return
 
 @alias let
 let
+
+@alias const
+const
+
+@builtin cast
+cast
+
+@builtin len
+length

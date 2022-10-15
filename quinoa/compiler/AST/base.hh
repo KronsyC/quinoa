@@ -52,6 +52,21 @@ public:
         return nullptr;
     }
 
+
+    // Return the deepest possble type from a potentially complex
+    // type tree, useful for generic detection amongst other things
+    virtual Type* drill(){
+        error("Cannot drill base type class");
+        return nullptr;
+    }
+
+    //
+    // Produce a deep copy of a type tree
+    //
+    virtual Type* copy(){
+        error("Cannot copy base type");
+        return nullptr;
+    }
     virtual Primitive* primitive(){
         return nullptr;
     }

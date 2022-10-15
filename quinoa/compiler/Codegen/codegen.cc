@@ -232,7 +232,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         pushf(*sig, (Statement*)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
-        auto i8p = TPtr::get(Primitive::get(PR_int8))->getLLType();
+        auto i8p = (new TPtr( Primitive::get(PR_int8)))->getLLType();
         // auto st = llvm::StructType::create(i32, i32, i8ptr, i8ptr);
         auto st = llvm::StructType::create(*ctx(), {i32, i32, i8p, i8p});
         auto alloc = builder()->CreateAlloca(st, nullptr, "var_args_obj");
@@ -331,7 +331,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             MethodSignature entrySig;
             std::vector<Param*> params;
             params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
-            params.push_back(new Param(TPtr::get(Primitive::get(PR_string)), Ident::get("argv")));
+            params.push_back(new Param(new TPtr(Primitive::get(PR_string)), Ident::get("argv")));
             entrySig.name = Ident::get("main");
             entrySig.nomangle = true;
             entrySig.returnType = Primitive::get(PR_int32);

@@ -137,11 +137,11 @@ public:
         }
         for(auto p:params){
             auto param = new Param(*p);
+            param->type = p->type->copy();
             auto t = param->type;
             if(auto ref = t->custom()){
                 for(auto pair:genericMappings){
                     if(ref->str() == pair.first){
-                        Logger::debug("-- changing referral");
                         ref->refersTo = pair.second;
                     }
                 }

@@ -10,7 +10,7 @@ void resolveBlockSelfRefs(SourceBlock *content, CompoundIdentifier* space) {
     if (instanceof<MethodCall>(m)) {
       auto call = (MethodCall *)m;
       auto ctx = call->ctx;
-
+      if(call->builtin())continue;
       call->name->flatify();
       if (call->name->parts.size() == 1) {
         pushf(call->name->parts, (Identifier *)space);

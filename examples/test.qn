@@ -1,9 +1,8 @@
-import @syscall;
-import @lang::assertions as ASSERT;
+import @io;
 module Test is Entry{
 
     func main(argc: int, argv:c_str*)->int{
-        ASSERT::equals(1, 2048);
-        return 0;
+        let len = io::println("Hello, World!");
+        return len;
     }
 }
