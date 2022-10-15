@@ -39,6 +39,7 @@ class Primitive;
 class ListType;
 class TPtr;
 class CustomType;
+class Generic;
 struct Type : public AstNode
 {
 public:
@@ -61,6 +62,9 @@ public:
         return nullptr;
     }
     virtual ListType* list(){
+        return nullptr;
+    }
+    virtual Generic* generic(){
         return nullptr;
     }
 

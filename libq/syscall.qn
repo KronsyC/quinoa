@@ -1,13 +1,13 @@
 module Syscall is Exported, CompilerImplemented{
 	func call(callNo:i64, ...args:i64[]) -> i64;
 
-	func read(fd:i64, ptr:char*, len:i64)->i64{
+	func read(fd:i64, ptr:i64, len:i64)->i64{
 		return call(0, fd, ptr, len);
 	}
-	func write(fd:i64, ptr:char*, len:i64)->i64{
+	func write(fd:i64, ptr:i64, len:i64)->i64{
 		return call(1, fd, ptr, len);
 	}
-	func open(filename:c_str, flags:int, mode:int)->i64{
+	func open(filename:i64, flags:int, mode:int)->i64{
 		return call(2, filename, flags, mode);
 	}
 	func close(fd:i64)->i64{

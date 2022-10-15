@@ -37,10 +37,12 @@ void expects(Token tok, TokenType expected){
 }
 
 enum IndType{
+    IND_angles,
     INDENTATION_TYPES
 };
 
 map<IndType, pair<TokenType, TokenType>> mappings{
+    {IND_angles, {TT_lesser, TT_greater}},
     INDENTATION_MAPPINGS
 };
 

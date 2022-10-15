@@ -42,6 +42,7 @@ class MethodSigStr{
 public:
     Ident* name;
     Block<Param> params;
+    Block<Generic> generics;
     bool nomangle = false;
 
 
@@ -49,6 +50,16 @@ public:
         if(nomangle)return name->str();
         std::string n = "fn_";
         n+=name->str();
+        if(generics.size()){
+            n+="<";
+            bool first = true;
+            for(auto g:generics){
+                if(!first)n+=",";
+                n+=g->str();
+                first = false;
+            }
+            n+=">";
+        }
         if(params.size()){
             n+="(";
             bool first = true;
@@ -84,6 +95,8 @@ public:
     QualifiedMethodSigStr() = default;
 };
 
+
+
 // Method definitions hold all the info of a method required to call
 // and generate definitions for it
 class MethodSignature:public AstNode{
@@ -92,6 +105,7 @@ public:
     bool nomangle = false;
     CompoundIdentifier* space = nullptr;
     Block<Param> params;
+    Block<Generic> generics;
     Type* returnType = nullptr;
 
     CompoundIdentifier* fullname(){
@@ -111,9 +125,30 @@ public:
     QualifiedMethodSigStr sigstr(){
         QualifiedMethodSigStr sigs;
         sigs.name = name;
-        sigs.params = params;
         sigs.space = space;
         sigs.nomangle = nomangle;
+
+        // copy the generics, so we can mess with them
+        std::map<std::string, Generic*> genericMappings;
+        for(auto g:generics){
+            auto gen = new Generic(*g);
+            genericMappings[gen->str()] = gen;
+            sigs.generics.push_back(gen);
+        }
+        for(auto p:params){
+            auto param = new Param(*p);
+            auto t = param->type;
+            if(auto ref = t->custom()){
+                for(auto pair:genericMappings){
+                    if(ref->str() == pair.first){
+                        Logger::debug("-- changing referral");
+                        ref->refersTo = pair.second;
+                    }
+                }
+            }
+            sigs.params.push_back(param);
+        }
+
         if(space==nullptr && !nomangle)error("Space is null?", true);
         return sigs;
     }

@@ -6,9 +6,13 @@ static bool enqueue = false;
 static std::vector<std::pair<Logger::LogLevel, std::string>> queue;
 
 void Logger::printQueue(){
+    auto initial = enqueue;
+    enqueueMode(false);
     for(auto e:queue){
         writeLog(e.second, e.first);
     }
+    enqueueMode(initial);
+    
 }
 void Logger::enqueueMode(bool m){
     enqueue = m;

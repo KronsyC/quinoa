@@ -70,6 +70,7 @@ public:
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
+    Logger::debug("Qualifying call to " + name->str());
     if (ctx == nullptr)
       error("Cannot Resolve a contextless call");
     if (nomangle)
@@ -100,11 +101,15 @@ public:
       testparams.push_back(new Param(type, nullptr));
       i++;
     }
+    
+    
+    // Construct a fake signature to match against
     auto callsig = new MethodSignature;
     callsig->name = name->last();
     callsig->params = testparams;
     callsig->space = name->all_but_last();
     callsig->nomangle = nomangle;
+
     auto sigstr = callsig->sigstr();
 
     CompoundIdentifier callname(name->parts);
@@ -147,6 +152,7 @@ public:
           idx = i;
         }
       }
+      // All scores are -1
       if (idx == -1)
       {
         Logger::error("Failed to generate function call to " + callname.str());
@@ -169,6 +175,34 @@ public:
   }
 
 private:
+  static int getCompat(Type* t1, Type* t2, bool second=false){
+    if(t1 == t2)return 0;
+
+    if(t1->primitive() && t2->primitive()){
+      auto p1 = t1->primitive();
+      auto p2 = t2->primitive();
+      auto g1 = primitive_group_mappings[p1->type];
+      auto g2 = primitive_group_mappings[p2->type];
+      if (g1 == g2)return 1;
+      else return -1;
+    }
+    if(t1->ptr() && t2->ptr()){
+      auto p1 = t1->ptr();
+      auto p2 = t2->ptr();
+
+      auto r1 = p1->to;
+      auto r2 = p2->to;
+      return getCompat(r1, r2);
+    }
+   if(auto cust=t1->custom()){
+      auto ref = cust->refersTo;
+      if(auto gen = ref->generic()){
+        return getCompat(gen->resolveTo, t2);
+      }
+    }
+    if(second)return -1;
+    else return getCompat(t2, t1, true);
+  }
   static int getCompatabilityScore(QualifiedMethodSigStr base,
                                    QualifiedMethodSigStr target)
   {
@@ -190,6 +224,42 @@ private:
       }
     }
 
+
+    // We got a generic function
+    // Try to decipher each generic type
+    if(base.generics.size()){
+      if(base.generics.size()>1)error("Functions may only have one generic parameter for the time being");
+      if(target.generics.size() > base.generics.size())return -1;
+
+      if(target.generics.size()){
+        base.generics[0]->resolveTo = target.generics[0];
+      }
+      else{
+        // find all the params that share the generic type
+        // put them into a list, and use the getType method
+        std::vector<Type*> sharedTypeParams;
+        int i = 0;
+        for(auto p:base.params){
+          if(auto ct = p->type->custom()){
+            auto tgt = ct->refersTo;
+            if(tgt->generic()){
+              sharedTypeParams.push_back(target.params[i]->type);
+            }
+          }
+          i++;
+        }
+        auto genericType = getCommonType(sharedTypeParams);
+        Logger::debug("Implicit generic type: " + genericType->str());
+        base.generics[0]->resolveTo = genericType;
+
+        auto p1t = base.params[0]->type;
+        if(p1t != base.generics[0]){
+          Logger::debug(p1t->str() + " - " + base.generics[0]->str());
+          Logger::debug("generic instances dont match, should");
+        }
+      }
+    }
+
     // Start with a base score, each infraction has a cost based on how
     // different it is
     int score = 0;
@@ -197,24 +267,9 @@ private:
     {
       auto baram = base.getParam(i)->type;
       auto taram = target.getParam(i)->type;
-      if (baram == taram)
-        continue;
-      if (instanceof <Primitive>(baram) && instanceof <Primitive>(taram))
-      {
-        // same group, different type is +10, otherwise no match
-
-        auto bprim = (Primitive *)baram;
-        auto tprim = (Primitive *)taram;
-        auto bg = primitive_group_mappings[bprim->type];
-        auto tg = primitive_group_mappings[tprim->type];
-        if (bg == tg)
-        {
-
-          score += 10;
-        }
-        else
-          score = -1;
-      }
+      auto score = getCompat(baram, taram);
+      if(score==-1)return -1;
+      else score+=10*score;
     }
 
     // TODO: Implement Type Reference Inheritance Tree Crawling (Each step up

@@ -12,8 +12,9 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
     if (oneLine)
     {
         string output;
-        for(auto t:toks){
-            output+=t.value;
+        for (auto t : toks)
+        {
+            output += t.value;
         }
     }
     else
@@ -24,11 +25,12 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
         }
     }
 }
-CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock* ctx)
+CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock *ctx)
 {
     expects(toks[0], TT_identifier);
     // Simplest Case (single-part)
-    if (toks.size() < 3 || !(toks[1].is(TT_double_colon) && toks[2].is(TT_identifier))){
+    if (toks.size() < 3 || !(toks[1].is(TT_double_colon) && toks[2].is(TT_identifier)))
+    {
         return new CompoundIdentifier(popf(toks).value, ctx);
     }
     vector<Identifier *> parts;
@@ -56,36 +58,46 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock* ctx)
     id->ctx = ctx;
     return id;
 }
-Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx);
-Type* parseType(vector<Token>& toks, SourceBlock* ctx){
-    if(!toks.size())error("Failed To Parse Type");
-    Type* ret = nullptr;
+Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx);
+Type *parseType(vector<Token> &toks, SourceBlock *ctx)
+{
+    if (!toks.size())
+        error("Failed To Parse Type");
+    Type *ret = nullptr;
     // Special case for strings
-    if(toks[0].is(TT_string)){
+    if (toks[0].is(TT_string))
+    {
         popf(toks);
         ret = TPtr::get(Primitive::get(PR_int8));
     }
-    else if(toks[0].isTypeTok())ret = Primitive::get(primitive_mappings[popf(toks).type]);
-    else{
+    else if (toks[0].isTypeTok())
+        ret = Primitive::get(primitive_mappings[popf(toks).type]);
+    else
+    {
         auto references = parseIdentifier(toks, ctx);
         ret = CustomType::get(references);
     }
 
-    while(toks.size() && toks[0].is(TT_star)){
+    while (toks.size() && toks[0].is(TT_star))
+    {
         popf(toks);
         ret = TPtr::get(ret);
     }
-    if(toks.size() && toks[0].is(TT_l_square_bracket)){
+    if (toks.size() && toks[0].is(TT_l_square_bracket))
+    {
         // Type Array
         auto size = readBlock(toks, IND_square_brackets);
-        if(size.size()==0)ret=ListType::get(ret, nullptr);
-        else ret = ListType::get(ret, parseExpression(size, ctx));
+        if (size.size() == 0)
+            ret = ListType::get(ret, nullptr);
+        else
+            ret = ListType::get(ret, parseExpression(size, ctx));
     }
     return ret;
 }
 vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
 {
-    if(toks.size() == 0)return {};
+    if (toks.size() == 0)
+        return {};
     vector<TokenType> indt;
     vector<TokenType> dindt;
     for (auto d : defs)
@@ -120,8 +132,7 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
     return retVal;
 }
 
-
-Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
+Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
 {
     if (toks.size() == 0)
         error("Cannot Generate an Expression from no tokens");
@@ -129,17 +140,19 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
     {
         switch (toks[0].type)
         {
-        case TT_literal_int:return new Integer(stoull(toks[0].value));
+        case TT_literal_int:
+            return new Integer(stoull(toks[0].value));
         case TT_literal_true:
             return new Boolean(true);
         case TT_literal_false:
             return new Boolean(false);
-        case TT_literal_str: return new String(toks[0].value);
+        case TT_literal_str:
+            return new String(toks[0].value);
         case TT_literal_float:
             return new Float(stold(toks[0].value));
-        case TT_identifier:{
+        case TT_identifier:
+        {
             return Ident::get(toks[0].value, ctx);
-
         }
         default:
             error("Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'");
@@ -158,7 +171,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
             auto params = readBlock(toks, IND_parens);
             if (toks.size() == 0)
             {
-                int i = 1; 
+                int i = 1;
                 auto paramsList = parseCommaSeparatedValues(params);
                 vector<Expression *> params;
                 for (auto p : paramsList)
@@ -167,8 +180,9 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
                     expr->ctx = ctx;
                     params.push_back(expr);
                 }
-                if(target->str() == "len" && params.size() == 1 && instanceof<Identifier>(params[0])){
-                    auto l = new ArrayLength((Identifier*)params[0]);
+                if (target->str() == "len" && params.size() == 1 && instanceof <Identifier>(params[0]))
+                {
+                    auto l = new ArrayLength((Identifier *)params[0]);
                     l->ctx = ctx;
                     return l;
                 }
@@ -177,15 +191,15 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
                 call->target = nullptr;
                 call->ctx = ctx;
                 call->name = target;
-                
-
 
                 return call;
             }
         }
-        else if(toks[0].is(TT_l_square_bracket)){
+        else if (toks[0].is(TT_l_square_bracket))
+        {
             auto etoks = readBlock(toks, IND_square_brackets);
-            if(toks.size() == 0){
+            if (toks.size() == 0)
+            {
                 auto item = parseExpression(etoks, ctx);
                 item->ctx = ctx;
                 return new Subscript(target, item);
@@ -194,13 +208,15 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
         toks = initial;
     }
 
-    if(c.is(TT_l_square_bracket)){
+    if (c.is(TT_l_square_bracket))
+    {
         auto content = readBlock(toks, IND_square_brackets);
         auto entries = parseCommaSeparatedValues(content);
-        
+
         auto list = new List;
 
-        for(auto entry:entries){
+        for (auto entry : entries)
+        {
             auto entryExpr = parseExpression(entry, ctx);
             list->push_back(entryExpr);
         }
@@ -262,27 +278,31 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
             splitWeight = weight;
         }
     }
-    if (splitPoint == -1 || splitPoint==0 || splitPoint==toks.size()-1)
+    if (splitPoint == -1 || splitPoint == 0 || splitPoint == toks.size() - 1)
     {
         // no split, start split or end split should cover all cases
-
 
         // Construct prefix ops
         std::vector<TokenType> prefix_ops;
         std::vector<TokenType> postfix_ops;
-        for(auto def:defs){
-            if(def->prefix)prefix_ops.push_back(def->ttype);
-            if(def->postfix)postfix_ops.push_back(def->ttype);
+        for (auto def : defs)
+        {
+            if (def->prefix)
+                prefix_ops.push_back(def->ttype);
+            if (def->postfix)
+                postfix_ops.push_back(def->ttype);
         }
 
-        if(includes(prefix_ops, toks[0].type)){
+        if (includes(prefix_ops, toks[0].type))
+        {
             auto op = popf(toks);
             auto expr = parseExpression(toks, ctx);
             auto pfxop = prefix_op_mappings[op.type];
             return new UnaryOperation(expr, pfxop);
         }
-        else if(includes(postfix_ops, toks[toks.size()-1].type)){
-            auto op = toks[toks.size()-1];
+        else if (includes(postfix_ops, toks[toks.size() - 1].type))
+        {
+            auto op = toks[toks.size() - 1];
             toks.pop_back();
             auto postop = postfix_op_mappings[op.type];
             auto expr = parseExpression(toks, ctx);
@@ -301,7 +321,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock* ctx)
     return new BinaryOperation(leftAST, rightAST, optype);
 }
 
-SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
+SourceBlock *parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo = {})
 {
     auto block = new SourceBlock;
     auto type_info = new LocalTypeTable;
@@ -310,12 +330,13 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
     while (toks.size())
     {
         auto first = toks[0];
-        if(first.is(TT_while)){
+        if (first.is(TT_while))
+        {
             popf(toks);
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
             auto cond = parseExpression(expr, block);
-            auto content= parseSourceBlock(exec, *type_info);
+            auto content = parseSourceBlock(exec, *type_info);
             auto loop = new WhileCond;
             cond->ctx = block;
             loop->local_types = new LocalTypeTable;
@@ -327,7 +348,8 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             block->push_back(loop);
             continue;
         }
-        if(first.is(TT_if)){
+        if (first.is(TT_if))
+        {
             popf(toks);
             auto cond = readBlock(toks, IND_parens);
             auto condExpr = parseExpression(cond, block);
@@ -338,18 +360,20 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
 
             auto does = readBlock(toks, IND_braces);
             auto doesA = parseSourceBlock(does, *type_info);
-            if(!doesA)error("Failed to parse conditional block");
+            if (!doesA)
+                error("Failed to parse conditional block");
             iff->does = doesA;
-            if(toks[0].is(TT_else)){
+            if (toks[0].is(TT_else))
+            {
                 popf(toks);
                 auto otherwise = readBlock(toks, IND_braces);
                 iff->otherwise = parseSourceBlock(otherwise, *type_info);
             }
             block->push_back(iff);
             continue;
-
         }
-        if(first.is(TT_for)){
+        if (first.is(TT_for))
+        {
             popf(toks);
             auto inner = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
@@ -379,7 +403,8 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
         }
         auto f = toks[0];
         auto line = readUntil(toks, TT_semicolon, true);
-        if(line.size()==0)expects(f, TT_notok);
+        if (line.size() == 0)
+            expects(f, TT_notok);
         f = line[0];
 
         if (f.is(TT_return))
@@ -392,15 +417,18 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             block->push_back(ret);
             continue;
         }
-        else if(f.is(TT_let)){
-            popf(line);    
-            auto varname = popf(line).value; 
-            Type* vartype;
-            if(line[0].is(TT_colon)){
+        else if (f.is(TT_let))
+        {
+            popf(line);
+            auto varname = popf(line).value;
+            Type *vartype;
+            if (line[0].is(TT_colon))
+            {
                 popf(line);
                 vartype = parseType(line, block);
-            }       
-            else vartype = nullptr;
+            }
+            else
+                vartype = nullptr;
             auto name = Ident::get(varname);
             name->ctx = block;
 
@@ -409,7 +437,8 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
             block->declarations.push_back(varname);
             auto init = new InitializeVar(vartype, name);
             init->ctx = block;
-            if(line.size() != 0){
+            if (line.size() != 0)
+            {
                 expects(popf(line), TT_assignment);
                 auto val = parseExpression(line, block);
                 val->ctx = block;
@@ -426,14 +455,14 @@ SourceBlock* parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo={})
         block->push_back(expr);
     }
 
- 
-
     return block;
 }
 
-Param* parseParameter(vector<Token>& toks){
+Param *parseParameter(vector<Token> &toks)
+{
     bool isVarParam = false;
-    if(toks[0].is(TT_ellipsis)){
+    if (toks[0].is(TT_ellipsis))
+    {
         isVarParam = true;
         popf(toks);
     }
@@ -442,7 +471,8 @@ Param* parseParameter(vector<Token>& toks){
     expects(popf(toks), TT_colon);
     auto type = parseType(toks, nullptr);
 
-    if(toks.size()){
+    if (toks.size())
+    {
         printToks(toks);
         error("Failed to Parse Parameter");
     }
@@ -451,50 +481,107 @@ Param* parseParameter(vector<Token>& toks){
     return p;
 }
 
-void parseModuleContent(vector<Token> &toks, Module* mod)
+Generic *parseGeneric(vector<Token> &toks, SourceBlock *ctx)
+{
+    auto gen_name = popf(toks);
+    expects(gen_name, TT_identifier);
+    auto gen = new Generic;
+    gen->name = Ident::get(gen_name.value);
+
+    if (toks.size())
+    {
+        auto colon = popf(toks);
+        expects(colon, TT_colon);
+        if (!toks.size())
+            expects(colon, TT_notok);
+        auto constraint = parseType(toks, ctx);
+        gen->constraint = constraint;
+    }
+    return gen;
+}
+
+void parseModuleContent(vector<Token> &toks, Module *mod)
 {
     while (toks.size())
     {
         auto c = popf(toks);
 
-        if(c.is(TT_func)){
+        if (c.is(TT_func))
+        {
             auto nameTok = popf(toks);
             expects(nameTok, TT_identifier);
+            auto method = new Method();
+            Block<Generic> generic_args;
+            if (toks[0].is(TT_lesser))
+            {
+                auto genericTokens = readBlock(toks, IND_angles);
+                auto csv = parseCommaSeparatedValues(genericTokens);
+                for (auto gen : csv)
+                {
+                    auto arg = parseGeneric(gen, method);
+                    generic_args.push_back(arg);
+                }
+            }
             expects(toks[0], TT_l_paren);
             auto argsTokens = readBlock(toks, IND_parens);
 
-            Type* returnType;
-            auto method = new Method();
+            Type *returnType;
             method->local_types = new LocalTypeTable;
 
             // Functions implicitly return void
-            if(toks[0].is(TT_arrow)){
+            if (toks[0].is(TT_arrow))
+            {
                 popf(toks);
                 returnType = parseType(toks, method);
+                if(auto typ = returnType->custom()){
+                    for (auto g : generic_args)
+                    {
+                        if (g->name->str() == typ->name->str())
+                        {
+                            typ->refersTo = g;
+                        }
+                    }
+                }
             }
-            else{
+            else
+            {
                 returnType = Primitive::get(PR_void);
             }
 
             auto argsCSV = parseCommaSeparatedValues(argsTokens);
             Block<Param> params;
             LocalTypeTable argTypes;
-            for(auto a:argsCSV){
+            for (auto a : argsCSV)
+            {
                 auto param = parseParameter(a);
+                // try to resolve parameters to generic types if at all possible
+                if (auto tp = param->type->custom())
+                {
+                    for (auto g : generic_args)
+                    {
+                        if (g->name->str() == tp->name->str())
+                        {
+                            tp->refersTo = g;
+                        }
+                    }
+                }
                 argTypes[param->name->str()] = param->type;
                 params.push_back(param);
             }
             // keep track of the arg types too
             *method->local_types = argTypes;
             auto sig = new MethodSignature();
-            if(toks[0].is(TT_l_brace)){
-               auto contentToks = readBlock(toks, IND_braces);
+            sig->generics = generic_args.take();
+            if (toks[0].is(TT_l_brace))
+            {
+                auto contentToks = readBlock(toks, IND_braces);
                 auto content = parseSourceBlock(contentToks, argTypes);
                 method->gobble(content);
             }
-            else{
-                 expects(toks[0], TT_semicolon);
-                 popf(toks);
+            else
+            {
+                expects(toks[0], TT_semicolon);
+                popf(toks);
             }
 
             method->sig = sig;
@@ -505,16 +592,17 @@ void parseModuleContent(vector<Token> &toks, Module* mod)
             sig->returnType = returnType;
             mod->push_back(method);
             continue;
-            
         }
 
         error("Functions are the only module members currently supported");
     }
 }
 
-ModuleReference* parseCompositor(vector<Token>& toks){
+ModuleReference *parseCompositor(vector<Token> &toks)
+{
     auto name = parseIdentifier(toks, nullptr);
-    if(toks.size())error("Complex Compositor Support is WIP");
+    if (toks.size())
+        error("Complex Compositor Support is WIP");
     auto c = new ModuleReference;
     c->name = name;
     return c;
@@ -541,14 +629,17 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 isStd = true;
             }
             auto target = parseIdentifier(importExprToks, nullptr);
-            CompoundIdentifier* alias = target;
-            if(importExprToks.size()){
+            CompoundIdentifier *alias = target;
+            if (importExprToks.size())
+            {
                 auto as = popf(importExprToks);
                 expects(as, TT_as);
-                if(importExprToks.size() == 0)error("Expected An Import Alias at " + as.afterpos());
+                if (importExprToks.size() == 0)
+                    error("Expected An Import Alias at " + as.afterpos());
                 expects(importExprToks[0], TT_identifier);
                 alias = new CompoundIdentifier(popf(importExprToks).value);
-                if(importExprToks.size())error("An Import Alias may only be a single identifier");
+                if (importExprToks.size())
+                    error("An Import Alias may only be a single identifier");
             }
             unit.push_back(new Import(target, isStd, alias));
             // Import Path foo.bar.baz
@@ -557,13 +648,14 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
         case TT_module:
         {
             auto name = popf(toks);
-            vector<ModuleReference*> compositors;
+            vector<ModuleReference *> compositors;
             if (toks[0].is(TT_is))
             {
                 popf(toks);
                 auto compositorToks = readUntil(toks, TT_l_brace, false);
                 auto csv = parseCommaSeparatedValues(compositorToks);
-                for(auto member:csv){
+                for (auto member : csv)
+                {
                     compositors.push_back(parseCompositor(member));
                 }
             }

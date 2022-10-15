@@ -9,15 +9,17 @@ module IO is Exported{
         return i;
     }
     func read(str:c_str, len:i64)->i64{
-        let readLen = syscall::read(0, str, len);
+        let castStr:i64 = str;
+        let readLen = syscall::read(0, castStr, len);
         return readLen;
     }
     func putc(ch:char){
-        let ref = &ch;
+        let ref:i64 = &ch;
         syscall::write(1, ref, 1);
     }
     func println(message:c_str) -> i64{
-        let len = syscall::write(1, message, strlen(message));
+        let castMsg: i64 = message;
+        let len = syscall::write(1, castMsg, strlen(message));
         putc(10);
         return len+1;
     }

@@ -74,19 +74,18 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
    * ✅ Local Initializer Hoisting (optimization)
    * ✅ Entrypoint Generation
    */
-  Logger::log("Doing a processor pass");
   resolveImports(unit);
   if (finalize) {
-    Logger::log("Finalization pass");
   resolveSelfReferences(unit);
     
     hoistDefinitions(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
-    Logger::enqueueMode(true);
+    // Logger::enqueueMode(true);
 
     while(!(resolvedTypes && resolvedCalls)){
-      // Logger::debug("type-fn loop");
+      // ensure only this iteration's errors are reported on
+      Logger::clearQueue();
       auto typeres = resolveTypes(unit);
       auto res = qualifyCalls(unit);
       resolvedCalls = res.first;
@@ -94,14 +93,12 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
 
       // if no calls or types were resolved this iteration
       if(!res.second && !typeres.second){
-        Logger::enqueueMode(false);
         Logger::printQueue();
         error("Type-Call Resolution Failed");
       }
-
     }
-        Logger::clearQueue();
-      Logger::enqueueMode(false);
+    Logger::clearQueue();
+    Logger::enqueueMode(false);
     validateLiteralArrays(unit);
     split_initializers(unit);
     hoistVarInitializations(unit);
@@ -109,5 +106,4 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
     genEntryPoint(unit);
     
   }
-  Logger::log("Completed processor pass");
 };

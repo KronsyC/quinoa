@@ -1,9 +1,9 @@
 import @syscall;
-
+import @lang::assertions as ASSERT;
 module Test is Entry{
 
     func main(argc: int, argv:c_str*)->int{
-        syscall::exit(21);
+        ASSERT::equals(1, 2048);
         return 0;
     }
 }

@@ -27,6 +27,8 @@ inline bool instanceof (T * item)
 #include "./type.hh"
 
 Type *getCommonType(Type *t1, Type *t2);
+Type *getCommonType(std::vector<Expression *> items);
+Type *getCommonType(std::vector<Type *> items);
 
 #include "./module.hh"
 #include "./constant.hh"

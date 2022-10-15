@@ -119,25 +119,7 @@ public:
 class List : public Value, public Block<Expression>
 {
 private:
-    Type *getTypeOf(std::vector<Expression *> items)
-    {
-        if (items.size() == 1)
-            return items[0]->getType();
-        if (items.size() == 0)
-            error("Cannot get type of list with 0 elements");
 
-        // Divide and conquer
-        auto splitIdx = items.size() / 2;
-        auto beg = items.begin();
-        auto end = items.end();
-        auto left = std::vector<Expression *>(beg, beg + splitIdx);
-        auto right = std::vector<Expression *>(beg + splitIdx, end);
-
-        auto left_t = getTypeOf(left);
-        auto right_t = getTypeOf(right);
-
-        return getCommonType(left_t, right_t);
-    }
     Type* elementType;
 
 public:
@@ -158,7 +140,7 @@ public:
         // if there is a set type, use that
         if(elementType)return elementType;
         // otherwise, infer the type from the members
-        return getTypeOf(*this);
+        return getCommonType(*this);
     }
     Type *getType()
     {

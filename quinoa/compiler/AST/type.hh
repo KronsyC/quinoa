@@ -95,6 +95,26 @@ public:
         return nullptr;
     }
 };
+class Generic:public Type{
+public:
+    Type* resolveTo = nullptr;
+    Type* constraint = nullptr;
+    Ident* name;
+
+    std::string str(){
+        if(resolveTo)return resolveTo->str();
+        return "GEN_"+name->str();
+    }
+    llvm::Type* getLLType(){
+        if(resolveTo)return resolveTo->getLLType();
+        error("Cannot get LL type for generic " + name->str() + ", this should have been resolved in the preprocessor");
+        return nullptr;
+    }
+    Generic* generic(){
+        return this;
+    }
+};
+
 class CustomType:public Type{
 private:
     CustomType(Identifier* refersTo){
@@ -104,18 +124,24 @@ public:
     CustomType* custom(){
         return this;
     }
+    Type* refersTo;
     Identifier* name;
 
     llvm::Type* getLLType(){
-        error("Cannot get type for customtype");
+        if(refersTo)return refersTo->getLLType();
+        error("Cannot get type for unresolved type reference");
         return nullptr;
     }
-
+    std::string str(){
+        if(refersTo)return refersTo->str();
+        error("Cannot get name for unresolved type reference");
+        return nullptr;
+    }
     static CustomType* get(Identifier* refersTo){
         static std::map<Identifier*, CustomType*> cache;
         auto lookup = cache[refersTo];
         if(lookup == nullptr){
-            auto p = CustomType::get(refersTo);
+            auto p = new CustomType(refersTo);
             cache[refersTo] = p;
             return p;
         }
