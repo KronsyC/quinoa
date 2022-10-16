@@ -38,8 +38,12 @@ public:
         this->name = name;
     }
 };
+
 class MethodSigStr{
 public:
+    CompoundIdentifier* space;
+    MethodSigStr() = default;
+    public:
     Ident* name;
     Block<Param> params;
     Block<Generic> generics;
@@ -89,12 +93,6 @@ public:
     }
 };
 
-class QualifiedMethodSigStr:public MethodSigStr{
-public:
-    CompoundIdentifier* space;
-    QualifiedMethodSigStr() = default;
-};
-
 
 
 // Method definitions hold all the info of a method required to call
@@ -113,21 +111,24 @@ public:
         if(!space)return new CompoundIdentifier({name});
         return  new CompoundIdentifier({space, name});
     }
-
+    bool isGeneric(){
+        return generics.size() > 0;
+    }
     std::string sourcename(){
         std::string ret;
         if(space){
             ret+=space->str()+".";
         }
-        ret+=sigstr().str();
+        auto sigs = sigstr();
+        ret+=sigs.str();
+
         return ret;
     }
-    QualifiedMethodSigStr sigstr(){
-        QualifiedMethodSigStr sigs;
+    MethodSigStr sigstr(){
+        MethodSigStr sigs;
         sigs.name = name;
         sigs.space = space;
         sigs.nomangle = nomangle;
-
         // copy the generics, so we can mess with them
         std::map<std::string, Generic*> genericMappings;
         for(auto g:generics){
@@ -143,6 +144,7 @@ public:
                 for(auto pair:genericMappings){
                     if(ref->str() == pair.first){
                         ref->refersTo = pair.second;
+                        break ;
                     }
                 }
             }
@@ -168,6 +170,7 @@ public:
 };
 class Method:public ModuleMember, public SourceBlock{
 public:
+    bool generate = true;
     MethodSignature* sig = nullptr;
     // If nomangle is enabled, matching is done via names directly
     // instead of using the overload chosing algorithm
@@ -178,13 +181,13 @@ public:
         }
         return ret;
     }
-    QualifiedMethodSigStr sigstr(){
+    MethodSigStr sigstr(){
         return sig->sigstr();
     }
     CompoundIdentifier* fullname(){
         return sig->fullname();
     }
-private:
+
 };
 class Entrypoint:public TopLevelExpression, public Method{
 public:

@@ -34,7 +34,7 @@ public:
     }
     if (target == nullptr || target->returnType == nullptr)
     {
-      Logger::error("Cannot get the return type of an unresolved call");
+      Logger::error("Cannot get the return type of an unresolved call to " + name->str());
       return nullptr;
     }
     return target->returnType;
@@ -86,6 +86,17 @@ public:
 
     return bld.CreateCall(tgtFn, llparams);
   }
+  Block<Generic> make_generic_refs(){
+    Block<Generic> g;
+
+    for(auto gp:generic_params){
+      auto gen = new Generic(Ident::get("unknown_generic_param_name"));
+      gen->refersTo = gp;
+      g.push_back(gen);
+    }
+
+    return g.take();
+  }
   // TODO: This method cant really throw exceptions because of how type resolution works
   //  so return a string representing the error reason, these strings can then be accumulated and returned
   //  if it is decided that a type is unresolvable
@@ -117,6 +128,7 @@ public:
     callsig->name = name->last();
     callsig->params = testparams;
     callsig->space = name->all_but_last();
+    callsig->generics = make_generic_refs();
 
     auto sigstr = callsig->sigstr();
 
@@ -184,6 +196,7 @@ public:
 
 private:
   static int getCompat(Type* t1, Type* t2, bool second=false){
+    Logger::debug("Getting Compat between " + t1->str() + " and " + t2->str());
     if(t1 == t2)return 0;
 
     if(t1->primitive() && t2->primitive()){
@@ -202,17 +215,17 @@ private:
       auto r2 = p2->to;
       return getCompat(r1, r2);
     }
-   if(auto cust=t1->custom()){
-      auto ref = cust->refersTo;
-      if(auto gen = ref->generic()){
-        return getCompat(gen->resolveTo, t2);
-      }
+    if(auto ref = t1->custom()){
+      return getCompat(ref->refersTo, t2);
+    }
+    if(auto ref = t2->custom()){
+      return getCompat(t1, ref->refersTo);
     }
     if(second)return -1;
     else return getCompat(t2, t1, true);
   }
-  static int getCompatabilityScore(QualifiedMethodSigStr base,
-                                   QualifiedMethodSigStr target)
+  static int getCompatabilityScore(MethodSigStr base,
+                                   MethodSigStr target)
   {
     if (base.name->str() != target.name->str())
     {
@@ -238,26 +251,16 @@ private:
     if(base.generics.size()){
       if(base.generics.size()>1)error("Functions may only have one generic parameter for the time being");
       if(target.generics.size() > base.generics.size())return -1;
-
       if(target.generics.size()){
-        base.generics[0]->resolveTo = target.generics[0];
+        base.generics[0]->generic()->refersTo = target.generics[0];
+
+        auto p1 = base.params[0];
+        Logger::debug("first param has type: " + p1->type->str());
       }
       else{
         // find all the params that share the generic type
         // put them into a list, and use the getType method
-        std::vector<Type*> sharedTypeParams;
-        int i = 0;
-        for(auto p:base.params){
-          auto dr = p->type->drill();
-          if(dr->generic()){
-            sharedTypeParams.push_back(target.params[i]->type);
-          }
-          i++;
-        }
-        auto genericType = getCommonType(sharedTypeParams);
-        Logger::debug("Implicit generic type: " + genericType->str());
-        base.generics[0]->resolveTo = genericType;
-
+        error("Implicit Generics are yet to be supported");
       }
     }
 

@@ -1,8 +1,10 @@
-import @io;
+import @lang::assertions as assert;
+
+
 module Test is Entry{
 
     func main(argc: int, argv:c_str*)->int{
-        let len = io::println("Hello, World!");
-        return len;
+        assert::equals<int>(1, 1);
+        return 0;
     }
 }

@@ -484,8 +484,7 @@ Generic *parseGeneric(vector<Token> &toks, SourceBlock *ctx)
 {
     auto gen_name = popf(toks);
     expects(gen_name, TT_identifier);
-    auto gen = new Generic;
-    gen->name = Ident::get(gen_name.value);
+    auto gen = new Generic(Ident::get(gen_name.value));
 
     if (toks.size())
     {
@@ -523,7 +522,32 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             }
             expects(toks[0], TT_l_paren);
             auto argsTokens = readBlock(toks, IND_parens);
+            auto argsCSV = parseCommaSeparatedValues(argsTokens);
+            Block<Param> params;
+            LocalTypeTable argTypes;
+            for (auto a : argsCSV)
+            {
+                auto param = parseParameter(a);
+                // TODO: Implement fancier generic finder
+                // try to resolve parameters to generic types if at all possible
+                if(auto tp = param->type->custom()){
+                for (auto g : generic_args)
+                    {
+                        if (g->name->str() == tp->name->str())
+                        {
+                            tp->refersTo = g;
+                            break;
+                        }
+                    }
+                }
 
+                Logger::debug("type: " + param->type->str());
+
+                argTypes[param->name->str()] = param->type;
+                params.push_back(param);
+            }
+            
+            
             Type *returnType;
             method->local_types = new LocalTypeTable;
 
@@ -538,6 +562,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
                         if (g->name->str() == typ->name->str())
                         {
                             typ->refersTo = g;
+                            break;
                         }
                     }
                 }
@@ -546,28 +571,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             {
                 returnType = Primitive::get(PR_void);
             }
-
-            auto argsCSV = parseCommaSeparatedValues(argsTokens);
-            Block<Param> params;
-            LocalTypeTable argTypes;
-            for (auto a : argsCSV)
-            {
-                auto param = parseParameter(a);
-                // try to resolve parameters to generic types if at all possible
-                auto bottom = param->type->drill();
-                if(auto tp = bottom->custom()){
-                for (auto g : generic_args)
-                    {
-                        if (g->name->str() == tp->name->str())
-                        {
-                            tp->refersTo = g;
-                        }
-                    }
-                }
-
-                argTypes[param->name->str()] = param->type;
-                params.push_back(param);
-            }
+            
             // keep track of the arg types too
             *method->local_types = argTypes;
             auto sig = new MethodSignature();
@@ -588,7 +592,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             sig->name = Ident::get(nameTok.value);
             sig->space = mod->name;
 
-            sig->params = Block<Param>(params.take());
+            sig->params = params.take();
             sig->returnType = returnType;
             mod->push_back(method);
             continue;

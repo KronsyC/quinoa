@@ -1,10 +1,7 @@
 #!/bin/python
-from importlib.resources import contents
 import os
-from textwrap import indent
 from typing import List
 import json
-from urllib.request import pathname2url
 __DEFPATH__ =  os.path.abspath("data/syntax.defn")
 __TGTPATH__ = os.path.abspath("quinoa/GenMacro.h")
 

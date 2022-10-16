@@ -285,6 +285,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
         if (instanceof<Method>(child))
         {
             auto method = (Method *)child;
+            if(!method->generate)continue;
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
             if (fn == nullptr)

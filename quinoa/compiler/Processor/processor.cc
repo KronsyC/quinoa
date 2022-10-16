@@ -16,19 +16,16 @@
 #include "./passes/array_validator.hh"
 #include "./passes/separate_initialzers.hh"
 #include "./passes/primitive_function_injector.hh"
+#include "./passes/generic_implementer.hh"
 using namespace std;
 
-
-
-
-
-
-
-
-void genEntryPoint(CompilationUnit &unit) {
+void genEntryPoint(CompilationUnit &unit)
+{
   vector<Module *> entryPointCandidates;
-  for (auto member : unit) {
-    if (instanceof<Module>(member)) {
+  for (auto member : unit)
+  {
+    if (instanceof <Module>(member))
+    {
       auto mod = (Module *)member;
       if (mod->is("Entry"))
         entryPointCandidates.push_back(mod);
@@ -36,21 +33,25 @@ void genEntryPoint(CompilationUnit &unit) {
   }
   if (entryPointCandidates.size() == 0)
     error("Failed to locate a suitable entrypoint");
-  else if (entryPointCandidates.size() > 1) {
+  else if (entryPointCandidates.size() > 1)
+  {
     Logger::warn(
         "Multiple Entry-Points were found, this may cause Unexpected Behavior");
   }
   auto entry = entryPointCandidates[0];
   string entryName = "main";
-  if (entry->hasMethod(entryName)) {
+  if (entry->hasMethod(entryName))
+  {
     auto main = entry->getMethod(entryName);
     unit.push_back(new Entrypoint(main->sig));
-  } else
+  }
+  else
     error("The Entrypoint '" + entry->name->str() +
           "' does not contain a main method");
 }
 
-void Processor::process(CompilationUnit &unit, bool finalize) {
+void Processor::process(CompilationUnit &unit, bool finalize)
+{
   /**
    * Preprocess the tree via various different passes:
    * ----------------------------------------------------
@@ -75,15 +76,19 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
    * ✅ Entrypoint Generation
    */
   resolveImports(unit);
-  if (finalize) {
-  resolveSelfReferences(unit);
-    
+  if (finalize)
+  {
+    Logger::log("Resolvint Self Refs");
+    resolveSelfReferences(unit);
+    Logger::log("Hoisting Definitions");
+    implGenerics(unit);
     hoistDefinitions(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
-    // Logger::enqueueMode(true);
 
-    while(!(resolvedTypes && resolvedCalls)){
+    Logger::log("Resolving Types / Calls");
+    while (!(resolvedTypes && resolvedCalls))
+    {
       // ensure only this iteration's errors are reported on
       Logger::clearQueue();
       auto typeres = resolveTypes(unit);
@@ -92,18 +97,20 @@ void Processor::process(CompilationUnit &unit, bool finalize) {
       resolvedTypes = typeres.first;
 
       // if no calls or types were resolved this iteration
-      if(!res.second && !typeres.second){
+      if (!res.second && !typeres.second && !(resolvedCalls && resolvedTypes))
+      {
         Logger::printQueue();
-        error("Type-Call Resolution Failed");
+        error("Type-Call Resolution Failed with " + std::to_string(res.second) + " resolved calls and " + std::to_string(typeres.second) + " resolved types");
       }
     }
     Logger::clearQueue();
     Logger::enqueueMode(false);
+    Logger::log("Resolving Arrays");
     validateLiteralArrays(unit);
+    Logger::log("Splitting Initializers");
     split_initializers(unit);
     hoistVarInitializations(unit);
     injectPrimitiveFunctions(unit);
     genEntryPoint(unit);
-    
   }
 };

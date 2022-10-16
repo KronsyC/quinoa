@@ -114,49 +114,15 @@ public:
         return nullptr;
     }
 };
-class Generic : public Type
-{
-public:
-    Type *resolveTo = nullptr;
-    Type *constraint = nullptr;
-    Ident *name;
-    std::string str()
-    {
-        if (resolveTo)
-            return resolveTo->str();
-        return "GEN_" + name->str();
-    }
-    llvm::Type *getLLType()
-    {
-        if (resolveTo)
-            return resolveTo->getLLType();
-        error("Cannot get LL type for generic " + name->str() + ", this should have been resolved in the preprocessor");
-        return nullptr;
-    }
-    Generic *generic()
-    {
-        return this;
-    }
-    Type* drill(){
-        if(resolveTo)return resolveTo->drill();
-        return this;
-    }
-
-    Type* copy(){
-        auto gen = new Generic;
-        if(resolveTo)gen->resolveTo = resolveTo->copy();
-        if(constraint)gen->constraint = constraint->copy();
-        gen->name = name;
-        return gen;
-    }
-};
-
 class CustomType : public Type
 {
 public:
     Type* copy(){
         auto ct = new CustomType(name);
-        if(refersTo)ct->refersTo = refersTo->copy();
+        if(refersTo){
+            auto copy = refersTo->copy();
+            ct->refersTo = refersTo->copy();
+        }
         return ct;
     }
     CustomType(Identifier *refersTo)
@@ -168,6 +134,7 @@ public:
         return this;
     }
     Type* drill(){
+        Logger::debug("Drilling customType " + name->str());
         if(refersTo)return refersTo->drill();
         return this;
     }
@@ -178,17 +145,48 @@ public:
     {
         if (refersTo)
             return refersTo->getLLType();
-        error("Cannot get type for unresolved type reference");
+        error("Cannot get type for unresolved type reference", true);
         return nullptr;
     }
     std::string str()
     {
-        if (refersTo)
-            return refersTo->str();
+        if (refersTo){
+            auto child = refersTo->str();
+            return child;
+        }
         error("Cannot get name for unresolved type reference");
         return nullptr;
     }
 };
+
+class Generic:public CustomType{
+public:
+    Type* constraint;
+
+    Generic(Ident* name, Type* constraint=nullptr)
+    :CustomType(name)
+    {
+        this->constraint = constraint;
+    }
+    Type* copy(){
+        auto gen = new Generic(*this);
+        if(constraint)gen->constraint = constraint->copy();
+        if(refersTo)gen->refersTo = refersTo->copy();
+        return gen;
+    }
+    Type* drill(){
+        if(refersTo)return refersTo;
+        return this;
+    }
+    std::string str(){
+        if(refersTo)return refersTo->str();
+        return "G_"+name->str();
+    }
+    Generic* generic(){
+        return this;
+    }
+};
+
 class TPtr : public Type
 {
 public:
