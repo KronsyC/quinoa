@@ -124,17 +124,16 @@ public:
 
         return ret;
     }
-    MethodSigStr sigstr(){
-        MethodSigStr sigs;
-        sigs.name = name;
-        sigs.space = space;
-        sigs.nomangle = nomangle;
-        // copy the generics, so we can mess with them
+    
+    std::pair<Block<Param>, Block<Generic>> cloneGenericsParams(){
+
+        Block<Generic> gs;
+        Block<Param> ps;
         std::map<std::string, Generic*> genericMappings;
         for(auto g:generics){
             auto gen = new Generic(*g);
             genericMappings[gen->str()] = gen;
-            sigs.generics.push_back(gen);
+            gs.push_back(gen);
         }
         for(auto p:params){
             auto param = new Param(*p);
@@ -148,8 +147,19 @@ public:
                     }
                 }
             }
-            sigs.params.push_back(param);
+            ps.push_back(param);
         }
+        return {ps.take(), gs.take()};
+    }
+    MethodSigStr sigstr(){
+        MethodSigStr sigs;
+        sigs.name = name;
+        sigs.space = space;
+        sigs.nomangle = nomangle;
+        // copy the generics, so we can mess with them
+        auto pair = cloneGenericsParams();
+        sigs.params = pair.first;
+        sigs.generics = pair.second;
 
         if(space==nullptr && !nomangle)error("Space is null?", true);
         return sigs;
@@ -159,6 +169,26 @@ public:
     }
     bool isVariadic(){
         return sigstr().isVariadic();
+    }
+
+    MethodSignature* impl_as_generic(Block<Generic> replaceWith){
+        auto newsig = new MethodSignature(*this);
+        if(replaceWith.size() != generics.size())error("Cannot generate a replacement signature if generic lengths do not match");
+        for(auto g:replaceWith){
+            if(!g->refersTo)error("Cannot clone a method signature with unresolved generics");
+        }
+        auto gp = cloneGenericsParams();
+        newsig->generics = gp.second;
+        newsig->params = gp.first;
+
+        int i = 0;
+        for(auto g:newsig->generics){
+            g->refersTo = replaceWith[i]->refersTo;
+            i++;
+        }
+
+        // Replace the parameters
+        return newsig;
     }
 };
 class MethodPredeclaration:public TopLevelExpression{

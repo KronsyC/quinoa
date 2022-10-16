@@ -97,9 +97,6 @@ public:
 
     return g.take();
   }
-  // TODO: This method cant really throw exceptions because of how type resolution works
-  //  so return a string representing the error reason, these strings can then be accumulated and returned
-  //  if it is decided that a type is unresolvable
   void qualify(
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
@@ -144,35 +141,26 @@ public:
       sigs.erase(callname.str());
       // Run Compatibility Checks on each sigstr pair to find
       // the most compatible function to match to
-      std::vector<int> compatabilityScores = {};
+      int best = -1;
+      int idx = -1;
+      int i = -1;
+      MethodSigStr bestSigStr;
+      auto cs = callsig->sigstr();
       for (auto sigpair : sigs)
       {
+        i++;
         auto sig = sigpair.second;
         auto name = sigpair.first;
-        if (sig->nomangle)
-        {
-          compatabilityScores.push_back(-1);
-          continue;
-        }
-        int compat = getCompatabilityScore(sig->sigstr(), callsig->sigstr());
-        compatabilityScores.push_back(compat);
-      }
-      int max = -1;
-      int prev = -1;
-      int idx = -1;
-      for (int i = 0; i < compatabilityScores.size(); i++)
-      {
-        auto s = compatabilityScores[i];
-        if (s == -1)
-          continue;
-        if (s <= max || max == -1)
-        {
-          prev = max;
-          max = s;
+        if (sig->nomangle)continue;
+        auto sigs = sig->sigstr();
+        int compat = getCompatabilityScore(sigs, cs);
+        if(compat == -1)continue;
+        if( compat <= best || best == -1 ){
+          best = compat;
+          bestSigStr = sigs;
           idx = i;
         }
       }
-      // All scores are -1
       if (idx == -1)
       {
         Logger::error("Failed to generate function call to " + callname.str());
@@ -183,12 +171,17 @@ public:
       {
         if (ind == idx)
         {
-          target = pair.second;
+          if(pair.second->isGeneric()){
+            Logger::debug("Impl Generic");
+            auto gen = pair.second->impl_as_generic(bestSigStr.generics);
+            target = gen;
+          }
+          else target = pair.second;
+          Logger::debug("Resolved Function " + target->fullname()->str());
           return;
         }
         ind++;
       }
-      Logger::error("Somehow failed to find index");
       return;
     }
     target = fn;
@@ -224,7 +217,7 @@ private:
     if(second)return -1;
     else return getCompat(t2, t1, true);
   }
-  static int getCompatabilityScore(MethodSigStr base,
+  static int getCompatabilityScore(MethodSigStr& base,
                                    MethodSigStr target)
   {
     if (base.name->str() != target.name->str())
@@ -236,7 +229,7 @@ private:
     {
       return -1;
     }
-
+    Logger::debug("Viable");
     if (!base.isVariadic())
     {
       if (base.params.size() != target.params.size())

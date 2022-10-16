@@ -7,6 +7,7 @@ entry_block:
   store i32 %argc, i32* %"param argc", align 4
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
+  %0 = call i32 @"Test.fn_main(PR_int32,PR_int8**)"(i32 1, i0 0)
   ret i32 0
 }
 
