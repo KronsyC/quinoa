@@ -265,11 +265,11 @@ public:
     void genFor(MethodSignature* sig){
         if(generate())error("Cannot generate non-generic function");
         auto m = new Method(*this);
+        *m = *this;
         m->sig = sig;
         m->local_types = new LocalTypeTable(*this->local_types);
         sig->generics.clear();
         sig->assured_generic = false;
-
 
         std::map<std::string, Type*> param_types;
         for(auto p:sig->params){
