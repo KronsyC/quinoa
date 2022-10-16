@@ -173,7 +173,6 @@ public:
         auto arrType = llvm::ArrayType::get(getElementsType()->getLLType(), members.size());
         if (isStatic())
         {
-            Logger::debug("Static List");
             auto mod = builder()->GetInsertBlock()->getModule();
             auto initialValues = *(std::vector<llvm::Constant*>*)&members;
             auto initializer = llvm::ConstantArray::get(arrType, initialValues);

@@ -19,6 +19,47 @@ class ModuleReference:public Block<Expression>{
 public:
     Identifier* name;
 };
+class Method;
+class Module:public TopLevelExpression, public Block<ModuleMember>{
+public:
+    CompoundIdentifier* name;
+    std::vector<ModuleReference*> compositors; 
+    bool isModule(){
+        return true;
+    }
+
+    bool is(std::string comp){
+        for(auto c:compositors){
+            if(c->name->str() == comp)return true;
+        }
+        return false;
+    } 
+    void remove(std::string comp){
+        int idx = -1;
+        for(int i  = 0;i<compositors.size();i++){
+            auto c = compositors[i];
+            if(c->name->str() == comp){
+                idx = i;
+                break;
+            }
+        }
+        if(idx!=-1){
+            
+            compositors.erase(compositors.begin()+idx);
+        }
+    }
+
+    std::vector<Method*> getAllMethods(){
+        std::vector<Method*> ret;
+        for(auto m:*this){
+            auto mt = (Method*)m;
+            if(instanceof<Method>(m))ret.push_back(mt);
+        }
+        return ret;
+    }
+};
+
+
 
 class Param : public AstNode{
 
@@ -94,7 +135,7 @@ public:
 };
 
 
-
+class Method;
 // Method definitions hold all the info of a method required to call
 // and generate definitions for it
 class MethodSignature:public AstNode{
@@ -105,14 +146,15 @@ public:
     Block<Param> params;
     Block<Generic> generics;
     Type* returnType = nullptr;
-
+    Method* belongsTo = nullptr;
+    bool assured_generic = false;
     CompoundIdentifier* fullname(){
 
         if(!space)return new CompoundIdentifier({name});
         return  new CompoundIdentifier({space, name});
     }
     bool isGeneric(){
-        return generics.size() > 0;
+        return assured_generic || generics.size() > 0;
     }
     std::string sourcename(){
         std::string ret;
@@ -186,7 +228,7 @@ public:
             g->refersTo = replaceWith[i]->refersTo;
             i++;
         }
-
+        newsig->assured_generic = true;
         // Replace the parameters
         return newsig;
     }
@@ -200,7 +242,10 @@ public:
 };
 class Method:public ModuleMember, public SourceBlock{
 public:
-    bool generate = true;
+    bool generate(){
+        return !sig->isGeneric();
+    }
+    Module* memberOf;
     MethodSignature* sig = nullptr;
     // If nomangle is enabled, matching is done via names directly
     // instead of using the overload chosing algorithm
@@ -217,7 +262,38 @@ public:
     CompoundIdentifier* fullname(){
         return sig->fullname();
     }
+    void genFor(MethodSignature* sig){
+        if(generate())error("Cannot generate non-generic function");
+        auto m = new Method(*this);
+        m->sig = sig;
+        m->local_types = new LocalTypeTable(*this->local_types);
+        sig->generics.clear();
+        sig->assured_generic = false;
 
+
+        std::map<std::string, Type*> param_types;
+        for(auto p:sig->params){
+            param_types[p->name->str()] = p->type;
+        }
+
+        // make the appropriate modifications to the type table
+        for(auto kv:*m->local_types){
+            auto varname = kv.first;
+            for(auto kv:param_types){
+                auto pname = kv.first;
+                auto pt = kv.second;
+
+                if(pname == varname){
+                    (*m->local_types)[varname] = pt;
+                    break;
+                }
+            }
+        }
+        
+        // Reroot the SourceBlock tree to the new method
+        
+        this->memberOf->push_back(m);
+    }
 };
 class Entrypoint:public TopLevelExpression, public Method{
 public:
@@ -227,54 +303,4 @@ public:
     }
 
 };
-class Module:public TopLevelExpression, public Block<ModuleMember>{
-public:
-    CompoundIdentifier* name;
-    std::vector<ModuleReference*> compositors; 
-    bool isModule(){
-        return true;
-    }
-
-    bool is(std::string comp){
-        for(auto c:compositors){
-            if(c->name->str() == comp)return true;
-        }
-        return false;
-    } 
-    void remove(std::string comp){
-        int idx = -1;
-        for(int i  = 0;i<compositors.size();i++){
-            auto c = compositors[i];
-            if(c->name->str() == comp){
-                idx = i;
-                break;
-            }
-        }
-        if(idx!=-1){
-            
-            compositors.erase(compositors.begin()+idx);
-        }
-    }
-    Method* getMethod(std::string name){
-        for(auto m:*this){
-            auto mt = (Method*)m;
-            if(instanceof<Method>(m) && mt->sig->name->str() == name)return mt;
-
-        }
-        return nullptr;
-    }
-    std::vector<Method*> getAllMethods(){
-        std::vector<Method*> ret;
-        for(auto m:*this){
-            auto mt = (Method*)m;
-            if(instanceof<Method>(m))ret.push_back(mt);
-        }
-        return ret;
-    }
-    bool hasMethod(std::string name){
-        return this->getMethod(name) ;
-    } 
-};
-
-
 

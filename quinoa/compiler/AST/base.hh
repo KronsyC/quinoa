@@ -33,6 +33,13 @@ public:
     virtual bool returns(){
         return false;
     };
+
+    virtual Statement* copy(){
+        error("Cannot Copy base Statement Type");
+        return nullptr;
+    }
+
+    Statement() = default;
 };
 
 class Primitive;
@@ -153,7 +160,7 @@ struct ModuleMember : public AstNode
 // but contains important information such as guarantees about execution
 // and a local scope type table
 // variables cannot be redefined within the same block and are hence guaranteed to keep the same type
-class SourceBlock:public Block<Statement>{
+class SourceBlock:public Block<Statement>, public Statement{
 public:
     SourceBlock(std::vector<Statement*> items)
     : Block(items){
@@ -166,6 +173,12 @@ public:
     ~SourceBlock(){
         delete local_types;
     }
+
+    // Deep Copy
+    SourceBlock(SourceBlock& from){
+
+    }
+
     bool returns(){
         for(auto item:*this){
             if(item->returns())return true;
@@ -174,10 +187,20 @@ public:
     }
     SourceBlock() = default;
     LocalTypeTable* local_types = nullptr;
+
+
+
+    Type* getType(std::string var){
+        if(!local_types)error("No Type Table?");
+        auto ty = (*local_types)[var];
+        if(!ty && ctx)return ctx->getType(var);
+        return ty;
+
+    }
     std::vector<std::string> declarations;
 
     std::vector<Statement*> flatten(){
-        std::vector<Statement*> ret;
+        std::vector<Statement*> ret = {this};
         for(auto i:*this){
             for(auto m:i->flatten()){
                 ret.push_back(m);
@@ -213,4 +236,5 @@ public:
         }
         // delete donor;
     }
+
 };

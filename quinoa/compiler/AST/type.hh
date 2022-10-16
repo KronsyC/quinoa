@@ -134,7 +134,6 @@ public:
         return this;
     }
     Type* drill(){
-        Logger::debug("Drilling customType " + name->str());
         if(refersTo)return refersTo->drill();
         return this;
     }
@@ -204,7 +203,6 @@ public:
     }
     Type *to;
     Type* drill(){
-        if(to)return to->drill();
         return this;
     }
     std::string str()
@@ -238,7 +236,6 @@ public:
     Expression *size = nullptr;
     ListType() = default;
     Type* drill(){
-        if(elements)return elements->drill();
         return this;
     }
     llvm::Type *getLLType()

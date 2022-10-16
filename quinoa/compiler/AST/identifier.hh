@@ -39,8 +39,7 @@ public:
 
     Type* getType(){
         if(!ctx)error("No Context for Ident");
-        auto tt = *ctx->local_types;
-        auto type = tt[str()];
+        auto type = ctx->getType(str());
         
         if(!type)error("Failed to locate type for " + str());
         return type;

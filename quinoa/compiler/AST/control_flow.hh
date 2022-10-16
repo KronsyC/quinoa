@@ -26,8 +26,7 @@ public:
 	IfCond() = default;
 	std::vector<Statement*> flatten(){
 		std::vector<Statement*> ret = {this};
-		bool hasElse = (this->otherwise) ;
-		if(hasElse){
+		if(this->otherwise){
 			auto flat = otherwise->flatten();
 			for(auto m:otherwise->flatten())ret.push_back(m);
 		}
@@ -39,7 +38,7 @@ public:
 
 };
 
-class WhileCond:public Statement, public SourceBlock{
+class WhileCond: public SourceBlock{
 public:
 	Expression* cond;
 	WhileCond(Expression* cond){
@@ -62,7 +61,7 @@ public:
 
 
 // Traditional for(init;cond;inc)
-class ForRange: public Statement, public SourceBlock{
+class ForRange: public SourceBlock{
 public:
 	Expression* cond;
 	SourceBlock* inc;

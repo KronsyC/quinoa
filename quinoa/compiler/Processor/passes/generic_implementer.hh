@@ -28,23 +28,8 @@ void implGenerics(CompilationUnit& unit){
         if(!call->target)continue;
         if(!call->target->isGeneric())continue;
 
-        // Generate the implementation of the generic by:
-        // a: Locating the method that needs to be re-implemented
-        // b: Generating the new method
-        // c: changing the target to the new method
-
-        for(auto m :methods){
-            if(m->sig != call->target)continue;
-            Logger::debug("Found the base function");
-            break;
-        }
         Logger::debug("Call to generic " + call->name->str());
+        call->target->belongsTo->genFor(call->target);
     }
 
-    // disable all generic methods
-    for(auto m:methods){
-        if(!m->sig->isGeneric())continue;
-        m->generate = false;
-        Logger::debug("Generic Function " + m->sig->name->str());
-    }
 }

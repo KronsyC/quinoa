@@ -75,7 +75,6 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
-            Logger::debug("Variable Initializer: " + init->str());
             llvm::AllocaInst* alloca;
             if(init->type->list()){
                 Logger::debug("initializing as list");
@@ -285,7 +284,8 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
         if (instanceof<Method>(child))
         {
             auto method = (Method *)child;
-            if(!method->generate)continue;
+            if(!method->generate())continue;
+            Logger::debug("Generating Method " + method->sig->name->str());
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
             if (fn == nullptr)
@@ -295,6 +295,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
             auto entry_block = llvm::BasicBlock::Create(*ctx(), "entry_block", fn);
 
             builder()->SetInsertPoint(entry_block);
+            printTypeTable(*method->local_types);
             genSource(*method, fn, varifyArgs(fn, method));
             if (fn->getReturnType()->isVoidTy())
                 builder()->CreateRetVoid();

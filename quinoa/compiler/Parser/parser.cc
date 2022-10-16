@@ -320,7 +320,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
     return new BinaryOperation(leftAST, rightAST, optype);
 }
 
-SourceBlock *parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo = {})
+SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, LocalTypeTable typeinfo)
 {
     auto block = new SourceBlock;
     auto type_info = new LocalTypeTable;
@@ -335,7 +335,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo = {})
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
             auto cond = parseExpression(expr, block);
-            auto content = parseSourceBlock(exec, *type_info);
+            auto content = parseSourceBlock(exec, block, *type_info);
             auto loop = new WhileCond;
             cond->ctx = block;
             loop->local_types = new LocalTypeTable;
@@ -358,7 +358,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo = {})
             iff->cond = condExpr;
 
             auto does = readBlock(toks, IND_braces);
-            auto doesA = parseSourceBlock(does, *type_info);
+            auto doesA = parseSourceBlock(does, block, *type_info);
             if (!doesA)
                 error("Failed to parse conditional block");
             iff->does = doesA;
@@ -366,7 +366,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo = {})
             {
                 popf(toks);
                 auto otherwise = readBlock(toks, IND_braces);
-                iff->otherwise = parseSourceBlock(otherwise, *type_info);
+                iff->otherwise = parseSourceBlock(otherwise, block, *type_info);
             }
             block->push_back(iff);
             continue;
@@ -382,19 +382,18 @@ SourceBlock *parseSourceBlock(vector<Token> toks, LocalTypeTable typeinfo = {})
             init.push_back(sc);
             auto check = readUntil(inner, TT_semicolon, true);
             inner.push_back(sc);
-            auto initCode = parseSourceBlock(init, *type_info);
+            auto initCode = parseSourceBlock(init, block, *type_info);
             block->gobble(initCode);
 
             auto checkCode = parseExpression(check, block);
-            auto incCode = parseSourceBlock(inner, *type_info);
-            auto source = parseSourceBlock(exec, *type_info);
+            auto incCode = parseSourceBlock(inner, block,*type_info);
+            auto source = parseSourceBlock(exec, block, *type_info);
             auto loop = new ForRange;
 
             loop->cond = checkCode;
             loop->inc = incCode;
             loop->ctx = block;
             loop->local_types = new LocalTypeTable;
-            *loop->local_types = *block->local_types;
             loop->gobble(source);
             block->push_back(loop);
 
@@ -509,6 +508,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             auto nameTok = popf(toks);
             expects(nameTok, TT_identifier);
             auto method = new Method();
+            method->memberOf = mod;
             Block<Generic> generic_args;
             if (toks[0].is(TT_lesser))
             {
@@ -541,7 +541,6 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
                     }
                 }
 
-                Logger::debug("type: " + param->type->str());
 
                 argTypes[param->name->str()] = param->type;
                 params.push_back(param);
@@ -579,7 +578,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             if (toks[0].is(TT_l_brace))
             {
                 auto contentToks = readBlock(toks, IND_braces);
-                auto content = parseSourceBlock(contentToks, argTypes);
+                auto content = parseSourceBlock(contentToks, method, argTypes);
                 method->gobble(content);
             }
             else
@@ -594,6 +593,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
 
             sig->params = params.take();
             sig->returnType = returnType;
+            sig->belongsTo = method;
             mod->push_back(method);
             continue;
         }

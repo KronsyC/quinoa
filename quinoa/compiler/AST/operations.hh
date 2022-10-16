@@ -101,7 +101,6 @@ public:
       std::map<std::string, MethodSignature *> sigs,
       LocalTypeTable type_info)
   {
-    Logger::debug("Qualifying call to " + name->str());
     if (ctx == nullptr)
       error("Cannot Resolve a contextless call");
     if(builtin())return;
@@ -172,12 +171,10 @@ public:
         if (ind == idx)
         {
           if(pair.second->isGeneric()){
-            Logger::debug("Impl Generic");
             auto gen = pair.second->impl_as_generic(bestSigStr.generics);
             target = gen;
           }
           else target = pair.second;
-          Logger::debug("Resolved Function " + target->fullname()->str());
           return;
         }
         ind++;
@@ -189,7 +186,6 @@ public:
 
 private:
   static int getCompat(Type* t1, Type* t2, bool second=false){
-    Logger::debug("Getting Compat between " + t1->str() + " and " + t2->str());
     if(t1 == t2)return 0;
 
     if(t1->primitive() && t2->primitive()){
@@ -229,7 +225,6 @@ private:
     {
       return -1;
     }
-    Logger::debug("Viable");
     if (!base.isVariadic())
     {
       if (base.params.size() != target.params.size())
@@ -248,7 +243,6 @@ private:
         base.generics[0]->generic()->refersTo = target.generics[0];
 
         auto p1 = base.params[0];
-        Logger::debug("first param has type: " + p1->type->str());
       }
       else{
         // find all the params that share the generic type

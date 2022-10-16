@@ -8,7 +8,7 @@
 
 // Preprocessor Pipeline Modules
 #include "./passes/importer.hh"
-#include "./passes/hoister.hh"
+#include "./passes/member_hoister.hh"
 #include "./passes/var_init_hoister.hh"
 #include "./passes/self_ref_resolver.hh"
 #include "./passes/call_qualifier.hh"
@@ -40,12 +40,15 @@ void genEntryPoint(CompilationUnit &unit)
   }
   auto entry = entryPointCandidates[0];
   string entryName = "main";
-  if (entry->hasMethod(entryName))
-  {
-    auto main = entry->getMethod(entryName);
-    unit.push_back(new Entrypoint(main->sig));
+  for(auto item:*entry){
+    if(instanceof<Method>(item)){
+      auto m = (Method*)item;
+      if(m->sig->name->str() == entryName){
+        unit.push_back(new Entrypoint(m->sig));
+        return;
+      }
+    }
   }
-  else
     error("The Entrypoint '" + entry->name->str() +
           "' does not contain a main method");
 }
@@ -80,13 +83,12 @@ void Processor::process(CompilationUnit &unit, bool finalize)
   {
     Logger::log("Resolvint Self Refs");
     resolveSelfReferences(unit);
-    Logger::log("Hoisting Definitions");
-    implGenerics(unit);
-    hoistDefinitions(unit);
+
     bool resolvedTypes = false;
     bool resolvedCalls = false;
 
     Logger::log("Resolving Types / Calls");
+    Logger::enqueueMode(true);
     while (!(resolvedTypes && resolvedCalls))
     {
       // ensure only this iteration's errors are reported on
@@ -105,6 +107,10 @@ void Processor::process(CompilationUnit &unit, bool finalize)
     }
     Logger::clearQueue();
     Logger::enqueueMode(false);
+    Logger::debug("Implementing Generics");
+    implGenerics(unit);
+    Logger::log("Hoisting Definitions");
+    hoistDefinitions(unit);
     Logger::log("Resolving Arrays");
     validateLiteralArrays(unit);
     Logger::log("Splitting Initializers");
