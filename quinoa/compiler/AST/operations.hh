@@ -21,6 +21,13 @@ public:
     auto c = new MethodCall;
     c->ctx = ctx;
     c->name = name->copy(ctx);
+    c->target = target;
+    for(auto p:params){
+      c->params.push_back(p->copy(ctx));
+    }
+    for(auto g:generic_params){
+      c->generic_params.push_back(g->copy());
+    }
     return c;
   }
 

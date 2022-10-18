@@ -212,7 +212,10 @@ public:
     Type* getType(std::string var){
         if(!local_types)error("No Type Table?");
         auto ty = (*local_types)[var];
-        if(!ty && ctx)return ctx->getType(var);
+        if(!ty && ctx){
+            Logger::debug("Could not find definition, checking parent");
+            return ctx->getType(var);
+        }
         return ty;
 
     }

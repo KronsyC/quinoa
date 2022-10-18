@@ -18,7 +18,9 @@ public:
         this->value = value;
     }
     U value;
-
+    ConstantValue* copy(SourceBlock* _){
+        return this;
+    }
     std::vector<Statement *> flatten()
     {
         return {this};

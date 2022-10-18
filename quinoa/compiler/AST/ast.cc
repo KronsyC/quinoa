@@ -1,7 +1,9 @@
 #include "./ast.hh"
 
-Type *getCommonType(Type *t1, Type *t2)
+Type *getCommonType(Type *_t1, Type *_t2)
 {
+  auto t1 = _t1->drill();
+  auto t2 = _t2->drill();
   if (t1 == nullptr || t2 == nullptr)
     error("one of the types is null", true);
   if (t1 == t2)

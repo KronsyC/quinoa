@@ -206,6 +206,9 @@ class Method:public ModuleMember, public SourceBlock{
 public:
     Method* copy(SourceBlock* ctx){
         auto m = new Method;
+        for(auto el:*this){
+            m->push_back(el->copy(m));
+        }
         m->sig = sig->copy();
         m->ctx = ctx;
         m->local_types = new LocalTypeTable;
@@ -233,11 +236,11 @@ public:
         return sig->fullname();
     }
     void genFor(MethodSignature* sig){
+        Logger::debug("Regenerating " + this->sig->sourcename() + " as generic");
+        Logger::debug("new sig: " + sig->sourcename());
         if(generate())error("Cannot generate non-generic function");
-        auto m = new Method(*this);
-        *m = *this->copy(nullptr);
+        auto m = this->copy(nullptr);
         m->sig = sig;
-        m->local_types = new LocalTypeTable(*this->local_types);
         sig->generics.clear();
         sig->assured_generic = false;
 

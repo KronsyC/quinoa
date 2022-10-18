@@ -1,0 +1,8 @@
+import @lang::assertions as assert;
+
+module Test is Entry{
+    func main(argc:int, argv:c_str*)->int{
+        assert::equals<int>(1, 2);
+        return 0;
+    }
+}
