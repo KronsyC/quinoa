@@ -577,6 +577,7 @@ public:
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
+        Logger::debug("Generate Assignment to " + id->str());
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
         auto r = right->getLLValue(types, typ);

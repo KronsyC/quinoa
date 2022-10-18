@@ -23,4 +23,8 @@ module IO is Exported{
         putc(10);
         return len+1;
     }
+
+    func EE(){
+        let len = println("EEE");
+    }
 }

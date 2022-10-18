@@ -1,13 +1,12 @@
 #pragma once
-#include "../processor.h"
-#include "../../../lib/list.h"
+#include "../include.h"
 /**
  * 
  * This pass is responsible for generating generic implementations of functions
  * 
  */
 
-std::vector<MethodCall*> getAllCalls(CompilationUnit& unit){
+std::vector<MethodCall*> get_all_calls(CompilationUnit& unit){
     std::vector<MethodCall*> calls;
     for(auto fn: unit.getAllMethods()){
         auto flat = fn->flatten();
@@ -21,14 +20,13 @@ std::vector<MethodCall*> getAllCalls(CompilationUnit& unit){
     return calls;
 }
 
-void implGenerics(CompilationUnit& unit){
-    auto calls = getAllCalls(unit);
+void impl_generics(CompilationUnit& unit){
+    auto calls = get_all_calls(unit);
     auto methods = unit.getAllMethods();
     for(auto call:calls){
         if(!call->target)continue;
         if(!call->target->isGeneric())continue;
 
-        Logger::debug("Call to generic " + call->name->str());
         call->target->belongsTo->genFor(call->target);
     }
 

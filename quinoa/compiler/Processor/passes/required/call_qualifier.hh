@@ -1,10 +1,9 @@
 #pragma once
 
-#include "../processor.h"
-#include "../util.hh"
+#include "../include.h"
 
 
-std::pair<bool, int> qualifyCalls(SourceBlock &code,
+std::pair<bool, int> qualify_calls(SourceBlock &code,
                   std::map<std::string, MethodSignature *> sigs) {
   auto flat = code.flatten();
   int resolvedCount = 0;
@@ -24,7 +23,7 @@ std::pair<bool, int> qualifyCalls(SourceBlock &code,
   return {success, resolvedCount};
 }
 
-std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
+std::map<std::string, MethodSignature*> fetch_signatures(CompilationUnit unit){
     // Construct a table of all call names -> their signatures
   std::map<std::string, MethodSignature *> sigs;
 
@@ -45,14 +44,14 @@ std::map<std::string, MethodSignature*> fetchSignatures(CompilationUnit unit){
   }
   return sigs;
 }
-std::pair<bool, int> qualifyCalls(CompilationUnit &unit) {
+std::pair<bool, int> qualify_calls(CompilationUnit &unit) {
 
-  auto sigs = fetchSignatures(unit);
+  auto sigs = fetch_signatures(unit);
   int count = 0;
   bool success = true;
   // Attempt to Qualify all Calls
   for (auto method : unit.getAllMethods()) {
-      auto result = qualifyCalls(*method, sigs);
+      auto result = qualify_calls(*method, sigs);
       if(!result.first)success=false;
       count+=result.second;
   }

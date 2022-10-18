@@ -499,6 +499,8 @@ Generic *parseGeneric(vector<Token> &toks, SourceBlock *ctx)
 
 void parseModuleContent(vector<Token> &toks, Module *mod)
 {
+
+    Block<TopLevelMetadata> metadata;
     while (toks.size())
     {
         auto c = popf(toks);
@@ -594,10 +596,33 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             sig->params = params.take();
             sig->returnType = returnType;
             sig->belongsTo = method;
+
+            method->metadata = metadata;
+            metadata.clear();
             mod->push_back(method);
             continue;
         }
+        // Metadata
+        if(c.is(TT_hashtag)){
+            auto content = readBlock(toks, IND_square_brackets);
 
+            auto name = popf(content);
+            expects(name, TT_identifier);
+
+            auto paramsToks = readBlock(content, IND_parens);
+            auto paramsCSV = parseCommaSeparatedValues(paramsToks);
+            Block<Expression> params;
+            for(auto p:paramsCSV){
+                auto expr = parseExpression(p, nullptr);
+                params.push_back(expr);
+            }
+            auto meta = new TopLevelMetadata;
+            meta->name = name.value;
+            meta->parameters = params.take();
+            metadata.push_back(meta);
+            continue;
+
+        }
         error("Functions are the only module members currently supported");
     }
 }

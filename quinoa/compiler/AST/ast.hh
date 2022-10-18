@@ -31,6 +31,7 @@ Type *getCommonType(std::vector<Expression *> items);
 Type *getCommonType(std::vector<Type *> items);
 
 #include "./module.hh"
+#include "./module_member.hh"
 #include "./constant.hh"
 #include "./operations.hh"
 #include "./control_flow.hh"

@@ -5,10 +5,10 @@
 // This should be done after varname mangling to ensure for consistent
 // type identification
 
-#include "../processor.h"
+#include "../include.h"
 
 // Returns True, if all types are resolved
-std::pair<bool, int> resolveTypes(CompilationUnit& unit){
+std::pair<bool, int> resolve_types(CompilationUnit& unit){
 	bool isGood = true;
 	int resolveCount = 0;
 	for(auto source:unit.getAllMethods()){

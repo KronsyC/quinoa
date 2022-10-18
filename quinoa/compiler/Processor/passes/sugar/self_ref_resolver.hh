@@ -1,9 +1,8 @@
 #pragma once
-#include "../processor.h"
-#include "../util.hh"
+#include "../include.h"
 using namespace std;
 
-void resolveBlockSelfRefs(SourceBlock *content, CompoundIdentifier* space) {
+void resolve_self_refs(SourceBlock *content, CompoundIdentifier* space) {
   auto flat = content->flatten();
 
   for (auto m : flat) {
@@ -19,8 +18,8 @@ void resolveBlockSelfRefs(SourceBlock *content, CompoundIdentifier* space) {
     }
   }
 }
-void resolveSelfReferences(CompilationUnit &unit) {
+void resolve_self_refs(CompilationUnit &unit) {
     for (auto fn : unit.getAllMethods()) {
-      resolveBlockSelfRefs(fn, fn->fullname()->all_but_last());
+      resolve_self_refs(fn, fn->fullname()->all_but_last());
     }
 }

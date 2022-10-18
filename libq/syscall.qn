@@ -1,25 +1,26 @@
-module Syscall is Exported, CompilerImplemented{
+module Syscall is Exported{
+	#[ link_extern("syscall") ]
 	func call(callNo:i64, ...args:i64[]) -> i64;
 
 	func read(fd:i64, ptr:i64, len:i64)->i64{
 		return call(0, fd, ptr, len);
 	}
-	func write(fd:i64, ptr:i64, len:i64)->i64{
-		return call(1, fd, ptr, len);
-	}
-	func open(filename:i64, flags:int, mode:int)->i64{
-		return call(2, filename, flags, mode);
-	}
-	func close(fd:i64)->i64{
-		return call(3, fd);
-	}
-	func lseek(fd:i64, offset:i64, whence:i64)->i64{
-		return call(8, fd, offset, whence);
-	}
-	func mmap(addr:i64, len:i64, prot:i64, flags:i64, fd:i64, off:i64)->i64{
-		return call(9, addr, len, prot, flags, fd, off);
-	}
-	func exit(status:i64)->i64{
-		return call(60, status);
-	}
+
+	#[ link_extern("write") ]
+	func write(fd:i64, ptr:i64, len:i64)->i64;
+
+	#[ link_extern("open") ]
+	func open(filename:i64, flags:int, mode:int)->i64;
+
+	#[ link_extern("close") ]
+	func close(fd:i64)->i64;
+
+	#[ link_extern("lseek") ]
+	func lseek(fd:i64, offset:i64, whence:i64)->i64;
+
+	#[ link_extern("mmap") ]
+	func mmap(addr:i64, len:i64, prot:i64, flags:i64, fd:i64, off:i64)->i64;
+	
+	#[ link_extern("exit") ]
+	func exit(status:i64)->i64;
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "../processor.h"
+#include "../include.h"
 //
 // Validates all literal array instances to ensure that
 // 1: All arrays have the proper type
@@ -7,7 +7,7 @@
 // 3: ?
 //
 
-void validateLiteralArrays(CompilationUnit &unit)
+void validate_array_literals(CompilationUnit &unit)
 {
     for (auto method : unit.getAllMethods())
     {

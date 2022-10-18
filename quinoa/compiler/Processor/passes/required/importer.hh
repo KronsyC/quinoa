@@ -1,13 +1,12 @@
 #pragma once
-#include "../../compiler.h"
-#include "../processor.h"
-#include "../util.hh"
+#include "../include.h"
 #include <ctime>
 #include <regex>
 #include <unistd.h>
+#include "../../../compiler.h"
 using namespace std;
 
-std::string genRandomStr(int size) {
+std::string gen_random_str(int size) {
   static const char choices[] =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   int len = sizeof(choices);
@@ -20,14 +19,14 @@ std::string genRandomStr(int size) {
 }
 static std::vector<std::string> usedHashes;
 // Same as genRandomString, but checks for collisions
-std::string genRandomSafeString(int size) {
+std::string gen_random_safe_string(int size) {
   while (1) {
-    auto str = genRandomStr(size);
+    auto str = gen_random_str(size);
     if (!includes(usedHashes, str))
       return str;
   }
 };
-Module *getPrimaryExport(CompilationUnit &unit) {
+Module *get_primary_export(CompilationUnit &unit) {
   Module *ret = nullptr;
   for (auto mod : unit.getAllModules()) {
     if (mod->is("Exported")) {
@@ -40,7 +39,7 @@ Module *getPrimaryExport(CompilationUnit &unit) {
   return ret;
 };
 
-void prefixifyChildren(CompilationUnit &unit, std::string prefix) {
+void prefixify_children(CompilationUnit &unit, std::string prefix) {
   for (auto mod : unit.getAllModules()) 
     if(!mod->isImported)
       pushf(mod->name->parts, (Identifier *)Ident::get("[" + prefix + "]"));
@@ -64,7 +63,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
     }
   }
 }
-void mergeUnits(CompilationUnit &tgt, CompilationUnit donor) {
+void merge_units(CompilationUnit &tgt, CompilationUnit donor) {
   for (auto e : donor.take()) {
     e->isImported = true;
     tgt.push_back(e);
@@ -79,7 +78,7 @@ static std::vector<std::string> imports;
 // risk
 static std::map<std::string, std::string> path_aliases;
 
-CompilationUnit getAstFromPath(std::string path) {
+CompilationUnit get_ast_from_path(std::string path) {
   Logger::log("Importing module from " + path);
   auto file = readFile(path);
   auto ast = makeAst(file, path);
@@ -89,7 +88,7 @@ CompilationUnit getAstFromPath(std::string path) {
 
 static std::map<std::string, Module*> exports;
 
-void resolveImports(CompilationUnit &unit) {
+void resolve_imports(CompilationUnit &unit) {
   // TODO: Load this from the project config files, this wont work on any other
   // pc
   string libq_dir = LIBQ_DIR;
@@ -114,14 +113,14 @@ void resolveImports(CompilationUnit &unit) {
         rpath = libq_dir + "/" + rpath + ".qn";
         if (!includes(imports, rpath)) {
           imports.push_back(rpath);
-          auto ast = getAstFromPath(rpath);
-          auto primary_export = getPrimaryExport(ast);
+          auto ast = get_ast_from_path(rpath);
+          auto primary_export = get_primary_export(ast);
           if (primary_export == nullptr)
             error("Failed to Import Module " + import->target->str());
           auto filename = import->target->last();
           primary_export->name->parts.pop_back();
           primary_export->name->parts.push_back(filename);
-          auto prefix = genRandomStr(10);
+          auto prefix = gen_random_str(10);
           path_aliases[rpath] = prefix;
 
 
@@ -130,8 +129,8 @@ void resolveImports(CompilationUnit &unit) {
 
           // Injects the cryptic namespace
           // into the unit
-          prefixifyChildren(ast, prefix);  
-          mergeUnits(unit, ast);      
+          prefixify_children(ast, prefix);  
+          merge_units(unit, ast);      
         }
 
         auto mod = exports[rpath];

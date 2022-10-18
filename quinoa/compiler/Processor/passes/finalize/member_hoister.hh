@@ -1,10 +1,18 @@
+
+/**
+ * 
+ * Predeclare / Hoist all methods and properties
+ * This acts as implicit forward-declaration of everything
+*/
+
+
 #pragma once
-#include "../processor.h"
+#include "../include.h"
 
 using namespace std;
 
 
-void hoistDefinitions(CompilationUnit &unit) {
+void hoist_definitions(CompilationUnit &unit) {
 
   for(auto method:unit.getAllMethods()){
     if(!method->generate()){

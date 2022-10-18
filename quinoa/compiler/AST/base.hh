@@ -140,6 +140,9 @@ private:
     bool destroy = false;
 };
 
+
+class TopLevelMetadata;
+
 struct TopLevelExpression : public AstNode
 {
 public:
@@ -154,6 +157,7 @@ public:
 };
 struct ModuleMember : public AstNode
 {
+    Block<TopLevelMetadata> metadata;
 
 };
 // A Souceblock is a wrapper around a statement block

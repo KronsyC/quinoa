@@ -2,7 +2,7 @@
 // Separate Initializers into an initializer and an assignment
 //
 #pragma once
-#include "../processor.h"
+#include "../include.h"
 
 void split_initializers(CompilationUnit &unit)
 {
