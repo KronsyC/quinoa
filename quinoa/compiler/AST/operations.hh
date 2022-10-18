@@ -15,6 +15,15 @@ public:
   CompoundIdentifier *name;
   Block<Expression> params;
   Block<Type> generic_params;
+
+
+  MethodCall* copy(SourceBlock* ctx){
+    auto c = new MethodCall;
+    c->ctx = ctx;
+    c->name = name->copy(ctx);
+    return c;
+  }
+
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this, name};
@@ -286,6 +295,12 @@ public:
   bool returns()
   {
     return true;
+  }
+
+  Return* copy(SourceBlock* ctx){
+    auto r = new Return(retValue->copy(ctx));
+    r->ctx = ctx;
+    return r;
   }
 };
 
@@ -563,7 +578,11 @@ public:
     // TODO: Fix this up
     return this->right->getType();
   }
-
+  BinaryOperation* copy(SourceBlock* ctx){
+    auto bop = new BinaryOperation(left->copy(ctx), right->copy(ctx), op);
+    bop->ctx = ctx;
+    return bop;
+  }
   llvm::Value *getLLValue(TVars types, llvm::Type *expected)
   {
     auto rt = right->getType();

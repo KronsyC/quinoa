@@ -24,6 +24,13 @@ void abort(int sig){
     error("SigAbrt", true);
 }
 
+string buildIr(string path){
+    Logger::log("Building file '" + path + "'");
+    auto file = readFile(path);
+    auto ir = compile(file, path);
+    return ir;
+}
+
 int main(int argc, char **argv)
 {
     // initialize random numbers
@@ -36,13 +43,12 @@ int main(int argc, char **argv)
     if (argc < 2)
         error("You Must Pass Options To The Compiler [INSERT INFO PAGE HERE]");
     string command = argv[1];
+    // Compile the file
     if (command == "build")
     {
         if(argc <3 )error("Must Provide a File Path to the build command");
         string filePath = argv[2];
-        Logger::log("Compiling file '" + filePath + "'");
-        auto file = readFile(filePath);
-        auto ir = compile(file, filePath);
+        auto ir = buildIr(filePath);
         ofstream out("test.ll");
         out.write(ir.c_str(), ir.size());
     }

@@ -432,7 +432,6 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
 
             // Add the variable to the type table
             (*type_info)[varname] = vartype;
-            block->declarations.push_back(varname);
             auto init = new InitializeVar(vartype, name);
             init->ctx = block;
             if (line.size() != 0)

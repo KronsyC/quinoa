@@ -35,7 +35,14 @@ public:
 		for(auto m:cond->flatten())ret.push_back(m);
 		return ret;
 	}
-
+	IfCond* copy(SourceBlock* ctx){
+		auto ifc = new IfCond;
+		ifc->ctx = ctx;
+		ifc->cond = cond->copy(ctx);
+		ifc->does = does->copy(ctx);
+		if(otherwise)ifc->otherwise = otherwise->copy(ctx);
+		return ifc;
+	}
 };
 
 class WhileCond: public SourceBlock{

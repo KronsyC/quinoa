@@ -18,6 +18,10 @@ public:
         error("Cannot getPtr to a base identifier");
         return nullptr;
     }
+    Identifier* copy(SourceBlock* ctx){
+        error("Cannot copy base identifier type");
+        return nullptr;
+    }
 };
 
 class Ident:public Identifier{
@@ -27,7 +31,9 @@ private:
     }
 public:
     Ident() = default;
-
+    Ident* copy(SourceBlock* ctx){
+        return get(name, ctx);
+    }
     std::string name;
     std::string str(){
         auto name = this->name;
@@ -56,16 +62,9 @@ public:
         return cast(builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded), expected);
     }
     static Ident* get(std::string name, SourceBlock* ctx=nullptr){
-        static std::map<std::pair<std::string, SourceBlock*>, Ident*> cache;
-        auto val = cache[{name, ctx}];
-        if(val == nullptr){
-            auto ident = new Ident(name);
-            ident->ctx = ctx;
-            cache[{name, ctx}] = ident;
-        
-            return ident;
-        }
-        return val;
+        auto id =  new Ident(name);
+        id->ctx = ctx;
+        return id;
     }
 };
 class CompoundIdentifier:public Ident{
@@ -85,6 +84,14 @@ public:
     };
     inline bool empty(){
         return this->parts.size() == 0;
+    }
+    CompoundIdentifier* copy(SourceBlock* ctx){
+        auto id = new CompoundIdentifier;
+        id->ctx = ctx;
+        for(auto p:parts){
+            id->parts.push_back(p->copy(ctx));
+        }
+        return id;
     }
     void flatify(){
         std::vector<Identifier*> flattened;

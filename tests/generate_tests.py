@@ -1,3 +1,5 @@
+#!/bin/python
+
 """
 Read All the tests provided in `/src` and generate proper quinoa source code from them
 

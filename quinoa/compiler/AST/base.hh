@@ -34,8 +34,8 @@ public:
         return false;
     };
 
-    virtual Statement* copy(){
-        error("Cannot Copy base Statement Type");
+    virtual Statement* copy(SourceBlock* ctx){
+        error("Cannot Copy base Statement Type", true);
         return nullptr;
     }
 
@@ -109,6 +109,11 @@ public:
         error("Cannot get ptr to base expression type");
         return nullptr;
     }
+
+    Expression* copy(SourceBlock* ctx){
+        error("Cannot copy base expression type", true);
+        return nullptr;
+    }
 };
 
 template <typename T>
@@ -177,7 +182,17 @@ public:
     ~SourceBlock(){
         delete local_types;
     }
-
+    SourceBlock* copy(SourceBlock* ctx){
+        auto sb = new SourceBlock;
+        auto tt = new LocalTypeTable;
+        *tt = *this->local_types;
+        sb->ctx = ctx;
+        sb->local_types = tt;
+        for(auto c:*this){
+            sb->push_back(c->copy(sb));
+        }
+        return sb;
+    }
     // Deep Copy
     SourceBlock(SourceBlock& from){
 
@@ -201,7 +216,6 @@ public:
         return ty;
 
     }
-    std::vector<std::string> declarations;
 
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};

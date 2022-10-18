@@ -5,9 +5,9 @@ module Test is Entry{
 
     func main(argc:int, argv:c_str*){
 	let a = 1;
-	__ASSERT__::equals(a, 1);
+	__ASSERT__::equals<int>(a, 1);
 	let b = a;
-	__ASSERT__::equals(a, b);
+	__ASSERT__::equals<int>(a, b);
         return 0;
     }
 }

@@ -183,6 +183,17 @@ public:
         // Replace the parameters
         return newsig;
     }
+
+    MethodSignature* copy(){
+        auto sig = new MethodSignature;
+        sig->name = name->copy(nullptr);
+        sig->nomangle = nomangle;
+        sig->space = space->copy(nullptr);
+        sig->returnType = returnType->copy();
+        sig->belongsTo = belongsTo;
+        sig->assured_generic = assured_generic;
+        return sig;
+    }
 };
 class MethodPredeclaration:public TopLevelExpression{
 public:
@@ -193,6 +204,14 @@ public:
 };
 class Method:public ModuleMember, public SourceBlock{
 public:
+    Method* copy(SourceBlock* ctx){
+        auto m = new Method;
+        m->sig = sig->copy();
+        m->ctx = ctx;
+        m->local_types = new LocalTypeTable;
+        *m->local_types = *local_types;
+        return m;
+    }
     bool generate(){
         return !sig->isGeneric();
     }
@@ -216,7 +235,7 @@ public:
     void genFor(MethodSignature* sig){
         if(generate())error("Cannot generate non-generic function");
         auto m = new Method(*this);
-        *m = *this;
+        *m = *this->copy(nullptr);
         m->sig = sig;
         m->local_types = new LocalTypeTable(*this->local_types);
         sig->generics.clear();
