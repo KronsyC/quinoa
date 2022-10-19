@@ -21,6 +21,7 @@ void split_initializers(CompilationUnit &unit)
                     // push the new node to the context, after the init
                     auto assignment = new BinaryOperation(init->varname, init->initializer, BIN_assignment);
                     assignment->ctx = init->ctx;
+                    init->initializer = nullptr;
                     auto idx = indexof(*init->ctx, (Statement*)init);
                     if(idx==-1)error("Failed to get index of " + init->str());
                     // push the assignment into the context

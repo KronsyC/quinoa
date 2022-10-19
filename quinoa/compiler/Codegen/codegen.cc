@@ -304,6 +304,8 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
     return std::move(llmod);
 }
 
+
+static std::vector<std::string> implemented_modules;
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {
     auto rootmod = new llvm::Module("Quinoa Program", *ctx());
@@ -314,6 +316,8 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
         if (instanceof<Module>(unit))
         {
             auto mod = (Module *)unit;
+            if(includes(implemented_modules, mod->name->str()))continue;
+            implemented_modules.push_back(mod->name->str());
             auto llmodptr = generateModule(*mod, defs);
 
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));

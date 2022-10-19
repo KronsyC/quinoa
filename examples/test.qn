@@ -2,7 +2,7 @@ import @io;
 import @lang::assertions as assert;
 module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{
-        io::println("Hello, Earthly Individuals");
-        return 0;
+        let len = io::println("Hello, Earthly Individuals");
+        return len;
     }
 }

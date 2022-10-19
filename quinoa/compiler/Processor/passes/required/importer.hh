@@ -110,8 +110,10 @@ CompilationUnit get_ast_from_path(std::string path, Ident* filename)
     import_cache[path] = new CompilationUnit(ast);
     return ast;
   }
-  else
+  else{
     return *cached;
+
+  }
 }
 
 
