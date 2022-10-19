@@ -73,6 +73,11 @@ public:
             error("Failed to generate mutual primitive type for " + str() + " and " + w->str());
         return w->getMutual(this, true);
     }
+
+    std::pair<Type*, Type*> find_mismatch(Type* against){
+        if(this != against->drill())return {this, against->drill()};
+        return {nullptr, nullptr};
+    }
     llvm::Type *getLLType()
     {
         switch (type)
@@ -117,11 +122,18 @@ public:
 class CustomType : public Type
 {
 public:
+    Type *refersTo;
+    Block<Type> type_args;
+    Identifier *name;
+
     Type* copy(){
         auto ct = new CustomType(name);
         if(refersTo){
             auto copy = refersTo->copy();
             ct->refersTo = refersTo->copy();
+        }
+        for(auto a:type_args){
+            ct->type_args.push_back(a->copy());
         }
         return ct;
     }
@@ -137,8 +149,7 @@ public:
         if(refersTo)return refersTo->drill();
         return this;
     }
-    Type *refersTo;
-    Identifier *name;
+
 
     llvm::Type *getLLType()
     {

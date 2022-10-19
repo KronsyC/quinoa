@@ -74,6 +74,10 @@ public:
         error("Cannot copy base type");
         return nullptr;
     }
+    virtual std::pair<Type*, Type*> find_mismatch(Type* against){
+        error("Cannot differ types against base type object");
+        return {};
+    }
     virtual Primitive* primitive(){
         return nullptr;
     }

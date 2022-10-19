@@ -229,21 +229,21 @@ private:
     if(second)return -1;
     else return getCompat(t2, t1, true);
   }
-  static int getCompatabilityScore(MethodSigStr& base,
-                                   MethodSigStr target)
+  static int getCompatabilityScore(MethodSigStr& func,
+                                   MethodSigStr mock)
   {
-    if (base.name->str() != target.name->str())
+    if (func.name->str() != mock.name->str())
     {
       return -1;
     }
     // compare namespaces
-    if (base.space->str() != target.space->str())
+    if (func.space->str() != mock.space->str())
     {
       return -1;
     }
-    if (!base.isVariadic())
+    if (!func.isVariadic())
     {
-      if (base.params.size() != target.params.size())
+      if (func.params.size() != mock.params.size())
       {
         return -1;
       }
@@ -252,28 +252,60 @@ private:
 
     // We got a generic function
     // Try to decipher each generic type
-    if(base.generics.size()){
-      if(base.generics.size()>1)error("Functions may only have one generic parameter for the time being");
-      if(target.generics.size() > base.generics.size())return -1;
-      if(target.generics.size()){
-        base.generics[0]->generic()->refersTo = target.generics[0];
+    if(func.generics.size()){
+      if(func.generics.size()>1)error("Functions may only have one generic parameter for the time being");
+      if(mock.generics.size() > func.generics.size())return -1;
+      if(mock.generics.size()){
+        func.generics[0]->generic()->refersTo = mock.generics[0];
 
-        auto p1 = base.params[0];
+        auto p1 = func.params[0];
       }
       else{
         // find all the params that share the generic type
         // put them into a list, and use the getType method
-        error("Implicit Generics are yet to be supported");
+        std::map<std::string, Type*> generic_type_mappings;
+        for(int i = 0; i<mock.params.size();i++){
+          Logger::debug("Check param");
+          auto fp = func.params[i];
+          auto mp = mock.params[i];
+
+
+          /*
+          type_pair.first -> Found Type
+          type_pair.second -> Found Against (Should be generic name)
+          */
+          auto type_pair = mp->type->find_mismatch(fp->type);
+          if(!type_pair.second->generic())error("Expected A Generic Type");
+          auto gen = type_pair.second->generic();
+          auto as = type_pair.first;
+          auto name = gen->name->str();
+          if(!generic_type_mappings[name])generic_type_mappings[name] = as;
+          else{
+            // Get Compatable Type
+            auto old_type = generic_type_mappings[name];
+            auto new_type = getCommonType(old_type, as);
+            generic_type_mappings[name] = new_type;
+          }
+        }
+      
+        // write the references according to the table
+        for(auto generic_param:func.generics){
+          auto gen = generic_param->generic();
+          auto name = gen->name->str();
+          auto refersTo = generic_type_mappings[name];
+          if(!refersTo)error("Failed To Get Type For Generic Param " + name);
+          gen->refersTo = refersTo;
+        }
       }
     }
 
     // Start with a base score, each infraction has a cost based on how
     // different it is
     int score = 0;
-    for (int i = 0; i < target.params.size(); i++)
+    for (int i = 0; i < mock.params.size(); i++)
     {
-      auto baram = base.getParam(i)->type;
-      auto taram = target.getParam(i)->type;
+      auto baram = func.getParam(i)->type;
+      auto taram = mock.getParam(i)->type;
       auto score = getCompat(baram, taram);
       if(score==-1)return -1;
       else score+=10*score;
