@@ -6,7 +6,7 @@ module Syscall is Exported{
 	pub func read(fd:i64, ptr:i64, len:i64)->i64;
 
 	#[ link_extern("write") ]
-	pub func write(fd:i64, ptr:i64, len:i64)->i64;
+	pub func write(fd:int, ptr:i64, len:i64)->i64;
 
 	#[ link_extern("open") ]
 	pub func open(filename:i64, flags:int, mode:int)->i64;

@@ -1,9 +1,21 @@
 import @io;
 import @syscall;
 module Assert is Exported{
-    func equals<T>(v1: T, v2:T){
+
+    func assert_error(message:c_str){
+        io::print("\nAssertion Error: ");
+        io::println(message);
+        syscall::exit(21);
+    }
+
+    pub func equals<T>(v1: T, v2:T){
         if(v1 != v2){
-            io::println("Error: Equality Assertion Failed");
+            assert_error("Equality Assertion Failed");
+        }
+    }
+    pub func not_equals<T>(v1: T, v2:T){
+        if(v1 == v2){
+            assert_error("Inequality Assertion Failed");
         }
     }
 }

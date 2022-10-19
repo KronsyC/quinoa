@@ -3,6 +3,7 @@ import @lang::assertions as assert;
 module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{
         let len = io::println("Hello, Earthly Individuals");
+        assert::equals(1, 2);
         return len;
     }
 }

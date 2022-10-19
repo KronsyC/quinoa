@@ -50,7 +50,7 @@ void prefixify_children(CompilationUnit &unit, std::string prefix)
 {
   for (auto mod : unit.getAllModules())
     if (!mod->isImported)
-      pushf(mod->name->parts, (Identifier *)Ident::get("@" + prefix));
+      pushf(mod->name->parts, (Identifier *)Ident::get("$" + prefix));
 }
 void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
                 CompoundIdentifier *fullname)
