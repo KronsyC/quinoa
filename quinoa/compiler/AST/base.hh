@@ -260,7 +260,7 @@ public:
             }
 
         }
-        // delete donor;
+        delete donor;
     }
 
 };

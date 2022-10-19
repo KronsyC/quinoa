@@ -69,6 +69,21 @@ string escapeNextVal(string& str){
 bool compareLength(string s1, std::string s2){
     return s1.length() > s2.length();
 }
+
+
+inline vector<string> get_aliases(){
+    // Keyword Check (this is black magic, god have mercy on my soul)
+    vector<string> aliases;
+    // Construct a vector with all of the aliases, sorted by length (big->small)
+    for(auto def:defs){
+        for(auto alias:def->alias){
+            aliases.push_back(alias);
+        }
+    }
+    sort(aliases.begin(), aliases.end(), compareLength);
+    return aliases;
+}
+
 Token readNextToken(string& str){
     // Trim
     trimStart(str);
@@ -115,15 +130,8 @@ Token readNextToken(string& str){
         return make(TT_literal_int, constructedNumber);
     }
 
-    // Keyword Check (this is black magic, god have mercy on my soul)
-    vector<string> aliases;
-    // Construct a vector with all of the aliases, sorted by length (big->small)
-    for(auto def:defs){
-        for(auto alias:def->alias){
-            aliases.push_back(alias);
-        }
-    }
-    sort(aliases.begin(), aliases.end(), compareLength);
+    static auto aliases = get_aliases();
+
     for(auto a:aliases){
         // Check for a match
         if(startsWith(str, a)){
