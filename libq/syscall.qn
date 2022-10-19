@@ -1,26 +1,25 @@
 module Syscall is Exported{
 	#[ link_extern("syscall") ]
-	func call(callNo:i64, ...args:i64[]) -> i64;
+	pub func call(callNo:i64, ...args:i64[]) -> i64;
 
-	func read(fd:i64, ptr:i64, len:i64)->i64{
-		return call(0, fd, ptr, len);
-	}
+	#[ link_extern("read") ]
+	pub func read(fd:i64, ptr:i64, len:i64)->i64;
 
 	#[ link_extern("write") ]
-	func write(fd:i64, ptr:i64, len:i64)->i64;
+	pub func write(fd:i64, ptr:i64, len:i64)->i64;
 
 	#[ link_extern("open") ]
-	func open(filename:i64, flags:int, mode:int)->i64;
+	pub func open(filename:i64, flags:int, mode:int)->i64;
 
 	#[ link_extern("close") ]
-	func close(fd:i64)->i64;
+	pub func close(fd:i64)->i64;
 
 	#[ link_extern("lseek") ]
-	func lseek(fd:i64, offset:i64, whence:i64)->i64;
+	pub func lseek(fd:i64, offset:i64, whence:i64)->i64;
 
 	#[ link_extern("mmap") ]
-	func mmap(addr:i64, len:i64, prot:i64, flags:i64, fd:i64, off:i64)->i64;
+	pub func mmap(addr:i64, len:i64, prot:i64, flags:i64, fd:i64, off:i64)->i64;
 	
 	#[ link_extern("exit") ]
-	func exit(status:i64)->i64;
+	pub func exit(status:i64)->i64;
 }

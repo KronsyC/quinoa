@@ -50,7 +50,6 @@ std::pair<bool, int> resolve_types(CompilationUnit& unit){
 			(*init->ctx->local_types)[init->varname->str()] = exprType;
 			init->type = exprType;
 			resolveCount++;
-			Logger::debug("" + init->varname->str());
 	}
 	}
 	return {isGood, resolveCount};

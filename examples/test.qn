@@ -1,8 +1,7 @@
-import @lang::assertions as assert;
-
+import @io as IO;
 module Test is Entry{
-    func main(argc:int, argv:c_str*)->int{
-        assert::equals(1, 1);
+    pub func main(argc:int, argv:c_str*)->int{
+        IO::println("Hello, Earthly Individuals");
         return 0;
     }
 }

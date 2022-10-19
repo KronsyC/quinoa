@@ -3,7 +3,7 @@
 #include "../include.h"
 
 
-std::pair<bool, int> qualify_calls(SourceBlock &code,
+std::pair<bool, int> qualify_calls(Method &code,
                   std::map<std::string, MethodSignature *> sigs) {
   auto flat = code.flatten();
   int resolvedCount = 0;
@@ -14,9 +14,17 @@ std::pair<bool, int> qualify_calls(SourceBlock &code,
       // Don't do redundant qualification
       if(call->target )continue;
       if(call->builtin())continue;
-
       call->qualify(sigs, *code.local_types);
-      if(call->target )resolvedCount++;
+      if(call->target ){
+        auto method = call->target->belongsTo;
+        if(!method->public_access){
+          auto method_mod = method->memberOf;
+          auto my_mod = code.memberOf;
+          if(method_mod != my_mod)
+          error("Cannot call private method " + method->sig->name->str() + " from " + code.sig->name->str());
+        }
+        resolvedCount++;
+      }
       else success = false;
     }
   }

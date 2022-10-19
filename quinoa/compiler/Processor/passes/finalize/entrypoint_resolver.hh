@@ -27,6 +27,7 @@ void gen_entrypoint(CompilationUnit &unit)
     if(instanceof<Method>(item)){
       auto m = (Method*)item;
       if(m->sig->name->str() == entryName){
+        if(!m->public_access)error("The main() method must be public");
         unit.push_back(new Entrypoint(m->sig));
         return;
       }

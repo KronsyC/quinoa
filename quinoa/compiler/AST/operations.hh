@@ -191,6 +191,8 @@ public:
             target = gen;
           }
           else target = pair.second;
+
+          auto method = target->belongsTo;
           return;
         }
         ind++;
@@ -265,7 +267,6 @@ private:
         // put them into a list, and use the getType method
         std::map<std::string, Type*> generic_type_mappings;
         for(int i = 0; i<mock.params.size();i++){
-          Logger::debug("Check param");
           auto fp = func.params[i];
           auto mp = mock.params[i];
 
@@ -635,7 +636,6 @@ public:
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
-        Logger::debug("Generate Assignment to " + id->str());
         auto ptr = id->getPtr(types);
         auto typ = ptr->getType()->getPointerElementType();
         auto r = right->getLLValue(types, typ);

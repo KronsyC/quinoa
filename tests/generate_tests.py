@@ -22,7 +22,7 @@ import @lang::assertions as {ASSERT};
 
 module Test is Entry{{
 
-    func main(argc:int, argv:c_str*)->int{{
+    pub func main(argc:int, argv:c_str*)->int{{
 """
 BOILERPLATE_AFTER = f"""
         return 0;

@@ -118,6 +118,8 @@
 	new TokenDefinition(TT_return, "__return", {"return"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_let, "__let", {"let"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_const, "__const", {"const"}, "", false, false, 0, false, false, ""),\
+	new TokenDefinition(TT_public_access, "__public_access", {"pub"}, "", false, false, 0, false, false, ""),\
+	new TokenDefinition(TT_instance_access, "__instance_access", {"inst"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_cast, "__cast", {}, "", false, false, 0, false, false, {"cast"}),\
 	new TokenDefinition(TT_length, "__length", {}, "", false, false, 0, false, false, {"len"}),\
 	
@@ -209,6 +211,8 @@
 	TT_return,\
 	TT_let,\
 	TT_const,\
+	TT_public_access,\
+	TT_instance_access,\
 	TT_cast,\
 	TT_length,\
 	

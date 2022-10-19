@@ -236,8 +236,6 @@ public:
         return sig->fullname();
     }
     void genFor(MethodSignature* sig){
-        Logger::debug("Regenerating " + this->sig->sourcename() + " as generic");
-        Logger::debug("new sig: " + sig->sourcename());
         if(generate())error("Cannot generate non-generic function");
         auto m = this->copy(nullptr);
         m->sig = sig;

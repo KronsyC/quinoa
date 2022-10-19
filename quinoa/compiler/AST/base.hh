@@ -166,8 +166,10 @@ public:
 };
 struct ModuleMember : public AstNode
 {
+public:
     Block<TopLevelMetadata> metadata;
-
+    bool public_access = false;
+    bool instance_access = false;
 };
 // A Souceblock is a wrapper around a statement block
 // but contains important information such as guarantees about execution
@@ -217,7 +219,6 @@ public:
         if(!local_types)error("No Type Table?");
         auto ty = (*local_types)[var];
         if(!ty && ctx){
-            Logger::debug("Could not find definition, checking parent");
             return ctx->getType(var);
         }
         return ty;

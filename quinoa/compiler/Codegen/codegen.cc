@@ -77,7 +77,6 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto type = init->type->getLLType();
             llvm::AllocaInst* alloca;
             if(init->type->list()){
-                Logger::debug("initializing as list");
                 auto l = init->type->list();
                 llvm::Value* size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
                 if(!size)error("You must know the size of an array while allocating it");
@@ -285,7 +284,6 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
         {
             auto method = (Method *)child;
             if(!method->generate())continue;
-            Logger::debug("Generating Method " + method->sig->name->str());
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
             if (fn == nullptr)
@@ -295,7 +293,6 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
             auto entry_block = llvm::BasicBlock::Create(*ctx(), "entry_block", fn);
 
             builder()->SetInsertPoint(entry_block);
-            printTypeTable(*method->local_types);
             genSource(*method, fn, varifyArgs(fn, method));
             if (fn->getReturnType()->isVoidTy())
                 builder()->CreateRetVoid();

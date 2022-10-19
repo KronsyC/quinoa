@@ -340,6 +340,12 @@ let
 @alias const
 const
 
+@alias pub
+public_access
+
+@alias inst
+instance_access
+
 @builtin cast
 cast
 

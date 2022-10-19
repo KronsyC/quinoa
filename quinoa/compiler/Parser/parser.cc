@@ -500,6 +500,8 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
 {
 
     Block<TopLevelMetadata> metadata;
+    bool isPublic = false;
+    bool isInstance = false;
     while (toks.size())
     {
         auto c = popf(toks);
@@ -597,7 +599,13 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             sig->belongsTo = method;
 
             method->metadata = metadata;
+            method->instance_access = isInstance;
+            method->public_access = isPublic;
+
             metadata.clear();
+            isInstance = false;
+            isPublic = false;
+
             mod->push_back(method);
             continue;
         }
@@ -621,6 +629,17 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             metadata.push_back(meta);
             continue;
 
+        }
+        
+        if(c.is(TT_public_access)){
+            if(isPublic)expects(c, TT_notok);
+            isPublic = true;
+            continue;
+        }
+        if(c.is(TT_instance_access)){
+            if(isInstance)expects(c, TT_notok);
+            isInstance = true;
+            continue;
         }
         error("Functions are the only module members currently supported");
     }

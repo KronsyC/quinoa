@@ -21,7 +21,6 @@ void link_extern(CompilationUnit& unit){
             if(!instanceof<String>(name))error("link_extern expects a string");
             fn->sig->name = Ident::get(name->value);
             fn->sig->nomangle = true;
-            Logger::debug("Generate link_extern intrinsic for " + name->value);
         }
     }
 }
