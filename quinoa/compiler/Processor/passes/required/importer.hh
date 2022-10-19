@@ -6,6 +6,7 @@
 #include "../../../compiler.h"
 using namespace std;
 
+
 std::string gen_random_str(int size) {
   static const char choices[] =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
