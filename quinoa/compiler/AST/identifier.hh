@@ -119,7 +119,7 @@ public:
         std::string name;
         bool first = true;
         for(auto p:parts){
-            if(!first)name+=".";
+            if(!first)name+="::";
             name+=p->str();
             first = false;
         }

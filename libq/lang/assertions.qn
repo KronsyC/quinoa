@@ -1,5 +1,5 @@
 import @io;
-
+import @syscall;
 module Assert is Exported{
     func equals<T>(v1: T, v2:T){
         if(v1 != v2){
