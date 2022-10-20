@@ -81,6 +81,7 @@ void merge_units(CompilationUnit &tgt, CompilationUnit donor)
   for (auto e : donor.take())
   {
     e->isImported = true;
+    if(includes(tgt,e))continue;
     tgt.push_back(e);
   }
 }
