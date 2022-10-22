@@ -22,7 +22,6 @@ std::vector<MethodCall*> get_all_calls(CompilationUnit& unit){
 
 void impl_generics(CompilationUnit& unit){
     auto calls = get_all_calls(unit);
-    auto methods = unit.getAllMethods();
     for(auto call:calls){
         if(!call->target)continue;
         if(!call->target->isGeneric())continue;

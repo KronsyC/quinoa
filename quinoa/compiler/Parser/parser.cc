@@ -741,8 +741,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                     }
                     break;
                 }
-  
-                }
+            }
             if (importExprToks.size())
             {
                 auto as = popf(importExprToks);
@@ -787,6 +786,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             auto moduleToks = readBlock(toks, IND_braces);
             mod->name = new CompoundIdentifier(name.value);
             mod->compositors = compositors;
+            mod->generics = generics;
             parse_mod(moduleToks, mod);
             unit.push_back(mod);
             break;

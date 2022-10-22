@@ -2,6 +2,6 @@ module Structable is Exported("Structable"){
 
 }
 
-module Struct<U> is Exported, CompilerImplemented{
+module Struct<T> is Exported, CompilerImplemented{
     pub func create() -> Struct<T>;
 }

@@ -216,6 +216,8 @@ public:
         return m;
     }
     bool generate(){
+        auto mod = this->memberOf;
+        if(mod && mod->generics.size())return false;
         return !sig->isGeneric();
     }
     Module* memberOf;

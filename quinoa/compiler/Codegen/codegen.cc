@@ -315,8 +315,16 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
         if (instanceof<Module>(unit))
         {
             auto mod = (Module *)unit;
-            auto llmodptr = generateModule(*mod, defs);
 
+            // If the module has generic params,
+            // just skip it out
+            Logger::debug("Generate mod " + mod->name->str());
+            if(mod->generics.size()){
+                Logger::debug("Skip out on module");
+                continue;
+            }
+            auto llmodptr = generateModule(*mod, defs);
+            Logger::debug("Generated");
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
         else if (instanceof<Entrypoint>(unit))
