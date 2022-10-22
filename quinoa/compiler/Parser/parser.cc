@@ -58,7 +58,7 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock *ctx)
     id->ctx = ctx;
     return id;
 }
-vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
+vector<vector<Token>> parse_cst(vector<Token> &toks)
 {
     if (toks.size() == 0)
         return {};
@@ -96,8 +96,8 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
     return retVal;
 }
 
-Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx);
-Type *parseType(vector<Token> &toks, SourceBlock *ctx)
+Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx);
+Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
 {
     if (!toks.size())
         error("Failed To Parse Type");
@@ -128,17 +128,20 @@ Type *parseType(vector<Token> &toks, SourceBlock *ctx)
         if (size.size() == 0)
             ret = new ListType(ret, nullptr);
         else
-            ret = new ListType(ret, parseExpression(size, ctx));
+            ret = new ListType(ret, parse_expr(size, ctx));
     }
 
     // Generic Parameter to type
-    if(toks.size() && toks[0].is(TT_lesser)){
-        if(!ret->custom())error("You can only pass type-parameters to a named type-reference");
+    if (toks.size() && toks[0].is(TT_lesser))
+    {
+        if (!ret->custom())
+            error("You can only pass type-parameters to a named type-reference");
         auto argsBlock = readBlock(toks, IND_angles);
-        auto csv = parseCommaSeparatedValues(argsBlock);
+        auto csv = parse_cst(argsBlock);
         Block<Type> args;
-        for(auto gp:csv){
-            auto gt = parseType(gp, ctx);
+        for (auto gp : csv)
+        {
+            auto gt = parse_type(gp, ctx);
             args.push_back(gt);
         }
         ret->custom()->type_args = args.take();
@@ -146,7 +149,7 @@ Type *parseType(vector<Token> &toks, SourceBlock *ctx)
     return ret;
 }
 
-Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
+Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 {
     if (toks.size() == 0)
         error("Cannot Generate an Expression from no tokens");
@@ -178,25 +181,28 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
     if (c.is(TT_identifier))
     {
         auto initial = toks;
-        CompoundIdentifier* target = parseIdentifier(toks, ctx);
+        CompoundIdentifier *target = parseIdentifier(toks, ctx);
         target->ctx = ctx;
         if (toks[0].is(TT_l_paren) || toks[0].is(TT_lesser))
         {
             Block<Type> generic_args;
-            if(toks[0].is(TT_lesser)){
+            if (toks[0].is(TT_lesser))
+            {
                 auto bl = readBlock(toks, IND_angles);
-                auto args = parseCommaSeparatedValues(bl);
-                for(auto arg:args){
-                    auto type = parseType(arg, ctx);
+                auto args = parse_cst(bl);
+                for (auto arg : args)
+                {
+                    auto type = parse_type(arg, ctx);
                     generic_args.push_back(type);
                 }
             }
-            
+
             Block<Expression> params;
             auto paramsBlock = readBlock(toks, IND_parens);
-            auto paramsList = parseCommaSeparatedValues(paramsBlock);
-            for(auto p:paramsList){
-                auto par = parseExpression(p, ctx);
+            auto paramsList = parse_cst(paramsBlock);
+            for (auto p : paramsList)
+            {
+                auto par = parse_expr(p, ctx);
                 par->ctx = ctx;
                 params.push_back(par);
             }
@@ -213,7 +219,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
             auto etoks = readBlock(toks, IND_square_brackets);
             if (toks.size() == 0)
             {
-                auto item = parseExpression(etoks, ctx);
+                auto item = parse_expr(etoks, ctx);
                 item->ctx = ctx;
                 return new Subscript(target, item);
             }
@@ -224,13 +230,13 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
     if (c.is(TT_l_square_bracket))
     {
         auto content = readBlock(toks, IND_square_brackets);
-        auto entries = parseCommaSeparatedValues(content);
+        auto entries = parse_cst(content);
 
         auto list = new List;
 
         for (auto entry : entries)
         {
-            auto entryExpr = parseExpression(entry, ctx);
+            auto entryExpr = parse_expr(entry, ctx);
             list->push_back(entryExpr);
         }
         return list;
@@ -241,7 +247,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
         auto initial = toks;
         auto block = readBlock(toks, IND_parens);
         if (toks.size() == 0)
-            return parseExpression(block, ctx);
+            return parse_expr(block, ctx);
 
         toks = initial;
     }
@@ -309,7 +315,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
         if (includes(prefix_ops, toks[0].type))
         {
             auto op = popf(toks);
-            auto expr = parseExpression(toks, ctx);
+            auto expr = parse_expr(toks, ctx);
             auto pfxop = prefix_op_mappings[op.type];
             return new UnaryOperation(expr, pfxop);
         }
@@ -318,7 +324,7 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
             auto op = toks[toks.size() - 1];
             toks.pop_back();
             auto postop = postfix_op_mappings[op.type];
-            auto expr = parseExpression(toks, ctx);
+            auto expr = parse_expr(toks, ctx);
             return new UnaryOperation(expr, postop);
         }
         printToks(toks);
@@ -328,13 +334,13 @@ Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
     auto [left, right] = split(toks, splitPoint);
     auto l = left;
     auto r = right;
-    auto leftAST = parseExpression(left, ctx);
-    auto rightAST = parseExpression(right, ctx);
+    auto leftAST = parse_expr(left, ctx);
+    auto rightAST = parse_expr(right, ctx);
     auto optype = binary_op_mappings[op.type];
     return new BinaryOperation(leftAST, rightAST, optype);
 }
 
-SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, LocalTypeTable typeinfo)
+SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTypeTable typeinfo)
 {
     auto block = new SourceBlock;
     auto type_info = new LocalTypeTable;
@@ -348,8 +354,8 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
             popf(toks);
             auto expr = readBlock(toks, IND_parens);
             auto exec = readBlock(toks, IND_braces);
-            auto cond = parseExpression(expr, block);
-            auto content = parseSourceBlock(exec, block, *type_info);
+            auto cond = parse_expr(expr, block);
+            auto content = parse_source(exec, block, *type_info);
             auto loop = new WhileCond;
             cond->ctx = block;
             loop->local_types = new LocalTypeTable;
@@ -365,14 +371,14 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
         {
             popf(toks);
             auto cond = readBlock(toks, IND_parens);
-            auto condExpr = parseExpression(cond, block);
+            auto condExpr = parse_expr(cond, block);
             condExpr->ctx = block;
 
             auto iff = new IfCond;
             iff->cond = condExpr;
 
             auto does = readBlock(toks, IND_braces);
-            auto doesA = parseSourceBlock(does, block, *type_info);
+            auto doesA = parse_source(does, block, *type_info);
             if (!doesA)
                 error("Failed to parse conditional block");
             iff->does = doesA;
@@ -380,7 +386,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
             {
                 popf(toks);
                 auto otherwise = readBlock(toks, IND_braces);
-                iff->otherwise = parseSourceBlock(otherwise, block, *type_info);
+                iff->otherwise = parse_source(otherwise, block, *type_info);
             }
             block->push_back(iff);
             continue;
@@ -396,12 +402,12 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
             init.push_back(sc);
             auto check = readUntil(inner, TT_semicolon, true);
             inner.push_back(sc);
-            auto initCode = parseSourceBlock(init, block, *type_info);
+            auto initCode = parse_source(init, block, *type_info);
             block->gobble(initCode);
 
-            auto checkCode = parseExpression(check, block);
-            auto incCode = parseSourceBlock(inner, block,*type_info);
-            auto source = parseSourceBlock(exec, block, *type_info);
+            auto checkCode = parse_expr(check, block);
+            auto incCode = parse_source(inner, block, *type_info);
+            auto source = parse_source(exec, block, *type_info);
             auto loop = new ForRange;
 
             loop->cond = checkCode;
@@ -422,7 +428,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
         if (f.is(TT_return))
         {
             popf(line);
-            auto returnValue = parseExpression(line, block);
+            auto returnValue = parse_expr(line, block);
             auto ret = new Return(returnValue);
             ret->ctx = block;
             returnValue->ctx = block;
@@ -437,7 +443,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
             if (line[0].is(TT_colon))
             {
                 popf(line);
-                vartype = parseType(line, block);
+                vartype = parse_type(line, block);
             }
             else
                 vartype = nullptr;
@@ -451,7 +457,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
             if (line.size() != 0)
             {
                 expects(popf(line), TT_assignment);
-                auto val = parseExpression(line, block);
+                auto val = parse_expr(line, block);
                 val->ctx = block;
                 init->initializer = val;
             }
@@ -460,7 +466,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
         }
 
         // Default to expression parsing
-        auto expr = parseExpression(line, block);
+        auto expr = parse_expr(line, block);
         expr->ctx = block;
 
         block->push_back(expr);
@@ -469,7 +475,7 @@ SourceBlock *parseSourceBlock(vector<Token> toks, SourceBlock* predecessor, Loca
     return block;
 }
 
-Param *parseParameter(vector<Token> &toks)
+Param *parse_param(vector<Token> &toks)
 {
     bool isVarParam = false;
     if (toks[0].is(TT_ellipsis))
@@ -480,7 +486,7 @@ Param *parseParameter(vector<Token> &toks)
     auto name = popf(toks);
     expects(name, TT_identifier);
     expects(popf(toks), TT_colon);
-    auto type = parseType(toks, nullptr);
+    auto type = parse_type(toks, nullptr);
 
     if (toks.size())
     {
@@ -492,7 +498,7 @@ Param *parseParameter(vector<Token> &toks)
     return p;
 }
 
-Generic *parseGeneric(vector<Token> &toks, SourceBlock *ctx)
+Generic *parse_generic(vector<Token> &toks, SourceBlock *ctx)
 {
     auto gen_name = popf(toks);
     expects(gen_name, TT_identifier);
@@ -504,13 +510,13 @@ Generic *parseGeneric(vector<Token> &toks, SourceBlock *ctx)
         expects(colon, TT_colon);
         if (!toks.size())
             expects(colon, TT_notok);
-        auto constraint = parseType(toks, ctx);
+        auto constraint = parse_type(toks, ctx);
         gen->constraint = constraint;
     }
     return gen;
 }
 
-void parseModuleContent(vector<Token> &toks, Module *mod)
+void parse_mod(vector<Token> &toks, Module *mod)
 {
 
     Block<TopLevelMetadata> metadata;
@@ -530,25 +536,26 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             if (toks[0].is(TT_lesser))
             {
                 auto genericTokens = readBlock(toks, IND_angles);
-                auto csv = parseCommaSeparatedValues(genericTokens);
+                auto csv = parse_cst(genericTokens);
                 for (auto gen : csv)
                 {
-                    auto arg = parseGeneric(gen, method);
+                    auto arg = parse_generic(gen, method);
                     generic_args.push_back(arg);
                 }
             }
             expects(toks[0], TT_l_paren);
             auto argsTokens = readBlock(toks, IND_parens);
-            auto argsCSV = parseCommaSeparatedValues(argsTokens);
+            auto argsCSV = parse_cst(argsTokens);
             Block<Param> params;
             LocalTypeTable argTypes;
             for (auto a : argsCSV)
             {
-                auto param = parseParameter(a);
+                auto param = parse_param(a);
                 // TODO: Implement fancier generic finder
                 // try to resolve parameters to generic types if at all possible
-                if(auto tp = param->type->custom()){
-                for (auto g : generic_args)
+                if (auto tp = param->type->custom())
+                {
+                    for (auto g : generic_args)
                     {
                         if (g->name->str() == tp->name->str())
                         {
@@ -558,12 +565,10 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
                     }
                 }
 
-
                 argTypes[param->name->str()] = param->type;
                 params.push_back(param);
             }
-            
-            
+
             Type *returnType;
             method->local_types = new LocalTypeTable;
 
@@ -571,8 +576,9 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             if (toks[0].is(TT_arrow))
             {
                 popf(toks);
-                returnType = parseType(toks, method);
-                if(auto typ = returnType->custom()){
+                returnType = parse_type(toks, method);
+                if (auto typ = returnType->custom())
+                {
                     for (auto g : generic_args)
                     {
                         if (g->name->str() == typ->name->str())
@@ -587,7 +593,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             {
                 returnType = Primitive::get(PR_void);
             }
-            
+
             // keep track of the arg types too
             *method->local_types = argTypes;
             auto sig = new MethodSignature();
@@ -595,7 +601,7 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             if (toks[0].is(TT_l_brace))
             {
                 auto contentToks = readBlock(toks, IND_braces);
-                auto content = parseSourceBlock(contentToks, method, argTypes);
+                auto content = parse_source(contentToks, method, argTypes);
                 method->gobble(content);
             }
             else
@@ -624,17 +630,19 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             continue;
         }
         // Metadata
-        if(c.is(TT_hashtag)){
+        if (c.is(TT_hashtag))
+        {
             auto content = readBlock(toks, IND_square_brackets);
 
             auto name = popf(content);
             expects(name, TT_identifier);
 
             auto paramsToks = readBlock(content, IND_parens);
-            auto paramsCSV = parseCommaSeparatedValues(paramsToks);
+            auto paramsCSV = parse_cst(paramsToks);
             Block<Expression> params;
-            for(auto p:paramsCSV){
-                auto expr = parseExpression(p, nullptr);
+            for (auto p : paramsCSV)
+            {
+                auto expr = parse_expr(p, nullptr);
                 params.push_back(expr);
             }
             auto meta = new TopLevelMetadata;
@@ -642,16 +650,19 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
             meta->parameters = params.take();
             metadata.push_back(meta);
             continue;
-
         }
-        
-        if(c.is(TT_public_access)){
-            if(isPublic)expects(c, TT_notok);
+
+        if (c.is(TT_public_access))
+        {
+            if (isPublic)
+                expects(c, TT_notok);
             isPublic = true;
             continue;
         }
-        if(c.is(TT_instance_access)){
-            if(isInstance)expects(c, TT_notok);
+        if (c.is(TT_instance_access))
+        {
+            if (isInstance)
+                expects(c, TT_notok);
             isInstance = true;
             continue;
         }
@@ -659,13 +670,26 @@ void parseModuleContent(vector<Token> &toks, Module *mod)
     }
 }
 
-ModuleReference *parseCompositor(vector<Token> &toks)
+ModuleReference *parse_compositor(vector<Token> &toks)
 {
     auto name = parseIdentifier(toks, nullptr);
-    if (toks.size())
-        error("Complex Compositor Support is WIP");
     auto c = new ModuleReference;
     c->name = name;
+
+    if (toks.size())
+    {
+        Block<Expression> params;
+        auto block = readBlock(toks, IND_parens);
+        auto csv = parse_cst(block);
+        for (auto e : csv)
+        {
+            auto expr = parse_expr(e, nullptr);
+            params.push_back(expr);
+        }
+        c->params = params.take();
+    }
+    if (toks.size())
+        error("Failed to parse module compositor");
     return c;
 }
 
@@ -693,6 +717,34 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             CompoundIdentifier *alias = target;
             if (importExprToks.size())
             {
+                std::vector<Ident *> specific_members;
+                if (importExprToks[0].is(TT_double_colon) && importExprToks[1].is(TT_l_brace))
+                {
+                    popf(importExprToks);
+                    auto members = readBlock(importExprToks, IND_braces);
+                    auto members_csv = parse_cst(members);
+                    for (auto m : members_csv)
+                    {
+                        if (m.size() != 1)
+                            error("Can only import as a simple ident");
+                        auto name = m[0];
+                        expects(name, TT_identifier);
+                        specific_members.push_back(Ident::get(name.value));
+                    }
+                    if (importExprToks.size())
+                        expects(importExprToks[0], TT_notok);
+                    for (auto member : specific_members)
+                    {
+                        auto import = new Import(target, isStd, new CompoundIdentifier(member->name));
+                        import->member = member;
+                        unit.push_back(import);
+                    }
+                    break;
+                }
+  
+                }
+            if (importExprToks.size())
+            {
                 auto as = popf(importExprToks);
                 expects(as, TT_as);
                 if (importExprToks.size() == 0)
@@ -711,11 +763,13 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             auto mod = new Module();
             auto name = popf(toks);
             Block<Generic> generics;
-            if(toks[0].is(TT_lesser)){
+            if (toks[0].is(TT_lesser))
+            {
                 auto block = readBlock(toks, IND_angles);
-                auto generic_params = parseCommaSeparatedValues(block);
-                for(auto gp:generic_params){
-                    auto generic = parseGeneric(gp, nullptr);
+                auto generic_params = parse_cst(block);
+                for (auto gp : generic_params)
+                {
+                    auto generic = parse_generic(gp, nullptr);
                     generics.push_back(generic);
                 }
             }
@@ -723,17 +777,17 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             if (toks[0].is(TT_is))
             {
                 popf(toks);
-                auto compositorToks = readUntil(toks, TT_l_brace, false);
-                auto csv = parseCommaSeparatedValues(compositorToks);
+                auto compositorToks = readUntil(toks, TT_l_brace);
+                auto csv = parse_cst(compositorToks);
                 for (auto member : csv)
                 {
-                    compositors.push_back(parseCompositor(member));
+                    compositors.push_back(parse_compositor(member));
                 }
             }
             auto moduleToks = readBlock(toks, IND_braces);
             mod->name = new CompoundIdentifier(name.value);
             mod->compositors = compositors;
-            parseModuleContent(moduleToks, mod);
+            parse_mod(moduleToks, mod);
             unit.push_back(mod);
             break;
         }

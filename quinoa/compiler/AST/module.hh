@@ -3,6 +3,7 @@
 class Import:public TopLevelExpression{
 public:
     CompoundIdentifier* target;
+    Ident* member = nullptr;
     bool isStdLib = false;
     CompoundIdentifier* alias;
 
@@ -15,9 +16,13 @@ public:
         return true;
     }
 };
+class Module;
+
 class ModuleReference:public Block<Expression>{
 public:
     Identifier* name;
+    Module* refersTo;
+    Block<Expression> params;
 };
 class Method;
 class Module:public TopLevelExpression, public Block<ModuleMember>{
@@ -30,11 +35,11 @@ public:
         return true;
     }
 
-    bool is(std::string comp){
+    ModuleReference* comp(std::string comp){
         for(auto c:compositors){
-            if(c->name->str() == comp)return true;
+            if(c->name->str() == comp)return c;
         }
-        return false;
+        return nullptr;
     } 
     void remove(std::string comp){
         int idx = -1;

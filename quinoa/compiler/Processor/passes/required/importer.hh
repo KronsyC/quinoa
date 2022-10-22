@@ -30,21 +30,31 @@ std::string gen_random_safe_string(int size)
       return str;
   }
 };
-Module *get_primary_export(CompilationUnit &unit)
-{
-  Module *ret = nullptr;
-  for (auto mod : unit.getAllModules())
-  {
-    if (mod->is("Exported"))
-    {
-      if (ret)
-        error("Cannot Export Multiple Modules from a file");
-      mod->remove("Exported");
-      ret = mod;
+
+std::map<std::string, Module*> gen_export_table(CompilationUnit& unit){
+  std::map<std::string, Module*> exports;
+  Logger::debug("Building Export Table");
+  for(auto mod:unit.getAllModules()){
+    if(mod->isImported)continue;
+    if(auto comp = mod->comp("Exported")){
+      Logger::debug("Found Export " + mod->name->str());
+      if(comp->params.size()){
+        if(comp->params.size() != 1)error("The `Exported` attribute only takes one parameter");
+        auto name = comp->params[0];
+        if(!instanceof<String>(name))error("An Exports name must be a string");
+        auto nm = (String*)name;
+        Logger::debug("Named export");
+        exports[nm->value] = mod;
+      }
+      else{
+        Logger::debug("Default Export");
+        exports["__default__"] = mod;
+      }
     }
   }
-  return ret;
-};
+  return exports;
+}
+
 
 void prefixify_children(CompilationUnit &unit, std::string prefix)
 {
@@ -86,7 +96,7 @@ void merge_units(CompilationUnit &tgt, CompilationUnit donor)
   }
 }
 
-static std::map<std::string, Module *> exports;
+static std::map<std::string, std::map<std::string, Module *>> exports;
 static std::map<std::string, CompilationUnit *> import_cache;
 CompilationUnit get_ast_from_path(std::string path, Ident* filename)
 {
@@ -101,12 +111,8 @@ CompilationUnit get_ast_from_path(std::string path, Ident* filename)
     auto prefix = gen_random_str(10);
     prefixify_children(ast, prefix);
 
-    auto primary_export = get_primary_export(ast);
-    primary_export->name->parts.pop_back();
-    primary_export->name->parts.push_back(filename);
-    exports[path] = primary_export;
-    if (primary_export == nullptr)
-      error("Failed to Import Module " + filename->str());
+    auto export_table = gen_export_table(ast);
+    exports[path] = export_table;
 
     import_cache[path] = new CompilationUnit(ast);
     return ast;
@@ -153,10 +159,10 @@ void resolve_imports(CompilationUnit &unit)
         // into the unit
         merge_units(unit, ast);
 
-        auto mod = exports[rpath];
-        if (!mod)
-          error("Failed to Locate Module " + rpath);
+        auto table = exports[rpath];
 
+        auto mod = import->member?table[import->member->str()]:table["__default__"];
+        if(!mod)error("Failed to import Module");
         // Replace all references to the alias with the actual name
         auto name = mod->name;
         auto alias = import->alias;

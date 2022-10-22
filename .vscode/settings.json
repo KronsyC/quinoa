@@ -91,7 +91,23 @@
         "valarray": "cpp",
         "*.def": "cpp",
         "stdarg.h": "c",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "cassert": "cpp",
+        "ccomplex": "cpp",
+        "cerrno": "cpp",
+        "cfloat": "cpp",
+        "ciso646": "cpp",
+        "climits": "cpp",
+        "cstdalign": "cpp",
+        "cstdbool": "cpp",
+        "ctgmath": "cpp",
+        "filesystem": "cpp",
+        "ios": "cpp",
+        "locale": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "version": "cpp",
+        "*.rh": "cpp"
     },
     "discord.enabled": true
 }

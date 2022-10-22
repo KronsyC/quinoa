@@ -1,5 +1,9 @@
-import @native::struct;
+import @native::struct as Struct;
+import @native::struct::{Structable};
 
+module Something is Structable{
+
+}
 
 module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{

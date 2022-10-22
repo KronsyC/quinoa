@@ -27,6 +27,7 @@ std::string readFile(std::string path){
 llvm::Module* createModule(std::string sourceCode, std::string path, bool log){
     // Lex the file into a token vector
     auto ast = makeAst(sourceCode, path, false);
+    Logger::debug("Parsed");
     Processor::process(ast, true);
     if(log)Logger::log("Generated the AST");
     auto mod = Codegen::codegen(ast);
@@ -35,7 +36,6 @@ llvm::Module* createModule(std::string sourceCode, std::string path, bool log){
 }
 std::string compile(std::string sourceCode, std::string path){
     auto mod = createModule(sourceCode, path, true);
-    mod->setTargetTriple("x86_64-pc-linux-gnu");
     std::string output;
     llvm::raw_string_ostream rso(output);
     mod->print(rso, nullptr);

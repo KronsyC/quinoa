@@ -10,7 +10,7 @@ void gen_entrypoint(CompilationUnit &unit)
     if (instanceof <Module>(member))
     {
       auto mod = (Module *)member;
-      if (mod->is("Entry"))
+      if (mod->comp("Entry"))
         entryPointCandidates.push_back(mod);
     }
   }

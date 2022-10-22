@@ -88,8 +88,21 @@ Token readNextToken(string& str){
     // Trim
     trimStart(str);
     if(str.length()==0)return make(TT_eof);
+    
+    // Comment Check
+    if(startsWith(str, "//")){
+        while(str[0] != '\n')popf(str);
+        popf(str);
+        return readNextToken(str);
+    }
+    if(startsWith(str, "/*")){
+        while(!startsWith(str, "*/"))popf(str);
+        popf(str);
+        popf(str);
+        return readNextToken(str);
+    }
 
-    // std::string Check
+    // string Check
     if(startsWith(str, "\"")){
         std::string val;
         popf(str);

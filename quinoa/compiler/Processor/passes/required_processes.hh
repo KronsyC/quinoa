@@ -2,14 +2,15 @@
 
 #include "./include.h"
 
+#include "./required/compositor_resolver.hh"
 #include "./required/array_validator.hh"
 #include "./required/call_qualifier.hh"
 #include "./required/importer.hh"
 #include "./required/type_resolver.hh"
 
-
 void process_required(CompilationUnit& unit){
     resolve_imports(unit);
+    resolve_compositors(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
     Logger::enqueueMode(true);

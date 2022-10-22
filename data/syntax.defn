@@ -234,6 +234,7 @@ dot
 @alias ...
 ellipsis
 
+
 @alias /
 @infix 5
 slash
@@ -345,6 +346,8 @@ public_access
 
 @alias inst
 instance_access
+
+# Builtin Functions
 
 @builtin cast
 cast

@@ -21,7 +21,7 @@ void ill(int sig){
 }
 
 void abort(int sig){
-    error("SigAbrt", true);
+    // error("SigAbrt", true);
 }
 
 string buildIr(string path){
