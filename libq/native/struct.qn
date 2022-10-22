@@ -1,0 +1,3 @@
+module Struct<U> is Exported, CompilerImplemented{
+    pub func create<T: Struct>() -> Struct<T>;
+}

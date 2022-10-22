@@ -58,42 +58,6 @@ CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock *ctx)
     id->ctx = ctx;
     return id;
 }
-Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx);
-Type *parseType(vector<Token> &toks, SourceBlock *ctx)
-{
-    if (!toks.size())
-        error("Failed To Parse Type");
-    Type *ret = nullptr;
-    // Special case for strings
-    if (toks[0].is(TT_string))
-    {
-        popf(toks);
-        ret = new TPtr(Primitive::get(PR_int8));
-    }
-    else if (toks[0].isTypeTok())
-        ret = Primitive::get(primitive_mappings[popf(toks).type]);
-    else
-    {
-        auto references = parseIdentifier(toks, ctx);
-        ret = new CustomType(references);
-    }
-
-    while (toks.size() && toks[0].is(TT_star))
-    {
-        popf(toks);
-        ret = new TPtr(ret);
-    }
-    if (toks.size() && toks[0].is(TT_l_square_bracket))
-    {
-        // Type Array
-        auto size = readBlock(toks, IND_square_brackets);
-        if (size.size() == 0)
-            ret = new ListType(ret, nullptr);
-        else
-            ret = new ListType(ret, parseExpression(size, ctx));
-    }
-    return ret;
-}
 vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
 {
     if (toks.size() == 0)
@@ -130,6 +94,56 @@ vector<vector<Token>> parseCommaSeparatedValues(vector<Token> &toks)
     }
     retVal.push_back(temp);
     return retVal;
+}
+
+Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx);
+Type *parseType(vector<Token> &toks, SourceBlock *ctx)
+{
+    if (!toks.size())
+        error("Failed To Parse Type");
+    Type *ret = nullptr;
+    // Special case for strings
+    if (toks[0].is(TT_string))
+    {
+        popf(toks);
+        ret = new TPtr(Primitive::get(PR_int8));
+    }
+    else if (toks[0].isTypeTok())
+        ret = Primitive::get(primitive_mappings[popf(toks).type]);
+    else
+    {
+        auto references = parseIdentifier(toks, ctx);
+        ret = new CustomType(references);
+    }
+
+    while (toks.size() && toks[0].is(TT_star))
+    {
+        popf(toks);
+        ret = new TPtr(ret);
+    }
+    if (toks.size() && toks[0].is(TT_l_square_bracket))
+    {
+        // Type Array
+        auto size = readBlock(toks, IND_square_brackets);
+        if (size.size() == 0)
+            ret = new ListType(ret, nullptr);
+        else
+            ret = new ListType(ret, parseExpression(size, ctx));
+    }
+
+    // Generic Parameter to type
+    if(toks.size() && toks[0].is(TT_lesser)){
+        if(!ret->custom())error("You can only pass type-parameters to a named type-reference");
+        auto argsBlock = readBlock(toks, IND_angles);
+        auto csv = parseCommaSeparatedValues(argsBlock);
+        Block<Type> args;
+        for(auto gp:csv){
+            auto gt = parseType(gp, ctx);
+            args.push_back(gt);
+        }
+        ret->custom()->type_args = args.take();
+    }
+    return ret;
 }
 
 Expression *parseExpression(vector<Token> &toks, SourceBlock *ctx)
@@ -694,7 +708,17 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
         }
         case TT_module:
         {
+            auto mod = new Module();
             auto name = popf(toks);
+            Block<Generic> generics;
+            if(toks[0].is(TT_lesser)){
+                auto block = readBlock(toks, IND_angles);
+                auto generic_params = parseCommaSeparatedValues(block);
+                for(auto gp:generic_params){
+                    auto generic = parseGeneric(gp, nullptr);
+                    generics.push_back(generic);
+                }
+            }
             vector<ModuleReference *> compositors;
             if (toks[0].is(TT_is))
             {
@@ -707,7 +731,6 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 }
             }
             auto moduleToks = readBlock(toks, IND_braces);
-            auto mod = new Module();
             mod->name = new CompoundIdentifier(name.value);
             mod->compositors = compositors;
             parseModuleContent(moduleToks, mod);

@@ -22,6 +22,7 @@ public:
 class Method;
 class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
+    Block<Generic> generics;
     CompoundIdentifier* name;
     std::vector<ModuleReference*> compositors; 
     bool undergone_appropriate_processing = false;
