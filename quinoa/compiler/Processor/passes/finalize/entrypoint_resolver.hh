@@ -22,10 +22,11 @@ void gen_entrypoint(CompilationUnit &unit)
         "Multiple Entry-Points were found, this may cause Unexpected Behavior");
   }
   auto entry = entryPointCandidates[0];
-  std::string entryName = "main";
+  std::string entryName =entry->name->str()+"::main";
   for(auto item:*entry){
     if(instanceof<Method>(item)){
       auto m = (Method*)item;
+      Logger::debug("method " + m->sig->name->str());
       if(m->sig->name->str() == entryName){
         if(!m->public_access)error("The main() method must be public");
         unit.push_back(new Entrypoint(m->sig));

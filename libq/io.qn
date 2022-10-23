@@ -18,13 +18,13 @@ module IO is Exported{
         let len = syscall::write(
             1, 
             cast<i64>(message), 
-            strlen(message)
+            IO::strlen(message)
         );
         return len;
     }
     pub func println(message:c_str) -> i64{
-        let len = print(message);
-        putc(10);
+        let len = IO::print(message);
+        IO::putc(10);
         return len+1;
     }
 }

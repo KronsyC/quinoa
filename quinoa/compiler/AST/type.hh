@@ -21,6 +21,9 @@ private:
     }
 
 public:
+    std::vector<Statement*> flatten(){
+        return {this};
+    }
     PrimitiveType type;
     Primitive *primitive()
     {
@@ -208,9 +211,31 @@ public:
     }
 };
 
+class ModuleRef;
+class ModuleType:public Type{
+public:
+    ModuleRef* ref;
+    ModuleType(ModuleRef* ref){
+        this->ref = ref;
+    }   
+
+    std::string str(){
+        return ref->str();
+    } 
+
+    std::vector<Statement*> flatten(){
+        return {this};
+    }
+};
+
 class TPtr : public Type
 {
 public:
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m:to->flatten())ret.push_back(m);
+        return ret;
+    }
     TPtr(Type *type)
     {
         to = type;

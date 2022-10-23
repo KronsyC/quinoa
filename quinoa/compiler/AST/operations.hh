@@ -12,20 +12,22 @@ class MethodCall : public Expression
 {
 public:
   MethodSignature *target = nullptr;
-  Identifier *name;
+  Identifier* name;
   Block<Expression> params;
   Block<Type> generic_params;
 
-
-  MethodCall* copy(SourceBlock* ctx){
+  MethodCall *copy(SourceBlock *ctx)
+  {
     auto c = new MethodCall;
     c->ctx = ctx;
     c->name = name->copy(ctx);
     c->target = target;
-    for(auto p:params){
+    for (auto p : params)
+    {
       c->params.push_back(p->copy(ctx));
     }
-    for(auto g:generic_params){
+    for (auto g : generic_params)
+    {
       c->generic_params.push_back(g->copy(ctx));
     }
     return c;
@@ -37,15 +39,19 @@ public:
     for (auto p : params)
       for (auto f : p->flatten())
         ret.push_back(f);
-    for(auto m:name->flatten())ret.push_back(m);
+    for (auto m : name->flatten())
+      ret.push_back(m);
     return ret;
   }
   Type *getType()
   {
-    if(builtin()){
+    if (builtin())
+    {
       auto name = this->name->str();
-      if(name == "cast")return generic_params[0];
-      if(name == "len")return Primitive::get(PR_int64);
+      if (name == "cast")
+        return generic_params[0];
+      if (name == "len")
+        return Primitive::get(PR_int64);
       Logger::error("Failed to get return type for builtin " + name);
       return nullptr;
     }
@@ -56,20 +62,25 @@ public:
     }
     return target->returnType;
   }
-  bool builtin(){
+  bool builtin()
+  {
     auto name = this->name->str();
-    for(auto d:defs){
-      if(d->builtin == name)return true;
-      
+    for (auto d : defs)
+    {
+      if (d->builtin == name)
+        return true;
     }
     return false;
   }
   llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
   {
-    if(builtin()){
+    if (builtin())
+    {
       auto name = this->name->str();
-      if(name == "cast"){
-        if(params.size() != 1)error("cast<T>() takes one parameter");
+      if (name == "cast")
+      {
+        if (params.size() != 1)
+          error("cast<T>() takes one parameter");
         auto type = generic_params[0]->getLLType();
         auto val = params[0]->getLLValue(vars, type);
         return val;
@@ -103,10 +114,12 @@ public:
 
     return bld.CreateCall(tgtFn, llparams);
   }
-  Block<Generic> make_generic_refs(){
+  Block<Generic> make_generic_refs()
+  {
     Block<Generic> g;
 
-    for(auto gp:generic_params){
+    for (auto gp : generic_params)
+    {
       auto gen = new Generic(Ident::get("unknown_generic_param_name"));
       gen->refersTo = gp;
       g.push_back(gen);
@@ -120,7 +133,8 @@ public:
   {
     if (ctx == nullptr)
       error("Cannot Resolve a contextless call");
-    if(builtin())return;
+    if (builtin())
+      return;
     std::vector<Param *> testparams;
     int i = 0;
     for (auto p : params)
@@ -134,8 +148,7 @@ public:
       testparams.push_back(new Param(type, nullptr));
       i++;
     }
-    
-    
+
     // Construct a fake signature to match against
     auto callsig = new MethodSignature;
     callsig->name = name;
@@ -143,74 +156,88 @@ public:
     callsig->generics = make_generic_refs();
 
     auto sigstr = callsig->sigstr();
-
+    Logger::debug("Resolve call to " + sigstr.str());
+    for(auto pair:sigs){
+      Logger::debug("-> " + pair.first);
+    }
     // attempt to find a function with the exact sig
-    error("No can do");
-    // auto fn = sigs[callname.str()];
-    // if (fn == nullptr)
-    // {
-    //   sigs.erase(callname.str());
-    //   // Run Compatibility Checks on each sigstr pair to find
-    //   // the most compatible function to match to
-    //   int best = -1;
-    //   int idx = -1;
-    //   int i = -1;
-    //   MethodSigStr bestSigStr;
-    //   auto cs = callsig->sigstr();
-    //   for (auto sigpair : sigs)
-    //   {
-    //     i++;
-    //     auto sig = sigpair.second;
-    //     auto name = sigpair.first;
-    //     if (sig->nomangle)continue;
-    //     auto sigs = sig->sigstr();
-    //     int compat = getCompatabilityScore(sigs, cs);
-    //     if(compat == -1)continue;
-    //     if( compat <= best || best == -1 ){
-    //       best = compat;
-    //       bestSigStr = sigs;
-    //       idx = i;
-    //     }
-    //   }
-    //   if (idx == -1)
-    //   {
-    //     Logger::error("Failed to generate function call to " + callname.str());
-    //     return;
-    //   }
-    //   int ind = 0;
-    //   for (auto pair : sigs)
-    //   {
-    //     if (ind == idx)
-    //     {
-    //       if(pair.second->isGeneric()){
-    //         auto gen = pair.second->impl_as_generic(bestSigStr.generics);
-    //         target = gen;
-    //       }
-    //       else target = pair.second;
+    auto fn = sigs[sigstr.str()];
+    if (fn)
+    {
+      target = fn;
+      return;
+    }
+    sigs.erase(sigstr.str());
+    // Run Compatibility Checks on each sigstr pair to find
+    // the most compatible function to match to
+    int best = -1;
+    int idx = -1;
+    i = -1;
+    MethodSigStr bestSigStr;
+    auto cs = callsig->sigstr();
+    for (auto sigpair : sigs)
+    {
+      i++;
+      auto sig = sigpair.second;
+      auto name = sigpair.first;
+      if (sig->nomangle)
+        continue;
+      auto sigs = sig->sigstr();
+      int compat = getCompatabilityScore(sigs, cs);
+      if (compat == -1)
+        continue;
+      if (compat <= best || best == -1)
+      {
+        best = compat;
+        bestSigStr = sigs;
+        idx = i;
+      }
+    }
+    if (idx == -1)
+    {
+      Logger::error("Failed to generate function call to " + sigstr.str());
+      return;
+    }
+    int ind = 0;
+    for (auto pair : sigs)
+    {
+      if (ind == idx)
+      {
+        if (pair.second->isGeneric())
+        {
+          auto gen = pair.second->impl_as_generic(bestSigStr.generics);
+          target = gen;
+        }
+        else
+          target = pair.second;
 
-    //       auto method = target->belongsTo;
-    //       return;
-    //     }
-    //     ind++;
-    //   }
-    //   return;
-    // }
-    // target = fn;
+        auto method = target->belongsTo;
+        return;
+      }
+      ind++;
+    }
+    return;
   }
 
 private:
-  static int getCompat(Type* t1, Type* t2, bool second=false){
-    if(t1 == t2)return 0;
+  static int getCompat(Type *t1, Type *t2, bool second = false)
+  {
+    if (t1 == t2)
+      return 0;
 
-    if(t1->primitive() && t2->primitive()){
+    if (t1->primitive() && t2->primitive())
+    {
       auto p1 = t1->primitive();
       auto p2 = t2->primitive();
       auto g1 = primitive_group_mappings[p1->type];
       auto g2 = primitive_group_mappings[p2->type];
-      if (g1 == g2)return 1;
-      else return -1;
+      if (g1 == g2)
+        return 1;
+      else
+        return -1;
     }
-    if(t1->ptr() && t2->ptr()){
+    if (t1->ptr() && t2->ptr())
+    {
       auto p1 = t1->ptr();
       auto p2 = t2->ptr();
 
@@ -218,16 +245,20 @@ private:
       auto r2 = p2->to;
       return getCompat(r1, r2);
     }
-    if(auto ref = t1->custom()){
+    if (auto ref = t1->custom())
+    {
       return getCompat(ref->refersTo, t2);
     }
-    if(auto ref = t2->custom()){
+    if (auto ref = t2->custom())
+    {
       return getCompat(t1, ref->refersTo);
     }
-    if(second)return -1;
-    else return getCompat(t2, t1, true);
+    if (second)
+      return -1;
+    else
+      return getCompat(t2, t1, true);
   }
-  static int getCompatabilityScore(MethodSigStr& func,
+  static int getCompatabilityScore(MethodSigStr &func,
                                    MethodSigStr mock)
   {
     if (func.name->str() != mock.name->str())
@@ -242,50 +273,59 @@ private:
       }
     }
 
-
     // We got a generic function
     // Try to decipher each generic type
-    if(func.generics.size()){
-      if(func.generics.size()>1)error("Functions may only have one generic parameter for the time being");
-      if(mock.generics.size() > func.generics.size())return -1;
-      if(mock.generics.size()){
+    if (func.generics.size())
+    {
+      if (func.generics.size() > 1)
+        error("Functions may only have one generic parameter for the time being");
+      if (mock.generics.size() > func.generics.size())
+        return -1;
+      if (mock.generics.size())
+      {
         func.generics[0]->generic()->refersTo = mock.generics[0];
 
         auto p1 = func.params[0];
       }
-      else{
+      else
+      {
         // find all the params that share the generic type
         // put them into a list, and use the getType method
-        std::map<std::string, Type*> generic_type_mappings;
-        for(int i = 0; i<mock.params.size();i++){
+        std::map<std::string, Type *> generic_type_mappings;
+        for (int i = 0; i < mock.params.size(); i++)
+        {
           auto fp = func.params[i];
           auto mp = mock.params[i];
-
 
           /*
           type_pair.first -> Found Type
           type_pair.second -> Found Against (Should be generic name)
           */
           auto type_pair = mp->type->find_mismatch(fp->type);
-          if(!type_pair.second->generic())error("Expected A Generic Type");
+          if (!type_pair.second->generic())
+            error("Expected A Generic Type");
           auto gen = type_pair.second->generic();
           auto as = type_pair.first;
           auto name = gen->name->str();
-          if(!generic_type_mappings[name])generic_type_mappings[name] = as;
-          else{
+          if (!generic_type_mappings[name])
+            generic_type_mappings[name] = as;
+          else
+          {
             // Get Compatable Type
             auto old_type = generic_type_mappings[name];
             auto new_type = getCommonType(old_type, as);
             generic_type_mappings[name] = new_type;
           }
         }
-      
+
         // write the references according to the table
-        for(auto generic_param:func.generics){
+        for (auto generic_param : func.generics)
+        {
           auto gen = generic_param->generic();
           auto name = gen->name->str();
           auto refersTo = generic_type_mappings[name];
-          if(!refersTo)error("Failed To Get Type For Generic Param " + name);
+          if (!refersTo)
+            error("Failed To Get Type For Generic Param " + name);
           gen->refersTo = refersTo;
         }
       }
@@ -299,8 +339,10 @@ private:
       auto baram = func.getParam(i)->type;
       auto taram = mock.getParam(i)->type;
       auto score = getCompat(baram, taram);
-      if(score==-1)return -1;
-      else score+=10*score;
+      if (score == -1)
+        return -1;
+      else
+        score += 10 * score;
     }
 
     // TODO: Implement Type Reference Inheritance Tree Crawling (Each step up
@@ -328,7 +370,8 @@ public:
     return true;
   }
 
-  Return* copy(SourceBlock* ctx){
+  Return *copy(SourceBlock *ctx)
+  {
     auto r = new Return(retValue->copy(ctx));
     r->ctx = ctx;
     return r;
@@ -609,7 +652,8 @@ public:
     // TODO: Fix this up
     return this->right->getType();
   }
-  BinaryOperation* copy(SourceBlock* ctx){
+  BinaryOperation *copy(SourceBlock *ctx)
+  {
     auto bop = new BinaryOperation(left->copy(ctx), right->copy(ctx), op);
     bop->ctx = ctx;
     return bop;
@@ -645,7 +689,8 @@ public:
           else
             bld.CreateStore(cast(r, typ), ptr);
         }
-        else{
+        else
+        {
           bld.CreateStore(cast(r, typ), ptr);
         }
         return cast(r, expected);

@@ -192,7 +192,6 @@ public:
     std::string str(){
         std::string ret = name->str();
         if(type_params.size()){
-            Logger::debug("Generics for " + ret);
             ret+="<";
             bool first = true;
             for(auto t:type_params){
@@ -201,6 +200,15 @@ public:
                 first = false;
             }
             ret+=">";
+        }
+        return ret;
+    }
+    ModuleRef* copy(SourceBlock* ctx){
+        auto ret = new ModuleRef;
+        ret->name = name->copy(ctx);
+        ret->refersTo = refersTo;
+        for(auto tp:type_params){
+            ret->type_params.push_back(tp->copy(ctx));
         }
         return ret;
     }
@@ -215,9 +223,11 @@ class ModuleMemberRef:public Identifier{
 public:
     ModuleRef* mod;
     Ident* member;
-
-    ModuleMemberRef(){
-
+    ModuleMemberRef* copy(SourceBlock* ctx){
+        auto ret = new ModuleMemberRef;
+        ret->member = member->copy(ctx);
+        ret->mod = mod->copy(ctx);
+        return ret;
     }
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this, member};

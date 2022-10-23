@@ -149,14 +149,23 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
     return ret;
 }
 
-Identifier* parse_ident(std::vector<Token>& toks, SourceBlock* ctx){
+Identifier* parse_ident(std::vector<Token>& toks, SourceBlock* ctx, bool must_be_member=false){
     Identifier* ret;
     // the base is essentially guaranteed to be a compound identifier, this could refer to anything
     auto base = parse_compound_ident(toks, ctx);
     ret = base;
     // If there are any generic parameters at play, assume we are working with a generic modref
     if(toks.size() && toks[0].is(TT_lesser)){
+        auto before = toks;
         auto block = readBlock(toks, IND_angles);
+        // If after is not a double-colon, and must be member
+        // rollback
+        auto after = toks[0];
+        if(!after.is(TT_double_colon) && must_be_member){
+            toks = before;
+            return ret;
+        }
+
         auto csv = parse_cst(block);
         auto modref = new ModuleRef;
         modref->name = base;
@@ -216,7 +225,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
     if (c.is(TT_identifier))
     {
         auto initial = toks;
-        auto target = parse_ident(toks, ctx);
+        auto target = parse_ident(toks, ctx, true);
         target->ctx = ctx;
         if (toks[0].is(TT_l_paren) || toks[0].is(TT_lesser))
         {

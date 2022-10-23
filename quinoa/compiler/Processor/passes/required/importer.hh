@@ -71,16 +71,22 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
 
     for (auto member : content)
     {
+
+      // Dealiasify both member access and direct references
       if (instanceof <CompoundIdentifier>(member))
       {
         auto ident = (CompoundIdentifier *)member;
         auto ns = ident->all_but_last();
         if (ns->equals(alias))
         {
-          delete ns;
           auto name = ident->last();
           CompoundIdentifier deAliasedName({fullname, name});
           *ident = deAliasedName;
+        }
+        delete ns;
+
+        if(ident->equals(alias)){
+          *ident = *fullname;
         }
       }
     }
@@ -109,7 +115,7 @@ CompilationUnit get_ast_from_path(std::string path, Ident* filename)
 
     // add the unique namespace prefix to the module
     auto prefix = gen_random_str(10);
-    prefixify_children(ast, prefix);
+    // prefixify_children(ast, prefix);
 
     auto export_table = gen_export_table(ast);
     exports[path] = export_table;
