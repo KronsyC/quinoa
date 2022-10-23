@@ -27,19 +27,19 @@ void Logger::writeLog(string message, Logger::LogLevel level)
     switch (level)
     {
     case Logger::LL_INFO:
-        prefix = "\e[0;36mINFO";
+        prefix = "\033[0;36mINFO";
         break;
     case Logger::LL_DEBUG:
-        prefix = "\e[0;32mDEBUG";
+        prefix = "\033[0;32mDEBUG";
         break;
     case Logger::LL_WARN:
-        prefix = "\e[0;33mWARN";
+        prefix = "\033[0;33mWARN";
         break;
     case Logger::LL_ERR:
-        prefix = "\e[0;31mERROR";
+        prefix = "\033[0;31mERROR";
         break;
     }
-    printf("[%s\e[0;0m]: %s\n", prefix.c_str(), message.c_str());
+    printf("[%s\033[0;0m]: %s\n", prefix.c_str(), message.c_str());
 }
 
 void Logger::log(string message)

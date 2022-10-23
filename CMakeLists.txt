@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_BUILD_TYPE DEBUG)
 
+
 execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE SYS_LIBS )
 execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE LIBS )
 execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LDF )
@@ -18,7 +19,6 @@ string(STRIP ${LDF} LDF)
 link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 
 add_compile_options(-O1)
-add_link_options()
 
 
 add_definitions(-DLIBQ_DIR="/home/casey/quinoa/libq")
@@ -30,5 +30,6 @@ file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 # )
 # FetchContent_MakeAvailable(toml11)
 add_executable(quinoa ${sources})
+target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter)
 
 # target_link_libraries(quinoa PRIVATE toml11)

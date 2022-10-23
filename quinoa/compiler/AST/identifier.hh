@@ -19,7 +19,7 @@ public:
         error("Cannot getPtr to a base identifier");
         return nullptr;
     }
-    Identifier* copy(SourceBlock* ctx){
+    Identifier* copy(SourceBlock* _ctx){
         error("Cannot copy base identifier type");
         return nullptr;
     }
@@ -130,7 +130,7 @@ public:
     // declared member name
     CompoundIdentifier* all_but_last(){
         auto ret = new CompoundIdentifier;
-        for(int i = 0;i<size()-1;i++){
+        for(unsigned int i = 0;i<size()-1;i++){
             auto item = this->at(i);
             ret->push_back(item);
         }
@@ -139,7 +139,7 @@ public:
 
     bool equals(CompoundIdentifier* compare){
         if(compare->size() != this->size())return false;
-        for(int i = 0;i<compare->size();i++){
+        for(unsigned int i = 0;i<compare->size();i++){
             auto mine = (*this)[i];
             auto cmp = (*compare)[i];
             if(mine->name != cmp->name)return false;

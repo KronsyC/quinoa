@@ -15,7 +15,7 @@ public:
     TokenType ttype;
     std::string name;
     
-	DEFINITIONS_STR;
+	DEFINITIONS_STR
 
     TokenDefinition(TokenType ttype, std::string name DEFINITIONS_ARGS){
         this->ttype = ttype;

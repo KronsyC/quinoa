@@ -30,7 +30,7 @@ bool startsWith(string str, std::string substr){
     if(substr.size() > str.size())return false;
     if(substr.size() == 0)return true;
     if(substr.size() == 1)return str[0] == substr[0];
-    for(int i = 0; i<substr.size(); ++i){
+    for(unsigned int i = 0; i<substr.size(); ++i){
         auto tgt = str[i];
         auto cmp = substr[i];
         if(tgt != cmp)return false;
@@ -158,7 +158,7 @@ Token readNextToken(string& str){
             for(auto d:defs){
                 if(includes(d->alias, a)){
                     // skip n tokens ahead;
-                    for(int i = 0; i<a.size();i++){
+                    for(unsigned int i = 0; i<a.size();i++){
                         popf(str);
                     }
                     col+=a.size();

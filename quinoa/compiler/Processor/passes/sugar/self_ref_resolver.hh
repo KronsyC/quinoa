@@ -11,7 +11,6 @@ void resolve_self_refs(SourceBlock *content, ModuleRef *mod)
     if (instanceof <MethodCall>(m))
     {
       auto call = (MethodCall *)m;
-      auto ctx = call->ctx;
       if (call->builtin())
         continue;
       if(!call->name->mod){

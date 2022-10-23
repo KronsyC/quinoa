@@ -134,7 +134,6 @@ public:
         auto ct = new CustomType(name);
         ct->ctx = ctx;
         if(refersTo){
-            auto copy = refersTo->copy(ctx);
             ct->refersTo = refersTo->copy(ctx);
         }
         for(auto a:type_args){

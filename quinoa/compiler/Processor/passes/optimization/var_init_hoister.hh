@@ -36,7 +36,7 @@ void hoistVarInitializations(CompilationUnit &unit)
 		auto flat = method->flatten();
 		// remove all declarations and push them into a list
 		std::vector<InitializeVar *> allInitializations;
-		for (int i = 0; i < flat.size(); i++)
+		for (unsigned int i = 0; i < flat.size(); i++)
 		{
 			auto item = flat[i];
 			if (instanceof<InitializeVar>(item))

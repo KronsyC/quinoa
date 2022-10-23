@@ -54,7 +54,7 @@ public:
     } 
     void remove(std::string comp){
         int idx = -1;
-        for(int i  = 0;i<compositors.size();i++){
+        for(unsigned int i  = 0;i<compositors.size();i++){
             auto c = compositors[i];
             if(c->name->str() == comp){
                 idx = i;

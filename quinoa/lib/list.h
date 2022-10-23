@@ -45,7 +45,7 @@ bool includes(std::vector<T> &items, T item){
 
 
 template<typename T>
-std::pair<std::vector<T>, std::vector<T>> split(std::vector<T> vec, int index){
+std::pair<std::vector<T>, std::vector<T>> split(std::vector<T> vec, unsigned int index){
     if(index >= vec.size())error("Cannot Split a List at an index larger than it's size");
     std::vector<T> v1(vec.begin(), vec.begin()+index);
     std::vector<T> v2(vec.begin()+index+1, vec.end());

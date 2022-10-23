@@ -6,14 +6,14 @@
 #include "../../../compiler.h"
 using namespace std;
 
-std::string gen_random_str(int size)
+std::string gen_random_str(unsigned int size)
 {
   static const char choices[] =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   int len = sizeof(choices);
   std::string ret;
   ret.reserve(size);
-  for (int i = 0; i < size; ++i)
+  for (unsigned int i = 0; i < size; ++i)
   {
     ret += choices[rand() % (len - 1)];
   }
@@ -157,7 +157,7 @@ void resolve_imports(CompilationUnit &unit)
    *
    */
   int removals = 0;
-  for (int i = 0; i < unit.size(); i++)
+  for (unsigned int i = 0; i < unit.size(); i++)
   {
     auto item = unit[i - removals];
     if (item->isImport())

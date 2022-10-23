@@ -61,7 +61,7 @@ public:
         if(params.size()==0)return false;
         return params[params.size()-1]->isVariadic;
     }
-    Param* getParam(int n){
+    Param* getParam(unsigned int n){
         if(isVariadic()){
             if(n>=params.size()-1)return params[params.size()-1]->deVarify();
             else return params[n];

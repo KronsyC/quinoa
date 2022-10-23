@@ -47,7 +47,7 @@ CompoundIdentifier *parse_compound_ident(vector<Token> &toks, SourceBlock *ctx)
         }
         break;
     }
-    for (int i = 0; i < ident.size() * 2 - 1; i++)
+    for (unsigned int i = 0; i < ident.size() * 2 - 1; i++)
         popf(toks);
     auto id = new CompoundIdentifier(ident);
     id->ctx = ctx;
@@ -332,7 +332,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 
     vector<std::pair<int, int>> weightMap;
     int depth = 0;
-    for (int i = 0; i < toks.size(); i++)
+    for (unsigned int i = 0; i < toks.size(); i++)
     {
         auto t = toks[i];
 
@@ -355,7 +355,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
     // find the best place to split the expression
     int splitPoint = -1;
     int splitWeight = 0;
-    for (int i = 0; i < weightMap.size(); i++)
+    for (unsigned int i = 0; i < weightMap.size(); i++)
     {
         auto pair = weightMap[i];
         int index = pair.first;
@@ -366,7 +366,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
             splitWeight = weight;
         }
     }
-    if (splitPoint == -1 || splitPoint == 0 || splitPoint == toks.size() - 1)
+    if (splitPoint == -1 || splitPoint == 0 || splitPoint == (long long)toks.size() - 1)
     {
         // no split, start split or end split should cover all cases
 

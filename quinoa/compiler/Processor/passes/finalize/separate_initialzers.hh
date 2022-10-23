@@ -22,7 +22,7 @@ void split_initializers(CompilationUnit &unit)
                     auto assignment = new BinaryOperation(init->varname, init->initializer, BIN_assignment);
                     assignment->ctx = init->ctx;
                     init->initializer = nullptr;
-                    auto idx = indexof(*init->ctx, (Statement*)init);
+                    int idx = indexof(*init->ctx, (Statement*)init);
                     if(idx==-1)error("Failed to get index of " + init->str());
                     // push the assignment into the context
                     init->ctx->insert(init->ctx->begin()+idx+1, assignment);

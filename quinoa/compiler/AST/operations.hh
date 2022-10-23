@@ -101,7 +101,6 @@ public:
       error("Failed to locate function " + name);
     std::vector<llvm::Value *> llparams;
     int i = 0;
-    bool generatedVarargs = false;
     for (auto p : this->params)
     {
       auto type = target->getParam(i)->type;
@@ -216,7 +215,6 @@ public:
         else
           target = pair.second;
 
-        auto method = target->belongsTo;
         return;
       }
       ind++;
@@ -290,14 +288,13 @@ private:
       {
         func.generics[0]->generic()->refersTo = mock.generics[0];
 
-        auto p1 = func.params[0];
       }
       else
       {
         // find all the params that share the generic type
         // put them into a list, and use the getType method
         std::map<std::string, Type *> generic_type_mappings;
-        for (int i = 0; i < mock.params.size(); i++)
+        for (unsigned int i = 0; i < mock.params.size(); i++)
         {
           auto fp = func.params[i];
           auto mp = mock.params[i];
@@ -339,7 +336,7 @@ private:
     // Start with a base score, each infraction has a cost based on how
     // different it is
     int score = 0;
-    for (int i = 0; i < mock.params.size(); i++)
+    for (unsigned int i = 0; i < mock.params.size(); i++)
     {
       auto baram = func.getParam(i)->type;
       auto taram = mock.getParam(i)->type;
@@ -505,7 +502,6 @@ public:
   }
   Type *getType()
   {
-    auto i64 = Primitive::get(PR_int64);
     auto boo = Primitive::get(PR_boolean);
     auto same = operand->getType();
     auto sameptr = new TPtr(same);

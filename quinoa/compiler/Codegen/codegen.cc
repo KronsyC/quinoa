@@ -42,7 +42,7 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
     auto sig = llvm::FunctionType::get(ret, args, isVarArg);
     auto fn = llvm::Function::Create(sig, linkage, name, mod);
     // Logger::debug("Created function " + name);
-    for (int i = 0; i < fn->arg_size(); i++)
+    for (unsigned int i = 0; i < fn->arg_size(); i++)
         fn->getArg(i)->setName(f.params[i]->name->str());
     return fn;
 }
@@ -205,7 +205,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
     TVars vars;
 
     // Inject the args as variables
-    for (int i = 0; i < fn->arg_size(); i++)
+    for (unsigned int i = 0; i < fn->arg_size(); i++)
     {
         auto arg = fn->getArg(i);
         auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
@@ -301,7 +301,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
         else
             error("Failed to do the stuff");
     }
-    return std::move(llmod);
+    return llmod;
 }
 
 

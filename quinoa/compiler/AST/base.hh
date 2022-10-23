@@ -71,7 +71,7 @@ public:
         error("Cannot copy base type");
         return nullptr;
     }
-    virtual std::pair<Type*, Type*> find_mismatch(Type* against){
+    virtual std::pair<Type*, Type*> find_mismatch(Type* _){
         error("Cannot differ types against base type object");
         return {};
     }
@@ -102,11 +102,11 @@ public:
         return nullptr;
     };
 
-    virtual llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+    virtual llvm::Value* getLLValue(TVars _vars, llvm::Type* _expected=nullptr){
         error("Cannot get llvm value for base expression type", true);
         return nullptr;
     }
-    virtual llvm::Value* getPtr(TVars vars){
+    virtual llvm::Value* getPtr(TVars _vars){
         error("Cannot get ptr to base expression type");
         return nullptr;
     }
@@ -233,12 +233,10 @@ public:
         auto old = donor;
         for(auto item:donor->take()){
             // update the ctx
-            Statement* prev;
             for(auto i:item->flatten()){
                 if(i->ctx == old){
                     i->ctx = this;
                 }
-                prev = i;
             }
             item->ctx = this;
             this->push_back(item);
