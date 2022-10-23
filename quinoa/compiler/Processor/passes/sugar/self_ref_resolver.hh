@@ -11,7 +11,7 @@ using namespace std;
 //       auto ctx = call->ctx;
 //       if(call->builtin())continue;
 //       call->name->flatify();
-//       if (call->name->parts.size() == 1) {
+//       if (call->name->size() == 1) {
 //         pushf(call->name->parts, (Identifier *)space);
 //         call->name->flatify();
 //       }

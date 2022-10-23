@@ -58,12 +58,19 @@ std::map<std::string, Module*> gen_export_table(CompilationUnit& unit){
 
 void prefixify_children(CompilationUnit &unit, std::string prefix)
 {
-  for (auto mod : unit.getAllModules())
-    if (!mod->isImported)
-      pushf(mod->name->parts, (Identifier *)Ident::get("$" + prefix));
+  auto pfx = Ident::get("$"+prefix);
+  for (auto mod : unit.getAllModules()){
+    if (mod->isImported)continue;
+    mod->nspace = pfx;
+    for(auto method:mod->getAllMethods()){
+      pushf(*method->sig->name->mod->name, pfx);
+    }
+
+  }
+
 }
 void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
-                CompoundIdentifier *fullname)
+                CompoundIdentifier* fullname)
 {
   for (auto method : unit.getAllMethods())
   {
@@ -76,18 +83,25 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
       if (instanceof <CompoundIdentifier>(member))
       {
         auto ident = (CompoundIdentifier *)member;
+
+        if(ident->equals(alias)){
+          *ident = *fullname;
+          continue;
+        }
+
         auto ns = ident->all_but_last();
+        if(ns->str() == "")continue;
         if (ns->equals(alias))
         {
           auto name = ident->last();
-          CompoundIdentifier deAliasedName({fullname, name});
+          CompoundIdentifier deAliasedName;
+          for(auto p:*fullname)deAliasedName.push_back(p);
+          deAliasedName.push_back(name);
           *ident = deAliasedName;
         }
         delete ns;
 
-        if(ident->equals(alias)){
-          *ident = *fullname;
-        }
+
       }
     }
   }
@@ -115,7 +129,7 @@ CompilationUnit get_ast_from_path(std::string path, Ident* filename)
 
     // add the unique namespace prefix to the module
     auto prefix = gen_random_str(10);
-    // prefixify_children(ast, prefix);
+    prefixify_children(ast, prefix);
 
     auto export_table = gen_export_table(ast);
     exports[path] = export_table;
@@ -161,18 +175,15 @@ void resolve_imports(CompilationUnit &unit)
         auto ast = get_ast_from_path(rpath, filename);
 
 
-        // Injects the cryptic namespace
-        // into the unit
-        merge_units(unit, ast);
-
         auto table = exports[rpath];
 
         auto mod = import->member?table[import->member->str()]:table["__default__"];
         if(!mod)error("Failed to import Module");
         // Replace all references to the alias with the actual name
-        auto name = mod->name;
         auto alias = import->alias;
-        deAliasify(unit, alias, name);
+        deAliasify(unit, alias, mod->fullname());
+
+        merge_units(unit, ast);
       }
 
       else

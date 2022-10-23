@@ -340,7 +340,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             std::vector<Param*> params;
             params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
             params.push_back(new Param(new TPtr(Primitive::get(PR_string)), Ident::get("argv")));
-            entrySig.name = Ident::get("main");
+            entrySig.name = new ModuleMemberRef(nullptr, Ident::get("main"));
             entrySig.nomangle = true;
             entrySig.returnType = Primitive::get(PR_int32);
             entrySig.params = Block<Param>(params);

@@ -28,12 +28,7 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
 CompoundIdentifier *parse_compound_ident(vector<Token> &toks, SourceBlock *ctx)
 {
     expects(toks[0], TT_identifier);
-    // Simplest Case (single-part)
-    if (toks.size() < 3 || !(toks[1].is(TT_double_colon) && toks[2].is(TT_identifier)))
-    {
-        return new CompoundIdentifier(popf(toks).value, ctx);
-    }
-    vector<Identifier *> parts;
+    CompoundIdentifier ident;
     bool expectDot = false;
     for (auto t : toks)
     {
@@ -46,15 +41,15 @@ CompoundIdentifier *parse_compound_ident(vector<Token> &toks, SourceBlock *ctx)
         }
         if (t.is(TT_identifier))
         {
-            parts.push_back(Ident::get(t.value, ctx));
+            ident.push_back(Ident::get(t.value, ctx));
             expectDot = true;
             continue;
         }
         break;
     }
-    for (int i = 0; i < parts.size() * 2 - 1; i++)
+    for (int i = 0; i < ident.size() * 2 - 1; i++)
         popf(toks);
-    auto id = new CompoundIdentifier(parts);
+    auto id = new CompoundIdentifier(ident);
     id->ctx = ctx;
     return id;
 }
@@ -96,7 +91,6 @@ vector<vector<Token>> parse_cst(vector<Token> &toks)
     return retVal;
 }
 Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx);
-ModuleRef *parse_modref(std::vector<Token> &toks, SourceBlock *ctx);
 Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
 {
     if (!toks.size())
@@ -149,47 +143,84 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
     return ret;
 }
 
-Identifier* parse_ident(std::vector<Token>& toks, SourceBlock* ctx, bool must_be_member=false){
-    Identifier* ret;
-    // the base is essentially guaranteed to be a compound identifier, this could refer to anything
-    auto base = parse_compound_ident(toks, ctx);
-    ret = base;
-    // If there are any generic parameters at play, assume we are working with a generic modref
-    if(toks.size() && toks[0].is(TT_lesser)){
-        auto before = toks;
+struct Identifier_Segment
+{
+    std::string name;
+    Block<Type> type_args;
+};
+
+Identifier_Segment parse_ident_segment(vector<Token> &toks, SourceBlock *ctx)
+{
+    auto name = popf(toks);
+    expects(name, TT_identifier);
+    Identifier_Segment seg;
+    seg.name = name.value;
+
+    Block<Type> generic_args;
+
+    if (toks[0].is(TT_lesser))
+    {
         auto block = readBlock(toks, IND_angles);
-        // If after is not a double-colon, and must be member
-        // rollback
-        auto after = toks[0];
-        if(!after.is(TT_double_colon) && must_be_member){
-            toks = before;
-            return ret;
+        auto cst = parse_cst(block);
+        for (auto typ : cst)
+        {
+            auto type = parse_type(typ, ctx);
+            generic_args.push_back(type);
         }
-
-        auto csv = parse_cst(block);
-        auto modref = new ModuleRef;
-        modref->name = base;
-        for(auto tt:csv){
-            auto type = parse_type(tt, ctx);
-            modref->type_params.push_back(type);
-        }
-        ret = modref;
     }
+    seg.type_args = generic_args;
+    return seg;
+}
 
-    // If there is another double colon, assume we are working with a generic module references's member
-    if(toks.size() && toks[0].is(TT_double_colon)){
+vector<Identifier_Segment> parse_segmented_identifier(vector<Token> &toks, SourceBlock *ctx)
+{
+    vector<Identifier_Segment> segs;
+    while (toks.size())
+    {
+        auto id = parse_ident_segment(toks, ctx);
+        segs.push_back(id);
+        if (!toks[0].is(TT_double_colon))
+            break;
         popf(toks);
-        expects(toks[0], TT_identifier);
-        auto member_name = Ident::get(popf(toks).value);
-        auto mod_member_ref = new ModuleMemberRef;
-        mod_member_ref->member = member_name;
-        // This cast is okay, ret is guaranteed to be a moduleref
-        mod_member_ref->mod = (ModuleRef*)ret;
-
-        ret = mod_member_ref;
     }
-    return ret;
+    return segs;
+}
 
+ModuleMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segments)
+{
+    if (segments.size() < 1)
+        error("Call must consist of at least 1 segment");
+    Identifier_Segment end = segments[segments.size() - 1];
+    vector<Identifier_Segment> modname(segments.begin(), segments.end() - 1);
+    if (segments.size() == 1)
+    {
+        modname.clear();
+    }
+    Block<Type> mod_type_args;
+    CompoundIdentifier modname_ident;
+    int i = 0;
+    for (auto p : modname)
+    {
+        modname_ident.push_back(Ident::get(p.name));
+        if (i == 0)
+        {
+            mod_type_args = p.type_args;
+        }
+        else if (p.type_args.size())
+        {
+            error("Cannot pass Type Arguments to non-module");
+        }
+        i++;
+    }
+
+    ModuleRef *modref = nullptr;
+    if (modname_ident.size())
+    {
+        modref = new ModuleRef();
+        modref->name = new CompoundIdentifier(modname_ident);
+    }
+    auto ref = new ModuleMemberRef(modref, Ident::get(end.name));
+    return ref;
 }
 
 Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
@@ -215,62 +246,13 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
             return Ident::get(toks[0].value, ctx);
         }
         default:
-            error("Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'");
+            error("Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'", true);
         }
     }
 
     auto c = toks[0];
 
-    // Parse Function Calls and Subscripts
-    if (c.is(TT_identifier))
-    {
-        auto initial = toks;
-        auto target = parse_ident(toks, ctx, true);
-        target->ctx = ctx;
-        if (toks[0].is(TT_l_paren) || toks[0].is(TT_lesser))
-        {
-            Block<Type> generic_args;
-            if (toks[0].is(TT_lesser))
-            {
-                auto bl = readBlock(toks, IND_angles);
-                auto args = parse_cst(bl);
-                for (auto arg : args)
-                {
-                    auto type = parse_type(arg, ctx);
-                    generic_args.push_back(type);
-                }
-            }
-
-            Block<Expression> params;
-            auto paramsBlock = readBlock(toks, IND_parens);
-            auto paramsList = parse_cst(paramsBlock);
-            for (auto p : paramsList)
-            {
-                auto par = parse_expr(p, ctx);
-                par->ctx = ctx;
-                params.push_back(par);
-            }
-            auto call = new MethodCall;
-            call->params = params;
-            call->generic_params = generic_args;
-            call->target = nullptr;
-            call->ctx = ctx;
-            call->name = target;
-            return call;
-        }
-        else if (toks[0].is(TT_l_square_bracket))
-        {
-            auto etoks = readBlock(toks, IND_square_brackets);
-            if (toks.size() == 0)
-            {
-                auto item = parse_expr(etoks, ctx);
-                item->ctx = ctx;
-                return new Subscript(target, item);
-            }
-        }
-        toks = initial;
-    }
-
+    // List Literal
     if (c.is(TT_l_square_bracket))
     {
         auto content = readBlock(toks, IND_square_brackets);
@@ -286,12 +268,55 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
         return list;
     }
 
+    // Unwrap Parenthesis
     if (c.is(TT_l_paren))
     {
         auto initial = toks;
         auto block = readBlock(toks, IND_parens);
         if (toks.size() == 0)
             return parse_expr(block, ctx);
+
+        toks = initial;
+    }
+    // Create a function call
+    // Function Calls can come in many forms
+    //
+    // foo::bar();
+    // foo<T>::bar();
+    // foo::bar<T>();
+    // foo<T>::bar<U>();
+    // foo::bar<T>::baz();
+    //
+    if (c.is(TT_identifier))
+    {
+        auto initial = toks;
+        auto segments = parse_segmented_identifier(toks, ctx);
+        if (!segments.size())
+            error("Function Call with 0 segments?!?!?!?!");
+        auto generic_args = segments[segments.size() - 1].type_args;
+        auto memberRef = parse_memberref_from_segments(segments);
+        if (toks[0].is(TT_l_paren))
+        {
+            Block<Expression> parameters;
+            auto params_block = readBlock(toks, IND_parens);
+            if (toks.size() == 0)
+            {
+                auto params_cst = parse_cst(params_block);
+                for (auto pt : params_cst)
+                {
+                    auto param_expr = parse_expr(pt, ctx);
+                    param_expr->ctx = ctx;
+                    parameters.push_back(param_expr);
+                }
+
+                auto call = new MethodCall();
+                call->ctx = ctx;
+                call->generic_params = generic_args;
+                call->params = parameters;
+                call->name = memberRef;
+                return call;
+            }
+        }
 
         toks = initial;
     }
@@ -371,6 +396,31 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
             auto expr = parse_expr(toks, ctx);
             return new UnaryOperation(expr, postop);
         }
+
+        auto f = toks[0];
+
+        if (f.is(TT_identifier))
+        {
+            auto initial = toks;
+            auto name = parse_compound_ident(toks, ctx);
+            if (toks[0].is(TT_l_square_bracket))
+            {
+                printToks(toks);
+                auto index_block = readBlock(toks, IND_square_brackets);
+                if (toks.size() == 0)
+                {
+                    auto index_expr = parse_expr(index_block, ctx);
+                    index_expr->ctx = ctx;
+
+                    auto subs = new Subscript(name, index_expr);
+                    subs->ctx = ctx;
+                    Logger::debug("ret");
+                    return subs;
+                }
+            }
+            toks = initial;
+        }
+
         printToks(toks);
         error("Failed To Parse Expression");
     }
@@ -655,9 +705,14 @@ void parse_mod(vector<Token> &toks, Module *mod)
             }
 
             method->sig = sig;
-            auto nm = mod->name->copy(nullptr);
-            nm->parts.push_back(Ident::get(nameTok.value));
-            sig->name = nm;
+            auto nm = mod->fullname();
+
+            auto name = new ModuleMemberRef;
+            name->mod = new ModuleRef();
+            name->mod->refersTo = mod;
+            name->mod->name = nm;
+            name->member = Ident::get(nameTok.value);
+            sig->name = name;
 
             sig->params = params.take();
             sig->returnType = returnType;
@@ -829,7 +884,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 }
             }
             auto moduleToks = readBlock(toks, IND_braces);
-            mod->name = new CompoundIdentifier(name.value);
+            mod->name = Ident::get(name.value);
             mod->compositors = compositors.take();
             mod->generics = generics;
             parse_mod(moduleToks, mod);

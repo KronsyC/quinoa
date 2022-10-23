@@ -1,4 +1,5 @@
 import @syscall;
+
 module IO is Exported{
 
     func strlen(str:c_str)->i64{

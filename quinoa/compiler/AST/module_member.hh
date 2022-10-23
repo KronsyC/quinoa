@@ -90,7 +90,7 @@ class Method;
 // and generate definitions for it
 class MethodSignature:public AstNode{
 public:
-    Identifier* name = nullptr;
+    ModuleMemberRef* name;
     bool nomangle = false;
     Block<Param> params;
     Block<Generic> generics;
@@ -102,6 +102,8 @@ public:
     }
     std::string sourcename(){
         std::string ret;
+
+
         auto sigs = sigstr();
         ret+=sigs.str();
 
@@ -137,6 +139,7 @@ public:
     MethodSigStr sigstr(){
         MethodSigStr sigs;
         sigs.name = name;
+
         sigs.nomangle = nomangle;
         // copy the generics, so we can mess with them
         auto pair = cloneGenericsParams();

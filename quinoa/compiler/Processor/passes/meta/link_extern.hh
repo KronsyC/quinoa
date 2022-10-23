@@ -19,7 +19,7 @@ void link_extern(CompilationUnit& unit){
             if(tag->parameters.size() != 1)error("link_extern tag expects one string argument");
             auto name = (String*)tag->parameters[0];
             if(!instanceof<String>(name))error("link_extern expects a string");
-            fn->sig->name = Ident::get(name->value);
+            fn->sig->name = new ModuleMemberRef(nullptr, Ident::get(name->value));
             fn->sig->nomangle = true;
         }
     }

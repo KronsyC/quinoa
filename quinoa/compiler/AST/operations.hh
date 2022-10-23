@@ -8,11 +8,15 @@
 static std::map<PrimitiveType, std::string> primitive_group_mappings{
     PRIMITIVES_ENUM_GROUPS};
 
+
+
 class MethodCall : public Expression
 {
 public:
   MethodSignature *target = nullptr;
-  Identifier* name;
+  
+  ModuleMemberRef* name;
+
   Block<Expression> params;
   Block<Type> generic_params;
 
@@ -35,7 +39,7 @@ public:
 
   std::vector<Statement *> flatten()
   {
-    std::vector<Statement *> ret{this, name};
+    std::vector<Statement *> ret{this};
     for (auto p : params)
       for (auto f : p->flatten())
         ret.push_back(f);
@@ -67,6 +71,7 @@ public:
     auto name = this->name->str();
     for (auto d : defs)
     {
+
       if (d->builtin == name)
         return true;
     }

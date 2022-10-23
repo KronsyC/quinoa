@@ -28,9 +28,20 @@ class Method;
 class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
     Block<Generic> generics;
-    CompoundIdentifier* name;
+    // The name of the Module, i.e 'Test', 'MyModule'
+    Ident* name;
+
+    // The Namespace Unique hash for the module
+    // i.e abcdefg
+    Ident* nspace;
+    CompoundIdentifier* fullname(){
+        // if(!nspace)error("The module " + name->str() + " does not have a namespace");
+        auto id = new CompoundIdentifier();
+        if(nspace)id->push_back(nspace);
+        id->push_back(name);
+        return id;
+    }
     Block<Compositor> compositors; 
-    bool undergone_appropriate_processing = false;
     bool isModule(){
         return true;
     }

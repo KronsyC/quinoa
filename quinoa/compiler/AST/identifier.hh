@@ -74,64 +74,41 @@ public:
         return id;
     }
 };
-class CompoundIdentifier:public Ident{
+class CompoundIdentifier:public Ident, public Block<Ident>{
 public:
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};
-        for(auto p:parts)for(auto m:p->flatten())ret.push_back(m);
+        for(auto p:*this)for(auto m:p->flatten())ret.push_back(m);
         return ret;
     }
-
-    std::vector<Identifier*> parts;
-    CompoundIdentifier(std::vector<Identifier*> parts){
-        this->parts = parts;
-        flatify();
+    CompoundIdentifier(std::vector<Ident*> parts){
+        for(auto p:*this){
+            if(p==nullptr)error("Cannot initialize a Compound Identifier with a nullptr");
+            this->push_back(p);
+        }
     }
     CompoundIdentifier(std::string value, SourceBlock* ctx = nullptr)
     {
         auto ident = Ident::get(value, ctx);
-        this->parts.push_back(ident);
-        flatify();
+        this->push_back(ident);
     }
-    CompoundIdentifier(){
-    };
+    CompoundIdentifier() = default;
     inline bool empty(){
-        return this->parts.size() == 0;
+        return this->size() == 0;
     }
     CompoundIdentifier* copy(SourceBlock* ctx){
         auto id = new CompoundIdentifier;
         id->ctx = ctx;
-        for(auto p:parts){
-            id->parts.push_back(p->copy(ctx));
+        for(auto p:*this){
+            if(p==nullptr)continue;
+            id->push_back(p->copy(ctx));
         }
         return id;
-    }
-    void flatify(){
-        std::vector<Identifier*> flattened;
-        for(auto p:parts){
-            if(instanceof<CompoundIdentifier>(p)){
-                auto q = (CompoundIdentifier*)p;
-                q->flatify();
-                for(auto p:q->parts){
-                    flattened.push_back(p);
-                }
-            }
-            else if(instanceof<Ident>(p)){
-                flattened.push_back(p);
-            }
-            else if(instanceof<Identifier>(p)){
-                //FIXME: This will probably break
-                continue;
-            }
-            else if(p == nullptr)error("Cannot flatten as a nullptr was found", true);
-            else error("Failed to flatten ident");
-        }
-        this->parts = flattened;
     }
     std::string str(){
         std::string name;
         bool first = true;
-        for(auto p:parts){
+        for(auto p:*this){
             if(!first)name+="::";
             name+=p->str();
             first = false;
@@ -143,32 +120,28 @@ public:
         return std::move(s.c_str());
     }
     Ident* last(){
-        flatify();
-        if(parts.size() == 0)error("Cannot get last element of 0-length name");
+        if(size() == 0)error("Cannot get last element of 0-length name");
         // guaranteed to be an Ident after flattening
-        auto p = (Ident*)parts.at(parts.size()-1);
+        auto p = at(size()-1);
         return p;
     }
     // the exact opposite of the last function
     // useful for grabbing the namespace from a fully
     // declared member name
     CompoundIdentifier* all_but_last(){
-        flatify();
         auto ret = new CompoundIdentifier;
-        for(int i  = 0;i<parts.size()-1;i++){
-            auto item = (Ident*)(parts[i]);
-            ret->parts.push_back(item);
+        for(int i = 0;i<size()-1;i++){
+            auto item = this->at(i);
+            ret->push_back(item);
         }
         return ret;
     }
 
     bool equals(CompoundIdentifier* compare){
-        compare->flatify();
-        this->flatify();
-        if(compare->parts.size() != this->parts.size())return false;
-        for(int i = 0;i<compare->parts.size();i++){
-            auto mine = (Ident*)this->parts[i];
-            auto cmp = (Ident*)compare->parts[i];
+        if(compare->size() != this->size())return false;
+        for(int i = 0;i<compare->size();i++){
+            auto mine = (*this)[i];
+            auto cmp = (*compare)[i];
             if(mine->name != cmp->name)return false;
         }
         return true;
@@ -221,20 +194,29 @@ public:
 */
 class ModuleMemberRef:public Identifier{
 public:
+    //
+    // if the module is null, it means that the member is part of the global namespace
+    //
     ModuleRef* mod;
     Ident* member;
+
+    ModuleMemberRef(ModuleRef* mod, Ident* member){
+        this->mod = mod;
+        this->member = member;
+    }
+    ModuleMemberRef() = default;
     ModuleMemberRef* copy(SourceBlock* ctx){
-        auto ret = new ModuleMemberRef;
-        ret->member = member->copy(ctx);
-        ret->mod = mod->copy(ctx);
+        auto ret = new ModuleMemberRef(mod->copy(ctx), member->copy(ctx));
         return ret;
     }
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this, member};
-        for(auto m:mod->flatten())ret.push_back(m);
+        if(mod)for(auto m:mod->flatten())ret.push_back(m);
         return ret;
     }
     std::string str(){
-        return mod->str()+"::"+member->str();
+        std::string ret;
+        if(mod)ret+=mod->str()+"::";
+        return ret+member->str();
     }
 };
