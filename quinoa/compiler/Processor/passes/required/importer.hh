@@ -99,7 +99,6 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
           deAliasedName.push_back(name);
           *ident = deAliasedName;
         }
-        delete ns;
 
 
       }

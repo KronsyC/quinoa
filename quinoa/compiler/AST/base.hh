@@ -251,7 +251,6 @@ public:
             }
 
         }
-        delete donor;
     }
 
 };

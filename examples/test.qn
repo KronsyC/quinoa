@@ -1,14 +1,11 @@
 import @io;
-
+import @lang::assertions as assert;
 
 module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{
-        greet("Bob");
+        assert::equals(argc, 2);
+        assert::truthy(1);
         return 0;
     }
 
-    func greet(name:c_str){
-        io::print("Hello, ");
-        io::println(name);
-    }
 }

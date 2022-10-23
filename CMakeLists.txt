@@ -3,8 +3,8 @@ cmake_minimum_required( VERSION 3.24 )
 project( quinoa-compiler )
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_COMPILER /usr/bin/clang++)
-
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE SYS_LIBS )
 execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE LIBS )

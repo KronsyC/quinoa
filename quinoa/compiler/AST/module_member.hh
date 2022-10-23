@@ -111,10 +111,10 @@ public:
     }
     
     std::pair<Block<Param>, Block<Generic>> cloneGenericsParams(){
-
         Block<Generic> gs;
         Block<Param> ps;
         std::map<std::string, Generic*> genericMappings;
+        Logger::debug("Clone " + name->str());
         for(auto g:generics){
             auto gen = new Generic(*g);
             genericMappings[gen->str()] = gen;
@@ -206,11 +206,15 @@ public:
         return m;
     }
     bool generate(){
-        auto mod = this->memberOf;
-        if(mod && mod->generics.size())return false;
+        if(auto mod = this->memberOf){
+            auto size = mod->generics.size();
+            if(size)
+            return false;
+        }
+        if(!sig)error("Method got no sig");
         return !sig->isGeneric();
     }
-    Module* memberOf;
+    Module* memberOf = nullptr;
     MethodSignature* sig = nullptr;
     // If nomangle is enabled, matching is done via names directly
     // instead of using the overload chosing algorithm

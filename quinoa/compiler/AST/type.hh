@@ -126,7 +126,7 @@ public:
 class CustomType : public Type
 {
 public:
-    Type *refersTo;
+    Type *refersTo = nullptr;
     Block<Type> type_args;
     Identifier *name;
 
@@ -184,7 +184,7 @@ public:
 
 class Generic:public CustomType{
 public:
-    Type* constraint;
+    Type* constraint = nullptr;
 
     Generic(Ident* name, Type* constraint=nullptr)
     :CustomType(name)

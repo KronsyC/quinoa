@@ -691,7 +691,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
             // keep track of the arg types too
             *method->local_types = argTypes;
             auto sig = new MethodSignature();
-            sig->generics = generic_args.take();
+            sig->generics = generic_args;
             if (toks[0].is(TT_l_brace))
             {
                 auto contentToks = readBlock(toks, IND_braces);
