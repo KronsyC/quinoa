@@ -12,7 +12,7 @@ class MethodCall : public Expression
 {
 public:
   MethodSignature *target = nullptr;
-  CompoundIdentifier *name;
+  Identifier *name;
   Block<Expression> params;
   Block<Type> generic_params;
 
@@ -26,7 +26,7 @@ public:
       c->params.push_back(p->copy(ctx));
     }
     for(auto g:generic_params){
-      c->generic_params.push_back(g->copy());
+      c->generic_params.push_back(g->copy(ctx));
     }
     return c;
   }
@@ -37,6 +37,7 @@ public:
     for (auto p : params)
       for (auto f : p->flatten())
         ret.push_back(f);
+    for(auto m:name->flatten())ret.push_back(m);
     return ret;
   }
   Type *getType()
@@ -137,69 +138,64 @@ public:
     
     // Construct a fake signature to match against
     auto callsig = new MethodSignature;
-    callsig->name = name->last();
+    callsig->name = name;
     callsig->params = testparams;
-    callsig->space = name->all_but_last();
     callsig->generics = make_generic_refs();
 
     auto sigstr = callsig->sigstr();
 
-    CompoundIdentifier callname(name->parts);
-    // replace the calls name with its mangled form
-    callname.parts.pop_back();
-    callname.parts.push_back((Identifier *)Ident::get(sigstr.str(), ctx));
     // attempt to find a function with the exact sig
+    error("No can do");
+    // auto fn = sigs[callname.str()];
+    // if (fn == nullptr)
+    // {
+    //   sigs.erase(callname.str());
+    //   // Run Compatibility Checks on each sigstr pair to find
+    //   // the most compatible function to match to
+    //   int best = -1;
+    //   int idx = -1;
+    //   int i = -1;
+    //   MethodSigStr bestSigStr;
+    //   auto cs = callsig->sigstr();
+    //   for (auto sigpair : sigs)
+    //   {
+    //     i++;
+    //     auto sig = sigpair.second;
+    //     auto name = sigpair.first;
+    //     if (sig->nomangle)continue;
+    //     auto sigs = sig->sigstr();
+    //     int compat = getCompatabilityScore(sigs, cs);
+    //     if(compat == -1)continue;
+    //     if( compat <= best || best == -1 ){
+    //       best = compat;
+    //       bestSigStr = sigs;
+    //       idx = i;
+    //     }
+    //   }
+    //   if (idx == -1)
+    //   {
+    //     Logger::error("Failed to generate function call to " + callname.str());
+    //     return;
+    //   }
+    //   int ind = 0;
+    //   for (auto pair : sigs)
+    //   {
+    //     if (ind == idx)
+    //     {
+    //       if(pair.second->isGeneric()){
+    //         auto gen = pair.second->impl_as_generic(bestSigStr.generics);
+    //         target = gen;
+    //       }
+    //       else target = pair.second;
 
-    auto fn = sigs[callname.str()];
-    if (fn == nullptr)
-    {
-      sigs.erase(callname.str());
-      // Run Compatibility Checks on each sigstr pair to find
-      // the most compatible function to match to
-      int best = -1;
-      int idx = -1;
-      int i = -1;
-      MethodSigStr bestSigStr;
-      auto cs = callsig->sigstr();
-      for (auto sigpair : sigs)
-      {
-        i++;
-        auto sig = sigpair.second;
-        auto name = sigpair.first;
-        if (sig->nomangle)continue;
-        auto sigs = sig->sigstr();
-        int compat = getCompatabilityScore(sigs, cs);
-        if(compat == -1)continue;
-        if( compat <= best || best == -1 ){
-          best = compat;
-          bestSigStr = sigs;
-          idx = i;
-        }
-      }
-      if (idx == -1)
-      {
-        Logger::error("Failed to generate function call to " + callname.str());
-        return;
-      }
-      int ind = 0;
-      for (auto pair : sigs)
-      {
-        if (ind == idx)
-        {
-          if(pair.second->isGeneric()){
-            auto gen = pair.second->impl_as_generic(bestSigStr.generics);
-            target = gen;
-          }
-          else target = pair.second;
-
-          auto method = target->belongsTo;
-          return;
-        }
-        ind++;
-      }
-      return;
-    }
-    target = fn;
+    //       auto method = target->belongsTo;
+    //       return;
+    //     }
+    //     ind++;
+    //   }
+    //   return;
+    // }
+    // target = fn;
   }
 
 private:
@@ -235,11 +231,6 @@ private:
                                    MethodSigStr mock)
   {
     if (func.name->str() != mock.name->str())
-    {
-      return -1;
-    }
-    // compare namespaces
-    if (func.space->str() != mock.space->str())
     {
       return -1;
     }

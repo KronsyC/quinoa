@@ -11,11 +11,7 @@ public:
 
 class SourceBlock;
 
-template<class Class, typename KeyType>
-class Cached{
-protected:
-    inline static std::map<KeyType, Class*> cache;
-};
+
 
 struct Statement : public AstNode
 {
@@ -30,9 +26,6 @@ public:
         error("Cannot Flatten a raw Statement");
         return {};
     }
-    virtual bool returns(){
-        return false;
-    };
 
     virtual Statement* copy(SourceBlock* ctx){
         error("Cannot Copy base Statement Type", true);
@@ -47,7 +40,7 @@ class ListType;
 class TPtr;
 class CustomType;
 class Generic;
-struct Type : public AstNode
+struct Type : public Statement
 {
 public:
     virtual std::string str(){
@@ -57,6 +50,10 @@ public:
     virtual llvm::Type* getLLType(){
         error("Cannot get LL Type for base Type Class");
         return nullptr;
+    }
+    std::vector<Statement *> flatten(){
+        error("Cannot Flatten Base Type");
+        return {};
     }
 
 
@@ -70,7 +67,7 @@ public:
     //
     // Produce a deep copy of a type tree
     //
-    virtual Type* copy(){
+    Type* copy(SourceBlock* ctx){
         error("Cannot copy base type");
         return nullptr;
     }
@@ -204,12 +201,6 @@ public:
 
     }
 
-    bool returns(){
-        for(auto item:*this){
-            if(item->returns())return true;
-        }
-        return false;
-    }
     SourceBlock() = default;
     LocalTypeTable* local_types = nullptr;
 

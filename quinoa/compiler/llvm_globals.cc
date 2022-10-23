@@ -5,7 +5,7 @@ static llvm::LLVMContext _ctx;
 static llvm::IRBuilder<> _builder(_ctx);
 
 
-llvm::LLVMContext* ctx(){
+llvm::LLVMContext* llctx(){
     return &_ctx;
 }
 llvm::IRBuilder<>* builder(){

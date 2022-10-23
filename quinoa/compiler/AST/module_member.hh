@@ -22,10 +22,9 @@ public:
 
 class MethodSigStr{
 public:
-    CompoundIdentifier* space;
     MethodSigStr() = default;
     public:
-    Ident* name;
+    Identifier* name;
     Block<Param> params;
     Block<Generic> generics;
     bool nomangle = false;
@@ -91,27 +90,18 @@ class Method;
 // and generate definitions for it
 class MethodSignature:public AstNode{
 public:
-    Ident* name = nullptr;
+    Identifier* name = nullptr;
     bool nomangle = false;
-    CompoundIdentifier* space = nullptr;
     Block<Param> params;
     Block<Generic> generics;
     Type* returnType = nullptr;
     Method* belongsTo = nullptr;
     bool assured_generic = false;
-    CompoundIdentifier* fullname(){
-
-        if(!space)return new CompoundIdentifier({name});
-        return  new CompoundIdentifier({space, name});
-    }
     bool isGeneric(){
         return assured_generic || generics.size() > 0;
     }
     std::string sourcename(){
         std::string ret;
-        if(space && !nomangle){
-            ret+=space->str()+"::";
-        }
         auto sigs = sigstr();
         ret+=sigs.str();
 
@@ -130,7 +120,7 @@ public:
         }
         for(auto p:params){
             auto param = new Param(*p);
-            param->type = p->type->copy();
+            param->type = p->type->copy(nullptr);
             auto t = param->type;
             if(auto ref = t->custom()){
                 for(auto pair:genericMappings){
@@ -147,14 +137,12 @@ public:
     MethodSigStr sigstr(){
         MethodSigStr sigs;
         sigs.name = name;
-        sigs.space = space;
         sigs.nomangle = nomangle;
         // copy the generics, so we can mess with them
         auto pair = cloneGenericsParams();
         sigs.params = pair.first;
         sigs.generics = pair.second;
 
-        if(space==nullptr && !nomangle)error("Space is null?", true);
         return sigs;
     }
     Param* getParam(int n){
@@ -188,8 +176,7 @@ public:
         auto sig = new MethodSignature;
         sig->name = name->copy(nullptr);
         sig->nomangle = nomangle;
-        sig->space = space->copy(nullptr);
-        sig->returnType = returnType->copy();
+        sig->returnType = returnType->copy(nullptr);
         sig->belongsTo = belongsTo;
         sig->assured_generic = assured_generic;
         return sig;
@@ -234,8 +221,8 @@ public:
     MethodSigStr sigstr(){
         return sig->sigstr();
     }
-    CompoundIdentifier* fullname(){
-        return sig->fullname();
+    Identifier* fullname(){
+        return sig->name;
     }
     void genFor(MethodSignature* sig){
         if(generate())error("Cannot generate non-generic function");

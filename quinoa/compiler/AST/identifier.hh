@@ -11,6 +11,7 @@ public:
         return "";
     }
     std::vector<Statement*> flatten(){
+        error("Cannot flatten base Identifier type");
         return {this};
     }
     
@@ -23,6 +24,9 @@ public:
         return nullptr;
     }
 };
+
+
+
 
 class Ident:public Identifier{
 private:
@@ -50,6 +54,9 @@ public:
         if(!type)error("Failed to locate type for " + str());
         return type;
     }
+    std::vector<Statement*> flatten(){
+        return {this};
+    }
     llvm::AllocaInst* getPtr(TVars vars){
         auto loaded = vars[str()];
         
@@ -69,6 +76,12 @@ public:
 };
 class CompoundIdentifier:public Ident{
 public:
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto p:parts)for(auto m:p->flatten())ret.push_back(m);
+        return ret;
+    }
+
     std::vector<Identifier*> parts;
     CompoundIdentifier(std::vector<Identifier*> parts){
         this->parts = parts;
@@ -159,5 +172,59 @@ public:
             if(mine->name != cmp->name)return false;
         }
         return true;
+    }
+};
+
+
+class Module;
+
+class ModuleRef:public Identifier{
+public:
+    CompoundIdentifier* name;
+    Module* refersTo;
+    Block<Type> type_params;
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m:name->flatten())ret.push_back(m);
+        for(auto tp:type_params)for(auto f:tp->flatten())ret.push_back(f);
+        return ret;
+    }
+    std::string str(){
+        std::string ret = name->str();
+        if(type_params.size()){
+            Logger::debug("Generics for " + ret);
+            ret+="<";
+            bool first = true;
+            for(auto t:type_params){
+                if(!first)ret+=",";
+                ret+=t->str();
+                first = false;
+            }
+            ret+=">";
+        }
+        return ret;
+    }
+};
+/**
+ * 
+ * Keep track of a member of a module,
+ * with info about the generic params that may be passed
+ * 
+*/
+class ModuleMemberRef:public Identifier{
+public:
+    ModuleRef* mod;
+    Ident* member;
+
+    ModuleMemberRef(){
+
+    }
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this, member};
+        for(auto m:mod->flatten())ret.push_back(m);
+        return ret;
+    }
+    std::string str(){
+        return mod->str()+"::"+member->str();
     }
 };

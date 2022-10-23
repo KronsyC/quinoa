@@ -8,10 +8,6 @@ public:
 	SourceBlock* does;
 	SourceBlock* otherwise = nullptr;
 
-	bool returns(){
-		if(!does || !otherwise)return false;
-		return does->returns() && otherwise->returns();
-	}
 
 	IfCond(Expression* cond, SourceBlock* does, SourceBlock* otherwise=nullptr){
 		if(instanceof<IfCond>(otherwise)){

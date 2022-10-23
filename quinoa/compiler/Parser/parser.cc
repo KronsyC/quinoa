@@ -25,7 +25,7 @@ void printToks(std::vector<Token> toks, bool oneLine = false)
         }
     }
 }
-CompoundIdentifier *parseIdentifier(vector<Token> &toks, SourceBlock *ctx)
+CompoundIdentifier *parse_compound_ident(vector<Token> &toks, SourceBlock *ctx)
 {
     expects(toks[0], TT_identifier);
     // Simplest Case (single-part)
@@ -95,8 +95,8 @@ vector<vector<Token>> parse_cst(vector<Token> &toks)
     retVal.push_back(temp);
     return retVal;
 }
-
 Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx);
+ModuleRef *parse_modref(std::vector<Token> &toks, SourceBlock *ctx);
 Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
 {
     if (!toks.size())
@@ -112,7 +112,7 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
         ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else
     {
-        auto references = parseIdentifier(toks, ctx);
+        auto references = parse_compound_ident(toks, ctx);
         ret = new CustomType(references);
     }
 
@@ -149,6 +149,40 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
     return ret;
 }
 
+Identifier* parse_ident(std::vector<Token>& toks, SourceBlock* ctx){
+    Identifier* ret;
+    // the base is essentially guaranteed to be a compound identifier, this could refer to anything
+    auto base = parse_compound_ident(toks, ctx);
+    ret = base;
+    // If there are any generic parameters at play, assume we are working with a generic modref
+    if(toks.size() && toks[0].is(TT_lesser)){
+        auto block = readBlock(toks, IND_angles);
+        auto csv = parse_cst(block);
+        auto modref = new ModuleRef;
+        modref->name = base;
+        for(auto tt:csv){
+            auto type = parse_type(tt, ctx);
+            modref->type_params.push_back(type);
+        }
+        ret = modref;
+    }
+
+    // If there is another double colon, assume we are working with a generic module references's member
+    if(toks.size() && toks[0].is(TT_double_colon)){
+        popf(toks);
+        expects(toks[0], TT_identifier);
+        auto member_name = Ident::get(popf(toks).value);
+        auto mod_member_ref = new ModuleMemberRef;
+        mod_member_ref->member = member_name;
+        // This cast is okay, ret is guaranteed to be a moduleref
+        mod_member_ref->mod = (ModuleRef*)ret;
+
+        ret = mod_member_ref;
+    }
+    return ret;
+
+}
+
 Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 {
     if (toks.size() == 0)
@@ -178,10 +212,11 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 
     auto c = toks[0];
 
+    // Parse Function Calls and Subscripts
     if (c.is(TT_identifier))
     {
         auto initial = toks;
-        CompoundIdentifier *target = parseIdentifier(toks, ctx);
+        auto target = parse_ident(toks, ctx);
         target->ctx = ctx;
         if (toks[0].is(TT_l_paren) || toks[0].is(TT_lesser))
         {
@@ -611,8 +646,9 @@ void parse_mod(vector<Token> &toks, Module *mod)
             }
 
             method->sig = sig;
-            sig->name = Ident::get(nameTok.value);
-            sig->space = mod->name;
+            auto nm = mod->name->copy(nullptr);
+            nm->parts.push_back(Ident::get(nameTok.value));
+            sig->name = nm;
 
             sig->params = params.take();
             sig->returnType = returnType;
@@ -670,10 +706,10 @@ void parse_mod(vector<Token> &toks, Module *mod)
     }
 }
 
-ModuleReference *parse_compositor(vector<Token> &toks)
+Compositor *parse_compositor(vector<Token> &toks)
 {
-    auto name = parseIdentifier(toks, nullptr);
-    auto c = new ModuleReference;
+    auto name = parse_compound_ident(toks, nullptr);
+    auto c = new Compositor;
     c->name = name;
 
     if (toks.size())
@@ -713,7 +749,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 popf(importExprToks);
                 isStd = true;
             }
-            auto target = parseIdentifier(importExprToks, nullptr);
+            auto target = parse_compound_ident(importExprToks, nullptr);
             CompoundIdentifier *alias = target;
             if (importExprToks.size())
             {
@@ -772,7 +808,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                     generics.push_back(generic);
                 }
             }
-            vector<ModuleReference *> compositors;
+            Block<Compositor> compositors;
             if (toks[0].is(TT_is))
             {
                 popf(toks);
@@ -785,7 +821,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             }
             auto moduleToks = readBlock(toks, IND_braces);
             mod->name = new CompoundIdentifier(name.value);
-            mod->compositors = compositors;
+            mod->compositors = compositors.take();
             mod->generics = generics;
             parse_mod(moduleToks, mod);
             unit.push_back(mod);

@@ -31,7 +31,7 @@ public:
         return primitive_names[type];
     }
     Type *drill() { return this; }
-    Type* copy(){
+    Type* copy(SourceBlock* ctx){
         return this;
     }
     static Primitive *get(PrimitiveType t)
@@ -83,41 +83,42 @@ public:
         switch (type)
         {
         case PR_int8:
-            return llvm::Type::getInt8Ty(*ctx());
+            return llvm::Type::getInt8Ty(*llctx());
         case PR_int16:
-            return llvm::Type::getInt16Ty(*ctx());
+            return llvm::Type::getInt16Ty(*llctx());
         case PR_int32:
-            return llvm::Type::getInt32Ty(*ctx());
+            return llvm::Type::getInt32Ty(*llctx());
         case PR_int64:
-            return llvm::Type::getInt64Ty(*ctx());
+            return llvm::Type::getInt64Ty(*llctx());
 
         case PR_uint8:
-            return llvm::Type::getInt8Ty(*ctx());
+            return llvm::Type::getInt8Ty(*llctx());
         case PR_uint16:
-            return llvm::Type::getInt16Ty(*ctx());
+            return llvm::Type::getInt16Ty(*llctx());
         case PR_uint32:
-            return llvm::Type::getInt32Ty(*ctx());
+            return llvm::Type::getInt32Ty(*llctx());
         case PR_uint64:
-            return llvm::Type::getInt64Ty(*ctx());
+            return llvm::Type::getInt64Ty(*llctx());
 
         case PR_float16:
-            return llvm::Type::getHalfTy(*ctx());
+            return llvm::Type::getHalfTy(*llctx());
         case PR_float32:
-            return llvm::Type::getFloatTy(*ctx());
+            return llvm::Type::getFloatTy(*llctx());
         case PR_float64:
-            return llvm::Type::getDoubleTy(*ctx());
+            return llvm::Type::getDoubleTy(*llctx());
 
         case PR_boolean:
-            return llvm::Type::getInt1Ty(*ctx());
+            return llvm::Type::getInt1Ty(*llctx());
         case PR_string:
-            return llvm::Type::getInt8PtrTy(*ctx()); // This type is just temporary //TODO: implement string module within the language
+            return llvm::Type::getInt8PtrTy(*llctx()); // This type is just temporary //TODO: implement string module within the language
         case PR_void:
-            return llvm::Type::getVoidTy(*ctx());
+            return llvm::Type::getVoidTy(*llctx());
         default:
             error("Failed to generate primitive for " + std::to_string(type));
         }
         return nullptr;
     }
+
 };
 class CustomType : public Type
 {
@@ -126,14 +127,15 @@ public:
     Block<Type> type_args;
     Identifier *name;
 
-    Type* copy(){
+    Type* copy(SourceBlock* ctx){
         auto ct = new CustomType(name);
+        ct->ctx = ctx;
         if(refersTo){
-            auto copy = refersTo->copy();
-            ct->refersTo = refersTo->copy();
+            auto copy = refersTo->copy(ctx);
+            ct->refersTo = refersTo->copy(ctx);
         }
         for(auto a:type_args){
-            ct->type_args.push_back(a->copy());
+            ct->type_args.push_back(a->copy(ctx));
         }
         return ct;
     }
@@ -164,8 +166,16 @@ public:
             auto child = refersTo->str();
             return child;
         }
-        error("Cannot get name for unresolved type reference");
+        error("Cannot get name for unresolved type reference: " + name->str(), true);
         return nullptr;
+    }
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m:name->flatten())ret.push_back(m);
+        for(auto ta:type_args)for(auto f:ta->flatten())ret.push_back(f);
+        if(refersTo)for(auto t:refersTo->flatten())ret.push_back(t);
+        return ret;
     }
 };
 
@@ -178,10 +188,11 @@ public:
     {
         this->constraint = constraint;
     }
-    Type* copy(){
+    Type* copy(SourceBlock* ctx){
         auto gen = new Generic(*this);
-        if(constraint)gen->constraint = constraint->copy();
-        if(refersTo)gen->refersTo = refersTo->copy();
+        gen->ctx = ctx;
+        if(constraint)gen->constraint = constraint->copy(ctx);
+        if(refersTo)gen->refersTo = refersTo->copy(ctx);
         return gen;
     }
     Type* drill(){
@@ -204,8 +215,9 @@ public:
     {
         to = type;
     }
-    Type* copy(){
-        auto pt = new TPtr(to->copy());
+    Type* copy(SourceBlock* ctx){
+        auto pt = new TPtr(to->copy(ctx));
+        pt->ctx = ctx;
         return pt;
     }
     TPtr *ptr()
@@ -236,11 +248,12 @@ public:
     {
         return this;
     }
-    Type* copy(){
+    Type* copy(SourceBlock* ctx){
         auto lt = new ListType(
-            elements->copy(),
+            elements->copy(ctx),
             size
         );
+        lt->ctx = ctx;
         return lt;        
     }
     Type *elements;

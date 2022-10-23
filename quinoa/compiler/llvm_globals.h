@@ -7,7 +7,7 @@
 #include "llvm/IR/Type.h"
 #define TVars std::map<std::string, llvm::AllocaInst *>
 
-llvm::LLVMContext* ctx();
+llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();
 
 llvm::Value *cast(llvm::Value *val, llvm::Type *type);

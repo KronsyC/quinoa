@@ -16,26 +16,26 @@ public:
         return true;
     }
 };
-class Module;
 
-class ModuleReference:public Block<Expression>{
+
+
+class Compositor:public ModuleRef{
 public:
-    Identifier* name;
-    Module* refersTo;
     Block<Expression> params;
 };
+
 class Method;
 class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
     Block<Generic> generics;
     CompoundIdentifier* name;
-    std::vector<ModuleReference*> compositors; 
+    Block<Compositor> compositors; 
     bool undergone_appropriate_processing = false;
     bool isModule(){
         return true;
     }
 
-    ModuleReference* comp(std::string comp){
+    Compositor* comp(std::string comp){
         for(auto c:compositors){
             if(c->name->str() == comp)return c;
         }

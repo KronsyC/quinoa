@@ -16,7 +16,7 @@ using namespace std;
 llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
 {
     auto ret = f.returnType->getLLType();
-    auto name = mangle ? f.sourcename() : f.fullname()->str();
+    auto name = mangle ? f.sourcename() : f.name->str();
     vector<llvm::Type *> args;
     for (auto a : f.params)
         args.push_back(a->type->getLLType());
@@ -102,9 +102,9 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         {
             auto loop = (WhileCond *)stm;
 
-            auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "while_eval", func);
-            auto runBlock = llvm::BasicBlock::Create(*ctx(), "while_exec", func);
-            auto continuationBlock = llvm::BasicBlock::Create(*ctx(), "while_cont", func);
+            auto evaluatorBlock = llvm::BasicBlock::Create(*llctx(), "while_eval", func);
+            auto runBlock = llvm::BasicBlock::Create(*llctx(), "while_exec", func);
+            auto continuationBlock = llvm::BasicBlock::Create(*llctx(), "while_cont", func);
 
             ControlFlowInfo cf = cfi;
             cf.breakTo = continuationBlock;
@@ -129,9 +129,9 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             auto iff = (IfCond*)stm;
 
 
-            auto execBlock = llvm::BasicBlock::Create(*ctx(), "if_exec", func);
-            auto continuationBlock = iff->returns()?nullptr:llvm::BasicBlock::Create(*ctx(), "if_cont", func);
-            auto elseBlock = iff->otherwise?llvm::BasicBlock::Create(*ctx(), "if_else", func):continuationBlock;
+            auto execBlock = llvm::BasicBlock::Create(*llctx(), "if_exec", func);
+            auto continuationBlock = llvm::BasicBlock::Create(*llctx(), "if_cont", func);
+            auto elseBlock = iff->otherwise?llvm::BasicBlock::Create(*llctx(), "if_else", func):continuationBlock;
             ControlFlowInfo cf = cfi;
             cf.exitBlock = continuationBlock;
 
@@ -140,12 +140,12 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             
             builder()->SetInsertPoint(execBlock);
             genSource(*iff->does, func, vars, cf);
-            if(!iff->does->returns())builder()->CreateBr(continuationBlock);
+            builder()->CreateBr(continuationBlock);
 
             if(iff->otherwise ){
                 builder()->SetInsertPoint(elseBlock);
                 genSource(*iff->otherwise, func, vars, cf);
-                if(!iff->otherwise->returns())builder()->CreateBr(continuationBlock);
+                builder()->CreateBr(continuationBlock);
             }
             builder()->SetInsertPoint(continuationBlock);
             
@@ -155,10 +155,10 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
         else if(instanceof<ForRange>(stm)){
             auto loop = (ForRange *)stm;
 
-            auto evaluatorBlock = llvm::BasicBlock::Create(*ctx(), "for_eval", func);
-            auto incrementBlock = llvm::BasicBlock::Create(*ctx(), "for_inc", func);
-            auto runBlock = llvm::BasicBlock::Create(*ctx(), "for_exec", func);
-            auto continuationBlock = llvm::BasicBlock::Create(*ctx(), "while_cont", func);
+            auto evaluatorBlock = llvm::BasicBlock::Create(*llctx(), "for_eval", func);
+            auto incrementBlock = llvm::BasicBlock::Create(*llctx(), "for_inc", func);
+            auto runBlock = llvm::BasicBlock::Create(*llctx(), "for_exec", func);
+            auto continuationBlock = llvm::BasicBlock::Create(*llctx(), "while_cont", func);
 
             ControlFlowInfo cf = cfi;
             cf.breakTo = continuationBlock;
@@ -232,7 +232,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         auto i32 = Primitive::get(PR_int32)->getLLType();
         auto i8p = (new TPtr( Primitive::get(PR_int8)))->getLLType();
         // auto st = llvm::StructType::create(i32, i32, i8ptr, i8ptr);
-        auto st = llvm::StructType::create(*ctx(), {i32, i32, i8p, i8p});
+        auto st = llvm::StructType::create(*llctx(), {i32, i32, i8p, i8p});
         auto alloc = builder()->CreateAlloca(st, nullptr, "var_args_obj");
         // Tracker / i
         auto tracker = builder()->CreateAlloca(i32, nullptr, "i");
@@ -242,9 +242,9 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
 
 
         // Create a loop to iter over each arg, and push it into the list
-        auto eval = llvm::BasicBlock::Create(*ctx(), "while_eval", fn);
-        auto body = llvm::BasicBlock::Create(*ctx(), "while_body", fn);
-        auto cont = llvm::BasicBlock::Create(*ctx(), "while_cont", fn);
+        auto eval = llvm::BasicBlock::Create(*llctx(), "while_eval", fn);
+        auto body = llvm::BasicBlock::Create(*llctx(), "while_body", fn);
+        auto cont = llvm::BasicBlock::Create(*llctx(), "while_cont", fn);
 
         builder()->CreateBr(eval);
         builder()->SetInsertPoint(eval);
@@ -271,7 +271,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
 }
 std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSignature> injectedDefinitions)
 {
-    auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *ctx());
+    auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
 
     auto m = llmod.get();
     for (auto d : injectedDefinitions)
@@ -290,7 +290,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
                 error("Function " + fname + " could not be found");
             if (!method->size())
                 continue;
-            auto entry_block = llvm::BasicBlock::Create(*ctx(), "entry_block", fn);
+            auto entry_block = llvm::BasicBlock::Create(*llctx(), "entry_block", fn);
 
             builder()->SetInsertPoint(entry_block);
             genSource(*method, fn, varifyArgs(fn, method));
@@ -307,7 +307,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
 
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {
-    auto rootmod = new llvm::Module("Quinoa Program", *ctx());
+    auto rootmod = new llvm::Module("Quinoa Program", *llctx());
     std::vector<MethodSignature> defs;
     // Generate all of the modules, and link them into the root module "Quinoa Program"
     for (auto unit : ast)
@@ -346,7 +346,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             entrySig.params = Block<Param>(params);
             auto efn = createFunction(entrySig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
             
-            auto block = llvm::BasicBlock::Create(*ctx(), "main_entry", efn);
+            auto block = llvm::BasicBlock::Create(*llctx(), "main_entry", efn);
             builder()->SetInsertPoint(block);
             auto argc = efn->getArg(0);
             auto argv = efn->getArg(1);
