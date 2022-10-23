@@ -1,10 +1,14 @@
 import @io;
 
 
-
 module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{
-        io::println("Hello, World!");
+        greet("Bob");
         return 0;
+    }
+
+    func greet(name:c_str){
+        io::print("Hello, ");
+        io::println(name);
     }
 }
