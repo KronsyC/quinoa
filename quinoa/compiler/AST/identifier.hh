@@ -154,7 +154,7 @@ class Module;
 class ModuleRef:public Identifier{
 public:
     CompoundIdentifier* name;
-    Module* refersTo;
+    Module* refersTo = nullptr;
     Block<Type> type_params;
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};

@@ -4,7 +4,7 @@
 
 
 std::pair<bool, int> qualify_calls(Method &code,
-                  std::map<std::string, MethodSignature *> sigs) {
+                  CompilationUnit* unit) {
   auto flat = code.flatten();
   int resolvedCount = 0;
   bool success = true;
@@ -15,10 +15,7 @@ std::pair<bool, int> qualify_calls(Method &code,
       if(call->target )continue;
       if(call->builtin())continue;
       Logger::debug("Qualify call to " + call->name->str());
-      for(auto pair:sigs){
-        Logger::debug("def - " + pair.first);
-      }
-      call->qualify(sigs, *code.local_types);
+      call->qualify(unit, *code.local_types);
       if(call->target ){
         auto method = call->target->belongsTo;
         if(!method->public_access){

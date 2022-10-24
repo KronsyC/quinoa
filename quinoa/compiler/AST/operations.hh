@@ -132,7 +132,7 @@ public:
     return g.take();
   }
   void qualify(
-      std::map<std::string, MethodSignature *> sigs,
+      CompilationUnit* unit,
       LocalTypeTable type_info)
   {
     if (ctx == nullptr)
@@ -159,19 +159,23 @@ public:
     callsig->params = testparams;
     callsig->generics = make_generic_refs();
 
+    // Make sure the modules match up
+
     auto sigstr = callsig->sigstr();
-    Logger::debug("Resolve call to " + sigstr.str());
-    for(auto pair:sigs){
-      Logger::debug("-> " + pair.first);
+    Logger::debug("Call module " + name->mod->str());
+    Module* searches = nullptr;
+    for(auto mod:unit->getAllModules()){
+      CompoundIdentifier* modname = new CompoundIdentifier;
+      if(mod->nspace)modname->push_back(mod->nspace);
+      modname->push_back(mod->name);
+      if(modname->str() == name->mod->str()){
+        searches = mod;
+      }
     }
-    // attempt to find a function with the exact sig
-    auto fn = sigs[sigstr.str()];
-    if (fn)
-    {
-      target = fn;
+    if(searches==nullptr){
+      Logger::error("Failed to locate module " + name->mod->str());
       return;
     }
-    sigs.erase(sigstr.str());
     // Run Compatibility Checks on each sigstr pair to find
     // the most compatible function to match to
     int best = -1;
@@ -179,11 +183,10 @@ public:
     i = -1;
     MethodSigStr bestSigStr;
     auto cs = callsig->sigstr();
-    for (auto sigpair : sigs)
+    for (auto method:searches->getAllMethods())
     {
       i++;
-      auto sig = sigpair.second;
-      auto name = sigpair.first;
+      auto sig = method->sig;
       if (sig->nomangle)
         continue;
       auto sigs = sig->sigstr();
@@ -203,17 +206,18 @@ public:
       return;
     }
     int ind = 0;
-    for (auto pair : sigs)
+    for (auto method:searches->getAllMethods())
     {
+      auto sig = method->sig;
       if (ind == idx)
       {
-        if (pair.second->isGeneric())
+        if (sig->isGeneric())
         {
-          auto gen = pair.second->impl_as_generic(bestSigStr.generics);
+          auto gen = sig->impl_as_generic(bestSigStr.generics);
           target = gen;
         }
         else
-          target = pair.second;
+          target = sig;
 
         return;
       }
@@ -264,7 +268,8 @@ private:
   static int getCompatabilityScore(MethodSigStr &func,
                                    MethodSigStr mock)
   {
-    if (func.name->str() != mock.name->str())
+    // Namespace compat is presumably accounted for
+    if (func.name->member->str() != mock.name->member->str())
     {
       return -1;
     }

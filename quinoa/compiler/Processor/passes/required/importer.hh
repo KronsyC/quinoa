@@ -104,6 +104,13 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
       }
     }
   }
+  for(auto mod:unit.getAllModules()){
+    for(auto c:mod->compositors){
+      if(c->name->equals(alias)){
+        c->name = fullname;
+      }
+    }
+  }
 }
 void merge_units(CompilationUnit &tgt, CompilationUnit donor)
 {

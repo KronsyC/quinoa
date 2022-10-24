@@ -4,7 +4,7 @@
 
 
 std::pair<bool, int> qualify_calls(Method &code,
-                  std::map<std::string, MethodSignature *> sigs) {
+                  CompilationUnit &unit) {
   auto flat = code.flatten();
   int resolvedCount = 0;
   bool success = true;
@@ -14,7 +14,7 @@ std::pair<bool, int> qualify_calls(Method &code,
       // Don't do redundant qualification
       if(call->target )continue;
       if(call->builtin())continue;
-      call->qualify(sigs, *code.local_types);
+      call->qualify(&unit, *code.local_types);
       if(call->target ){
         auto method = call->target->belongsTo;
         if(!method->public_access){
@@ -31,35 +31,13 @@ std::pair<bool, int> qualify_calls(Method &code,
   return {success, resolvedCount};
 }
 
-std::map<std::string, MethodSignature*> fetch_signatures(CompilationUnit unit){
-    // Construct a table of all call names -> their signatures
-  std::map<std::string, MethodSignature *> sigs;
-
-  // All Implemented Functions
-  for (auto method : unit.getAllMethods()) {
-    auto name = method->sig->sourcename();
-    sigs[name] = method->sig;
-  }
-
-  // All Unimplemented Functions
-  for(auto item:unit){
-    if(instanceof<MethodPredeclaration>(item)){
-      auto sig = (MethodPredeclaration*)item;
-      if(sig->sig->nomangle){
-        sigs[sig->sig->name->str()] = sig->sig;
-      }
-    }
-  }
-  return sigs;
-}
 std::pair<bool, int> qualify_calls(CompilationUnit &unit) {
 
-  auto sigs = fetch_signatures(unit);
   int count = 0;
   bool success = true;
   // Attempt to Qualify all Calls
   for (auto method : unit.getAllMethods()) {
-      auto result = qualify_calls(*method, sigs);
+      auto result = qualify_calls(*method, unit);
       if(!result.first)success=false;
       count+=result.second;
   }

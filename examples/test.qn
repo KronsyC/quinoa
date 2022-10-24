@@ -1,10 +1,13 @@
 import @io;
-import @lang::assertions as assert;
+import @native::struct::{ Structable };
+
+module MyStruct is Structable{
+
+}
 
 module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{
-        assert::equals(argc, 2);
-        assert::truthy(1);
+        MyStruct::create();
         return 0;
     }
 

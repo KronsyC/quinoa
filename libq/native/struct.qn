@@ -1,7 +1,9 @@
+import @io;
+
 module Structable is Exported("Structable"){
-
+    pub func create(){
+        io::println("Creating Struct");
+    }
 }
 
-module Struct<T> is Exported, CompilerImplemented{
-    pub func create() -> Struct<T>;
-}
+module Struct<T> is Exported, CompilerImplemented{}

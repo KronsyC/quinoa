@@ -33,7 +33,7 @@ public:
 
     // The Namespace Unique hash for the module
     // i.e abcdefg
-    Ident* nspace;
+    Ident* nspace = nullptr;
     CompoundIdentifier* fullname(){
         // if(!nspace)error("The module " + name->str() + " does not have a namespace");
         auto id = new CompoundIdentifier();
@@ -69,9 +69,20 @@ public:
 
     std::vector<Method*> getAllMethods(){
         std::vector<Method*> ret;
+
+        // immediate children
         for(auto m:*this){
             auto mt = (Method*)m;
             if(instanceof<Method>(m))ret.push_back(mt);
+        }
+
+        // inherited children
+        for(auto comp:compositors){
+            if(auto mod = comp->refersTo){
+                for(auto method:mod->getAllMethods()){
+                    ret.push_back(method);
+                }
+            }
         }
         return ret;
     }

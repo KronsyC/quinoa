@@ -24,7 +24,7 @@ class MethodSigStr{
 public:
     MethodSigStr() = default;
     public:
-    Identifier* name;
+    ModuleMemberRef* name;
     Block<Param> params;
     Block<Generic> generics;
     bool nomangle = false;
@@ -114,7 +114,6 @@ public:
         Block<Generic> gs;
         Block<Param> ps;
         std::map<std::string, Generic*> genericMappings;
-        Logger::debug("Clone " + name->str());
         for(auto g:generics){
             auto gen = new Generic(*g);
             genericMappings[gen->str()] = gen;

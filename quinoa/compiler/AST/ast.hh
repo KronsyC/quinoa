@@ -32,9 +32,9 @@ Type *getCommonType(std::vector<Type *> items);
 
 #include "./module.hh"
 #include "./module_member.hh"
+#include "./compilation_unit.hh"
 #include "./constant.hh"
 #include "./operations.hh"
 #include "./control_flow.hh"
-#include "./compilation_unit.hh"
 
 
