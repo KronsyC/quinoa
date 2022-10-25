@@ -12,7 +12,6 @@
 #include "../../lib/list.h"
 using namespace std;
 
-
 llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
 {
     auto ret = f.returnType->getLLType();
@@ -47,7 +46,20 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
     return fn;
 }
 
-
+llvm::GlobalValue *createGlobal(Property *prop, llvm::Module *mod, llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage)
+{
+    Logger::debug("Create global " + prop->str());
+    auto type = prop->type->getLLType();
+    auto initializer = prop->initializer;
+    llvm::Constant* const_initializer = nullptr;
+    if(initializer){
+        auto constant = initializer->constant();
+        if(!constant)error("Initialzers must be constant");
+        const_initializer = constant->getLLConstValue(type);
+    }
+    auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->str());
+    return global;
+}
 struct ControlFlowInfo
 {
     // The block to jump to after the `break` action is invoked
@@ -70,35 +82,39 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
     {
         if (!stm->active)
             continue;
-        if (instanceof<InitializeVar>(stm))
+        if (instanceof <InitializeVar>(stm))
         {
             auto init = (InitializeVar *)stm;
             auto varname = init->varname->str();
             auto type = init->type->getLLType();
-            llvm::AllocaInst* alloca;
-            if(init->type->list()){
+            llvm::AllocaInst *alloca;
+            if (init->type->list())
+            {
                 auto l = init->type->list();
-                llvm::Value* size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
-                if(!size)error("You must know the size of an array while allocating it");
-                
+                llvm::Value *size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
+                if (!size)
+                    error("You must know the size of an array while allocating it");
+
                 // decide on static or dynamic type
-                if(l->isStatic()){
-                    if(!instanceof<Integer>(l->size))error("Cannot initialize list with non-integer length");
-                    auto size = ((Integer*)l->size)->value;
+                if (l->isStatic())
+                {
+                    if (! instanceof <Integer>(l->size))
+                        error("Cannot initialize list with non-integer length");
+                    auto size = ((Integer *)l->size)->value;
                     auto arrayType = llvm::ArrayType::get(l->elements->getLLType(), size);
                     alloca = builder()->CreateAlloca(arrayType);
                 }
-                else{
+                else
+                {
                     alloca = builder()->CreateAlloca(type->getPointerElementType(), size, "list " + varname);
                 }
-                
-
             }
-            else alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
-            
+            else
+                alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
+
             vars[varname] = alloca;
         }
-        else if (instanceof<WhileCond>(stm))
+        else if (instanceof <WhileCond>(stm))
         {
             auto loop = (WhileCond *)stm;
 
@@ -125,34 +141,33 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
         }
-        else if(instanceof<IfCond>(stm)){
-            auto iff = (IfCond*)stm;
-
+        else if (instanceof <IfCond>(stm))
+        {
+            auto iff = (IfCond *)stm;
 
             auto execBlock = llvm::BasicBlock::Create(*llctx(), "if_exec", func);
             auto continuationBlock = llvm::BasicBlock::Create(*llctx(), "if_cont", func);
-            auto elseBlock = iff->otherwise?llvm::BasicBlock::Create(*llctx(), "if_else", func):continuationBlock;
+            auto elseBlock = iff->otherwise ? llvm::BasicBlock::Create(*llctx(), "if_else", func) : continuationBlock;
             ControlFlowInfo cf = cfi;
             cf.exitBlock = continuationBlock;
 
             auto cond = iff->cond->getLLValue(vars, Primitive::get(PR_boolean)->getLLType());
             builder()->CreateCondBr(cond, execBlock, elseBlock);
-            
+
             builder()->SetInsertPoint(execBlock);
             genSource(*iff->does, func, vars, cf);
             builder()->CreateBr(continuationBlock);
 
-            if(iff->otherwise ){
+            if (iff->otherwise)
+            {
                 builder()->SetInsertPoint(elseBlock);
                 genSource(*iff->otherwise, func, vars, cf);
                 builder()->CreateBr(continuationBlock);
             }
             builder()->SetInsertPoint(continuationBlock);
-            
-
-
         }
-        else if(instanceof<ForRange>(stm)){
+        else if (instanceof <ForRange>(stm))
+        {
             auto loop = (ForRange *)stm;
 
             auto evaluatorBlock = llvm::BasicBlock::Create(*llctx(), "for_eval", func);
@@ -176,21 +191,20 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             genSource(*loop, func, vars, cf);
             builder()->CreateBr(incrementBlock);
 
-
             builder()->SetInsertPoint(incrementBlock);
             genSource(*loop->inc, func, vars);
             builder()->CreateBr(evaluatorBlock);
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
         }
-        else if (instanceof<Return>(stm))
+        else if (instanceof <Return>(stm))
         {
             auto ret = (Return *)stm;
             auto expr = ret->retValue->getLLValue(vars, func->getReturnType());
             builder()->CreateRet(cast(expr, func->getReturnType()));
         }
         // interpret as expression with dumped value
-        else if (instanceof<Expression>(stm))
+        else if (instanceof <Expression>(stm))
         {
             ((Expression *)stm)->getLLValue(vars);
         }
@@ -198,7 +212,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             error("Failed Generate IR for statement");
     }
 }
-TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
+TVars varifyArgs(llvm::Function *fn, Method *sig = nullptr)
 {
     if (fn == nullptr)
         error("Cannot varify the args of a null function", true);
@@ -214,23 +228,24 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
     }
 
     // Inject the var-args as a known-length list
-    if(sig && sig->sig->isVariadic()){
-        auto varParam = sig->sig->params[sig->sig->params.size()-1];
-        auto varParamType = (ListType*)varParam->type;
+    if (sig && sig->sig->isVariadic())
+    {
+        auto varParam = sig->sig->params[sig->sig->params.size() - 1];
+        auto varParamType = (ListType *)varParam->type;
         auto elementType = varParamType->elements->getLLType();
         auto one = builder()->getInt32(1);
         auto lenptr = vars["+vararg_count"];
         varParamType->size = Ident::get("+vararg_count");
         auto len = builder()->CreateLoad(lenptr->getType()->getPointerElementType(), lenptr, "varargs_len");
-        
+
         auto list = builder()->CreateAlloca(elementType, len, "varargs_list");
         auto init = builder()->CreateAlloca(elementType->getPointerTo());
         builder()->CreateStore(list, init);
         vars[varParam->name->str()] = init;
-        pushf(*sig, (Statement*)list);
+        pushf(*sig, (Statement *)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
-        auto i8p = (new TPtr( Primitive::get(PR_int8)))->getLLType();
+        auto i8p = (new TPtr(Primitive::get(PR_int8)))->getLLType();
         // auto st = llvm::StructType::create(i32, i32, i8ptr, i8ptr);
         auto st = llvm::StructType::create(*llctx(), {i32, i32, i8p, i8p});
         auto alloc = builder()->CreateAlloca(st, nullptr, "var_args_obj");
@@ -239,7 +254,6 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         builder()->CreateStore(builder()->getInt32(0), tracker);
         auto cast = builder()->CreateBitCast(alloc, i8p);
         builder()->CreateUnaryIntrinsic(llvm::Intrinsic::vastart, cast);
-
 
         // Create a loop to iter over each arg, and push it into the list
         auto eval = llvm::BasicBlock::Create(*llctx(), "while_eval", fn);
@@ -257,7 +271,7 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
 
         // get the value and set it in the list
         auto value = builder()->CreateVAArg(alloc, elementType);
-        auto listPtr = builder()->CreateGEP(list->getType()->getPointerElementType(),list,loaded_i);
+        auto listPtr = builder()->CreateGEP(list->getType()->getPointerElementType(), list, loaded_i);
         builder()->CreateStore(value, listPtr);
 
         // Increment and jump out
@@ -265,25 +279,32 @@ TVars varifyArgs(llvm::Function *fn, Method* sig=nullptr)
         builder()->CreateStore(inc, tracker);
         builder()->CreateBr(eval);
         builder()->SetInsertPoint(cont);
-        
     }
     return vars;
 }
-std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSignature> injectedDefinitions)
+std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelExpression *> injectedDefinitions)
 {
     auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
 
     auto m = llmod.get();
     for (auto d : injectedDefinitions)
     {
-        createFunction(d, m);
+        if (auto method = dynamic_cast<MethodPredeclaration*>(d))
+        {
+            createFunction(*method->of->sig, m);
+        }
+        if (auto prop = dynamic_cast<PropertyPredeclaration*>(d))
+        {
+            createGlobal(prop->of, m);
+        }
     }
     for (auto child : mod)
     {
-        if (instanceof<Method>(child))
+        if (instanceof <Method>(child))
         {
             auto method = (Method *)child;
-            if(!method->generate())continue;
+            if (!method->generate())
+                continue;
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
             if (fn == nullptr)
@@ -298,28 +319,40 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<MethodSign
                 builder()->CreateRetVoid();
             continue;
         }
+        else if (instanceof <Property>(child))
+        {
+            auto prop = (Property *)child;
+            auto prop_name = prop->str();
+
+            auto ll_var = llmod->getGlobalVariable(prop_name);
+            if (ll_var == nullptr)
+            {
+                error("Lookup for property '" + prop_name + "' failed");
+            }
+            Logger::debug("Generate property " + prop_name);
+        }
         else
-            error("Failed to do the stuff");
+            error("Failed to generate module member");
     }
     return llmod;
 }
 
-
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {
     auto rootmod = new llvm::Module("Quinoa Program", *llctx());
-    std::vector<MethodSignature> defs;
+    std::vector<TopLevelExpression *> defs;
     // Generate all of the modules, and link them into the root module "Quinoa Program"
     for (auto unit : ast)
     {
-        if (instanceof<Module>(unit))
+        if (instanceof <Module>(unit))
         {
             auto mod = (Module *)unit;
 
             // If the module has generic params,
             // just skip it out
             Logger::debug("Generate mod " + mod->name->str());
-            if(mod->generics.size()){
+            if (mod->generics.size())
+            {
                 Logger::debug("Skip out on module");
                 continue;
             }
@@ -327,7 +360,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             Logger::debug("Generated");
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
-        else if (instanceof<Entrypoint>(unit))
+        else if (instanceof <Entrypoint>(unit))
         {
             Logger::debug("gen entrypoint");
             auto entry = (Entrypoint *)unit;
@@ -337,7 +370,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
                 error("Failed to locate entrypoint function '" + tgt + "'");
 
             MethodSignature entrySig;
-            std::vector<Param*> params;
+            std::vector<Param *> params;
             params.push_back(new Param(Primitive::get(PR_int32), Ident::get("argc")));
             params.push_back(new Param(new TPtr(Primitive::get(PR_string)), Ident::get("argv")));
             entrySig.name = new ModuleMemberRef(nullptr, Ident::get("main"));
@@ -345,19 +378,19 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             entrySig.returnType = Primitive::get(PR_int32);
             entrySig.params = Block<Param>(params);
             auto efn = createFunction(entrySig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
-            
+
             auto block = llvm::BasicBlock::Create(*llctx(), "main_entry", efn);
             builder()->SetInsertPoint(block);
             auto argc = efn->getArg(0);
             auto argv = efn->getArg(1);
             auto retVal = builder()->CreateCall(fn, {argc, argv});
             builder()->CreateRet(retVal);
-
         }
-        else if (instanceof<MethodPredeclaration>(unit))
+        else if (
+            instanceof <MethodPredeclaration>(unit) ||
+            instanceof <PropertyPredeclaration>(unit))
         {
-            auto dec = (MethodPredeclaration *)unit;
-            defs.push_back(*dec->sig);
+            defs.push_back(unit);
         }
         else
             error("An Unknown top-level entity was encountered");

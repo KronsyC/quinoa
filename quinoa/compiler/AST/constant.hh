@@ -2,12 +2,18 @@
 #include "./ast.hh"
 #include <string>
 #include <cmath>
-
 class Value : public Expression
 {
 };
 class Constant:public Value{
-
+public:
+    Constant* constant(){
+        return this;
+    }
+    virtual llvm::Constant* getLLConstValue(llvm::Type* expected){
+        error("Cannot get the ConstantValue of the base constant class");
+        return nullptr;
+    }
 };
 template <typename U>
 class ConstantValue : public Constant
@@ -32,9 +38,10 @@ public:
     }
     llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
     {
-        error("Cannot get llvalue for constant");
-        return nullptr;
+        return this->getLLConstValue(expected);
     }
+
+
 };
  class Integer : public ConstantValue<unsigned long long>
 {
@@ -65,14 +72,18 @@ public:
         error("Cannot infer types for ints larger than 64 bit");
         return Primitive::get(PR_int64);
     }
-    llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
+    llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)
     {
         auto myType = getType();
         auto myVal = builder()->getIntN(myType->getLLType()->getPrimitiveSizeInBits(), value);
         if (!expected)
             return myVal;
-        else
-            return builder()->CreateIntCast(myVal, expected, true);
+        else{
+            auto opcode = llvm::CastInst::getCastOpcode(myVal, true, expected, true);
+            auto cast =  llvm::ConstantExpr::getCast(opcode, myVal, expected);
+            return cast;
+
+        }
     }
 };
 class Float : public ConstantValue<long double>
@@ -93,7 +104,7 @@ class String : public ConstantValue<std::string>
     {
         return new TPtr(Primitive::get(PR_int8));
     }
-    llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
+    llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)
     {
         auto st = builder()->CreateGlobalStringPtr(value, "str");
         return st;
@@ -108,13 +119,15 @@ public:
     {
         return Primitive::get(PR_boolean);
     }
-    virtual llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
+    llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)
     {
         auto val = value ? builder()->getTrue() : builder()->getFalse();
         if (!expected)
             return val;
-        else
-            return builder()->CreateIntCast(val, expected, true);
+        else{
+            auto opcode = llvm::CastInst::getCastOpcode(val, true, expected, true);
+            return llvm::ConstantExpr::get(opcode, val, 0, expected);
+        }
     }
 };
 

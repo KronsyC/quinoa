@@ -32,7 +32,7 @@ void expects(Token tok, TokenType expected){
         message += " Unexpected "+ getTokenTypeName(tok.type) + " " +tok.value+" ";
         if(expected!=TT_notok)
         message += "( expected '" + getTokenTypeName(expected) + "' )";
-        error(message);
+        error(message, true);
     }
 }
 

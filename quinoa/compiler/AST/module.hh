@@ -35,11 +35,17 @@ public:
     // i.e abcdefg
     Ident* nspace = nullptr;
     CompoundIdentifier* fullname(){
-        // if(!nspace)error("The module " + name->str() + " does not have a namespace");
         auto id = new CompoundIdentifier();
         if(nspace)id->push_back(nspace);
         id->push_back(name);
         return id;
+    }
+    
+    ModuleRef* get_ref(){
+        auto ref = new ModuleRef;
+        ref->refersTo = this;
+        ref->name = this->fullname();
+        return ref;
     }
     Block<Compositor> compositors; 
     bool isModule(){

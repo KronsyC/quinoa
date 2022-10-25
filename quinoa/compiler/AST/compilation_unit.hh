@@ -28,4 +28,14 @@ public:
         }
         return ret;
     }
+
+    Block<Property> getAllProperties(){
+        Block<Property> ret(false);
+        for(auto mod:getAllModules()){
+            for(auto child:*mod){
+                if(instanceof<Property>(child))ret.push_back((Property*)child);
+            }
+        }
+        return ret;
+    }
 };

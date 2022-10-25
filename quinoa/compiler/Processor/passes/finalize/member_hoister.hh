@@ -18,7 +18,12 @@ void hoist_definitions(CompilationUnit &unit) {
     if(!method->generate()){
       continue;
     }
-    auto dec = new MethodPredeclaration(method->sig);
+    auto dec = new MethodPredeclaration(method);
+    pushf(unit, (TopLevelExpression*)dec);
+  }
+
+  for(auto property:unit.getAllProperties()){
+    auto dec = new PropertyPredeclaration(property);
     pushf(unit, (TopLevelExpression*)dec);
   }
 }

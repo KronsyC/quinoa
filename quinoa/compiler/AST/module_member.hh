@@ -81,13 +81,27 @@ public:
 };
 
 
+
+
 class Property:public ModuleMember{
 public: 
     Type* type = nullptr;
     ModuleMemberRef* name = nullptr;
     Expression* initializer;
-};
 
+
+    std::string str(){
+        return "prop_"+name->str();
+    }
+};
+class PropertyPredeclaration: public TopLevelExpression{
+public:
+    Property* of;
+    PropertyPredeclaration(Property* prop){
+        of = prop;
+    }
+
+};
 class Method;
 // Method definitions hold all the info of a method required to call
 // and generate definitions for it
@@ -187,13 +201,7 @@ public:
         return sig;
     }
 };
-class MethodPredeclaration:public TopLevelExpression{
-public:
-    MethodSignature* sig;
-    MethodPredeclaration(MethodSignature* sig){
-        this->sig = sig;
-    }
-};
+
 class Method:public ModuleMember, public SourceBlock{
 public:
     Method* copy(SourceBlock* ctx){
@@ -264,9 +272,17 @@ public:
         this->memberOf->push_back(m);
     }
 };
+
+class MethodPredeclaration:public TopLevelExpression{
+public:
+    Method* of = nullptr;
+    MethodPredeclaration(Method* method){
+        of = method;
+    }
+};
 class Entrypoint:public TopLevelExpression, public Method{
 public:
-    MethodSignature* calls;
+    MethodSignature* calls = nullptr;
     Entrypoint(MethodSignature* calls){
         this->calls = calls;
     }

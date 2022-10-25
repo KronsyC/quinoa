@@ -92,7 +92,7 @@ public:
     }
 
 };
-
+class Constant;
 struct Expression : public Statement
 {
 public:
@@ -110,7 +110,9 @@ public:
         error("Cannot get ptr to base expression type");
         return nullptr;
     }
-
+    virtual Constant* constant(){
+        return nullptr;
+    }
     Expression* copy(SourceBlock* ctx){
         error("Cannot copy base expression type", true);
         return nullptr;

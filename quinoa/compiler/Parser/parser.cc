@@ -738,17 +738,21 @@ void parse_mod(vector<Token> &toks, Module *mod)
             expects(propname_tok, TT_identifier);
             auto name = propname_tok.value;
             expects(popf(line), TT_colon);
-            auto type = parse_type(toks, nullptr);
+            auto type = parse_type(line, nullptr);
 
             auto prop = new Property;
-            
+            prop->type = type;
+            prop->name = new ModuleMemberRef;
+            prop->name->member = Ident::get(name);
+            prop->name->mod = mod->get_ref();
             // Possible Initializer, not required;
             if(line.size()){
                 expects(popf(line), TT_assignment);
                 auto initial_value = parse_expr(line, nullptr);
+                prop->initializer = initial_value;
             }
 
-            mod.push_back(prop);
+            mod->push_back(prop);
             continue;
         }
         // Metadata
