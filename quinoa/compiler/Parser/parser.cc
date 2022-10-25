@@ -620,6 +620,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
     {
         auto c = popf(toks);
 
+        // Method parsing
         if (c.is(TT_func))
         {
             auto nameTok = popf(toks);
@@ -727,6 +728,27 @@ void parse_mod(vector<Token> &toks, Module *mod)
             isPublic = false;
 
             mod->push_back(method);
+            continue;
+        }
+
+        // Property Parsing
+        if(c.is(TT_let)){
+            auto line = readUntil(toks, TT_semicolon, true);
+            auto propname_tok = popf(line);
+            expects(propname_tok, TT_identifier);
+            auto name = propname_tok.value;
+            expects(popf(line), TT_colon);
+            auto type = parse_type(toks, nullptr);
+
+            auto prop = new Property;
+            
+            // Possible Initializer, not required;
+            if(line.size()){
+                expects(popf(line), TT_assignment);
+                auto initial_value = parse_expr(line, nullptr);
+            }
+
+            mod.push_back(prop);
             continue;
         }
         // Metadata

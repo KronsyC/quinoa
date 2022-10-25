@@ -82,7 +82,10 @@ public:
 
 
 class Property:public ModuleMember{
-
+public: 
+    Type* type = nullptr;
+    ModuleMemberRef* name = nullptr;
+    Expression* initializer;
 };
 
 class Method;
