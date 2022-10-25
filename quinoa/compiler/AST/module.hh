@@ -25,6 +25,7 @@ public:
 };
 
 class Method;
+class Property;
 class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
     Block<Generic> generics;
@@ -89,6 +90,13 @@ public:
                     ret.push_back(method);
                 }
             }
+        }
+        return ret;
+    }
+    std::vector<Property*> getAllProperties(){
+        Block<Property> ret(false);
+        for(auto child:*this){
+            if(instanceof<Property>(child))ret.push_back((Property*)child);
         }
         return ret;
     }

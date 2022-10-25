@@ -320,6 +320,17 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 
         toks = initial;
     }
+    
+    // Compound variable (property access)
+    if(c.is(TT_identifier)){
+        auto initial = toks;
+        auto ident = parse_compound_ident(toks, ctx);
+        if(!toks.size()){
+            ident->ctx = ctx;
+            return ident;
+        }
+        toks = initial;
+    }
     // Build a Table of Operator Precedences
     std::map<TokenType, int> precedences;
     for (auto d : defs)
@@ -642,7 +653,9 @@ void parse_mod(vector<Token> &toks, Module *mod)
             auto argsTokens = readBlock(toks, IND_parens);
             auto argsCSV = parse_cst(argsTokens);
             Block<Param> params;
-            LocalTypeTable argTypes;
+            LocalTypeTable initial_types;
+
+            // Inject the args
             for (auto a : argsCSV)
             {
                 auto param = parse_param(a);
@@ -660,7 +673,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
                     }
                 }
 
-                argTypes[param->name->str()] = param->type;
+                initial_types[param->name->str()] = param->type;
                 params.push_back(param);
             }
 
@@ -690,13 +703,13 @@ void parse_mod(vector<Token> &toks, Module *mod)
             }
 
             // keep track of the arg types too
-            *method->local_types = argTypes;
+            *method->local_types = initial_types;
             auto sig = new MethodSignature();
             sig->generics = generic_args;
             if (toks[0].is(TT_l_brace))
             {
                 auto contentToks = readBlock(toks, IND_braces);
-                auto content = parse_source(contentToks, method, argTypes);
+                auto content = parse_source(contentToks, method, initial_types);
                 method->gobble(content);
             }
             else

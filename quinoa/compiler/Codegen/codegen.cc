@@ -12,7 +12,7 @@
 #include "../../lib/list.h"
 using namespace std;
 
-llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
+llvm::Function *make_fn(MethodSignature &f, llvm::Module *mod, llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage, bool mangle = true)
 {
     auto ret = f.returnType->getLLType();
     auto name = mangle ? f.sourcename() : f.name->str();
@@ -46,7 +46,7 @@ llvm::Function *createFunction(MethodSignature &f, llvm::Module *mod, llvm::Func
     return fn;
 }
 
-llvm::GlobalValue *createGlobal(Property *prop, llvm::Module *mod, llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage)
+llvm::GlobalValue *make_global(Property *prop, llvm::Module *mod, llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage)
 {
     Logger::debug("Create global " + prop->str());
     auto type = prop->type->getLLType();
@@ -75,7 +75,7 @@ struct ControlFlowInfo
     llvm::BasicBlock *exitBlock;
 };
 
-void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, ControlFlowInfo cfi = {})
+void gen_src(vector<Statement *> content, llvm::Function *func, TVars vars, ControlFlowInfo cfi = {})
 {
     Logger::debug("Generating Source of " + func->getName().str());
     for (auto stm : content)
@@ -135,7 +135,7 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             // Set up the content
             builder()->SetInsertPoint(runBlock);
-            genSource(*loop, func, vars, cf);
+            gen_src(*loop, func, vars, cf);
             builder()->CreateBr(evaluatorBlock);
 
             // generate the continuation
@@ -155,13 +155,13 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             builder()->CreateCondBr(cond, execBlock, elseBlock);
 
             builder()->SetInsertPoint(execBlock);
-            genSource(*iff->does, func, vars, cf);
+            gen_src(*iff->does, func, vars, cf);
             builder()->CreateBr(continuationBlock);
 
             if (iff->otherwise)
             {
                 builder()->SetInsertPoint(elseBlock);
-                genSource(*iff->otherwise, func, vars, cf);
+                gen_src(*iff->otherwise, func, vars, cf);
                 builder()->CreateBr(continuationBlock);
             }
             builder()->SetInsertPoint(continuationBlock);
@@ -188,11 +188,11 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
 
             // Set up the content
             builder()->SetInsertPoint(runBlock);
-            genSource(*loop, func, vars, cf);
+            gen_src(*loop, func, vars, cf);
             builder()->CreateBr(incrementBlock);
 
             builder()->SetInsertPoint(incrementBlock);
-            genSource(*loop->inc, func, vars);
+            gen_src(*loop->inc, func, vars);
             builder()->CreateBr(evaluatorBlock);
             // generate the continuation
             builder()->SetInsertPoint(continuationBlock);
@@ -212,11 +212,23 @@ void genSource(vector<Statement *> content, llvm::Function *func, TVars vars, Co
             error("Failed Generate IR for statement");
     }
 }
-TVars varifyArgs(llvm::Function *fn, Method *sig = nullptr)
+TVars inject_vars(llvm::Function *fn, CompilationUnit& ast, Method *method)
 {
     if (fn == nullptr)
         error("Cannot varify the args of a null function", true);
     TVars vars;
+
+    // Inject the peer properties as non-prefixed variables
+    for(auto prop:method->memberOf->getAllProperties()){
+        auto prop_name = prop->name->member;
+        Logger::debug("Inject prop " + prop_name->str());
+        vars[prop_name->str()] = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
+    }
+    // Inject all properties as full variables
+    for(auto prop:ast.getAllProperties()){
+        auto prop_name = prop->name;
+        vars[prop_name->str()] = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
+    }
 
     // Inject the args as variables
     for (unsigned int i = 0; i < fn->arg_size(); i++)
@@ -228,9 +240,9 @@ TVars varifyArgs(llvm::Function *fn, Method *sig = nullptr)
     }
 
     // Inject the var-args as a known-length list
-    if (sig && sig->sig->isVariadic())
+    if (method->sig->isVariadic())
     {
-        auto varParam = sig->sig->params[sig->sig->params.size() - 1];
+        auto varParam = method->sig->params[method->sig->params.size() - 1];
         auto varParamType = (ListType *)varParam->type;
         auto elementType = varParamType->elements->getLLType();
         auto one = builder()->getInt32(1);
@@ -242,7 +254,7 @@ TVars varifyArgs(llvm::Function *fn, Method *sig = nullptr)
         auto init = builder()->CreateAlloca(elementType->getPointerTo());
         builder()->CreateStore(list, init);
         vars[varParam->name->str()] = init;
-        pushf(*sig, (Statement *)list);
+        pushf(*method, (Statement *)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
         auto i8p = (new TPtr(Primitive::get(PR_int8)))->getLLType();
@@ -282,7 +294,7 @@ TVars varifyArgs(llvm::Function *fn, Method *sig = nullptr)
     }
     return vars;
 }
-std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelExpression *> injectedDefinitions)
+std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelExpression *> injectedDefinitions, CompilationUnit& ast)
 {
     auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
 
@@ -291,11 +303,11 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
     {
         if (auto method = dynamic_cast<MethodPredeclaration*>(d))
         {
-            createFunction(*method->of->sig, m);
+            make_fn(*method->of->sig, m);
         }
         if (auto prop = dynamic_cast<PropertyPredeclaration*>(d))
         {
-            createGlobal(prop->of, m);
+            make_global(prop->of, m);
         }
     }
     for (auto child : mod)
@@ -314,7 +326,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
             auto entry_block = llvm::BasicBlock::Create(*llctx(), "entry_block", fn);
 
             builder()->SetInsertPoint(entry_block);
-            genSource(*method, fn, varifyArgs(fn, method));
+            gen_src(*method, fn, inject_vars(fn, ast, method));
             if (fn->getReturnType()->isVoidTy())
                 builder()->CreateRetVoid();
             continue;
@@ -356,7 +368,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
                 Logger::debug("Skip out on module");
                 continue;
             }
-            auto llmodptr = generateModule(*mod, defs);
+            auto llmodptr = generateModule(*mod, defs, ast);
             Logger::debug("Generated");
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
@@ -377,7 +389,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             entrySig.nomangle = true;
             entrySig.returnType = Primitive::get(PR_int32);
             entrySig.params = Block<Param>(params);
-            auto efn = createFunction(entrySig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
+            auto efn = make_fn(entrySig, rootmod, llvm::Function::LinkageTypes::ExternalLinkage, false);
 
             auto block = llvm::BasicBlock::Create(*llctx(), "main_entry", efn);
             builder()->SetInsertPoint(block);

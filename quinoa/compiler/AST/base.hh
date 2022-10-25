@@ -23,7 +23,7 @@ public:
     SourceBlock* ctx = nullptr;
     virtual std::vector<Statement *> flatten()
     {
-        error("Cannot Flatten a raw Statement");
+        error("Cannot Flatten a raw Statement", true);
         return {};
     }
 

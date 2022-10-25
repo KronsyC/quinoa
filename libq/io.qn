@@ -2,6 +2,7 @@ import @syscall;
 
 module IO is Exported{
 
+    let stdout:int = 1;
     func strlen(str:c_str)->i64{
         let i:i64 = 0;
         while(str[i] != 0){
