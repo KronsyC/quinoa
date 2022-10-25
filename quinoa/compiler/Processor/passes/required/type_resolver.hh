@@ -20,7 +20,6 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 		{
 			if(auto custom = dynamic_cast<CustomType*>(child)){
 				if(custom->refersTo)continue;
-				Logger::debug("Custom Type " + custom->name->str());
 				auto name = custom->name->str();
 				for(auto mod:unit.getAllModules()){
 					if(mod->name->str() == name){
@@ -29,7 +28,6 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 						modref->name = (CompoundIdentifier*)custom->name;
 						modref->type_params = custom->type_args;
 						custom->refersTo = new ModuleType(modref);
-						Logger::debug("Found u");
 						break;
 					}
 				}

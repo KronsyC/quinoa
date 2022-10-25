@@ -47,13 +47,7 @@ public:
         return std::move(str().c_str());
     }
 
-    Type* getType(){
-        if(!ctx)error("No Context for Ident");
-        auto type = ctx->getType(str());
-        
-        if(!type)error("Failed to locate type for " + str());
-        return type;
-    }
+
     std::vector<Statement*> flatten(){
         return {this};
     }
@@ -63,6 +57,13 @@ public:
         if (loaded == nullptr)
             error("Failed to read variable '" + str() + "'");
         return loaded;
+    }
+    Type* getType(){
+        if(!ctx)error("No Context for Ident");
+        auto type = ctx->getType(str());
+        
+        if(!type)error("Failed to locate type for " + str());
+        return type;
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
         auto loaded = getPtr(vars);
@@ -208,6 +209,24 @@ public:
     ModuleMemberRef* copy(SourceBlock* ctx){
         auto ret = new ModuleMemberRef(mod->copy(ctx), member->copy(ctx));
         return ret;
+    }
+    llvm::AllocaInst* getPtr(TVars vars){
+        auto loaded = vars[str()];
+        
+        if (loaded == nullptr)
+            error("Failed to read variable '" + str() + "'");
+        return loaded;
+    }
+    Type* getType(){
+        if(!ctx)error("No Context for Ident");
+        auto type = ctx->getType(str());
+        
+        if(!type)error("Failed to locate type for " + str());
+        return type;
+    }
+    llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
+        auto loaded = getPtr(vars);
+        return cast(builder()->CreateLoad(loaded->getType()->getPointerElementType(), loaded), expected);
     }
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this, member};

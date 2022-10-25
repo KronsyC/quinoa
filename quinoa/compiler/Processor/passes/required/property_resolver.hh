@@ -8,8 +8,16 @@
 */
 
 
-
-void inject_prop_defs(CompilationUnit& unit){
+void aliasify_prop_refs(CompilationUnit& unit){
+    for(auto method:unit.getAllMethods()){
+        for(auto code:method->flatten()){
+            if(auto cid = dynamic_cast<CompoundIdentifier*>(code)){
+                Logger::debug(" " + cid->str());
+            }
+        }
+    }
+}
+void inject_prop_type_defs(CompilationUnit& unit){
     for(auto method:unit.getAllMethods()){
         for(auto prop:unit.getAllProperties()){
             (*method->local_types)[prop->name->str()] = prop->type;
@@ -20,6 +28,13 @@ void inject_prop_defs(CompilationUnit& unit){
             }
         }
     }
+}
+
+
+void resolve_props(CompilationUnit& unit){
+    aliasify_prop_refs(unit);
+    inject_prop_type_defs(unit);
+
 }
 
 

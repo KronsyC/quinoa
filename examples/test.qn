@@ -1,11 +1,10 @@
 import @lang::assertions;
-
 module Test is Entry{
 
     let age:int = 16;
 
     pub func main(argc:int, argv:c_str*)->int{
-        return IO::stdout+1;
+        return IO::stdout;
     }
 
 

@@ -221,7 +221,6 @@ TVars inject_vars(llvm::Function *fn, CompilationUnit& ast, Method *method)
     // Inject the peer properties as non-prefixed variables
     for(auto prop:method->memberOf->getAllProperties()){
         auto prop_name = prop->name->member;
-        Logger::debug("Inject prop " + prop_name->str());
         vars[prop_name->str()] = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
     }
     // Inject all properties as full variables
@@ -362,14 +361,11 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 
             // If the module has generic params,
             // just skip it out
-            Logger::debug("Generate mod " + mod->name->str());
             if (mod->generics.size())
             {
-                Logger::debug("Skip out on module");
                 continue;
             }
             auto llmodptr = generateModule(*mod, defs, ast);
-            Logger::debug("Generated");
             llvm::Linker::linkModules(*rootmod, std::move(llmodptr));
         }
         else if (instanceof <Entrypoint>(unit))

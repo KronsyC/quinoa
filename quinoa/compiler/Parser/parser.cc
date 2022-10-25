@@ -321,7 +321,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
         toks = initial;
     }
     
-    // Compound variable (property access)
+    // Compound variable (property access [remote / explicit])
     if(c.is(TT_identifier)){
         auto initial = toks;
         auto ident = parse_compound_ident(toks, ctx);
@@ -425,7 +425,6 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 
                     auto subs = new Subscript(name, index_expr);
                     subs->ctx = ctx;
-                    Logger::debug("ret");
                     return subs;
                 }
             }

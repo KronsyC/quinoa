@@ -359,24 +359,6 @@ private:
 };
 
 
-class Variable : public Expression{
-public:
-  Identifier* name;
-  Variable(Identifier* name){
-    this->name = name;
-  }
-
-  std::vector<Statement*> flatten(){
-      error("Cannot flatten base Identifier type");
-      return {this};
-  }
-  
-  virtual llvm::AllocaInst* getPtr(TVars vars){
-      error("Cannot getPtr to a base identifier");
-      return nullptr;
-  }
-
-};
 
 class Return : public Statement
 {

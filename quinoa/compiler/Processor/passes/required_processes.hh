@@ -7,12 +7,12 @@
 #include "./required/call_qualifier.hh"
 #include "./required/importer.hh"
 #include "./required/type_resolver.hh"
-#include "./required/property_type_injector.hh"
+#include "./required/property_resolver.hh"
 
 void process_required(CompilationUnit& unit){
     resolve_imports(unit);
     resolve_compositors(unit);
-    inject_prop_defs(unit);
+    resolve_props(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
     Logger::enqueueMode(true);

@@ -33,21 +33,17 @@ std::string gen_random_safe_string(int size)
 
 std::map<std::string, Module*> gen_export_table(CompilationUnit& unit){
   std::map<std::string, Module*> exports;
-  Logger::debug("Building Export Table");
   for(auto mod:unit.getAllModules()){
     if(mod->isImported)continue;
     if(auto comp = mod->comp("Exported")){
-      Logger::debug("Found Export " + mod->name->str());
       if(comp->params.size()){
         if(comp->params.size() != 1)error("The `Exported` attribute only takes one parameter");
         auto name = comp->params[0];
         if(!instanceof<String>(name))error("An Exports name must be a string");
         auto nm = (String*)name;
-        Logger::debug("Named export");
         exports[nm->value] = mod;
       }
       else{
-        Logger::debug("Default Export");
         exports["__default__"] = mod;
       }
     }
@@ -64,6 +60,9 @@ void prefixify_children(CompilationUnit &unit, std::string prefix)
     mod->nspace = pfx;
     for(auto method:mod->getAllMethods()){
       pushf(*method->sig->name->mod->name, pfx);
+    }
+    for(auto prop:mod->getAllProperties()){
+      pushf(*prop->name->mod->name, pfx);
     }
 
   }
@@ -83,14 +82,12 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
       if (instanceof <CompoundIdentifier>(member))
       {
         auto ident = (CompoundIdentifier *)member;
-
         if(ident->equals(alias)){
           *ident = *fullname;
           continue;
         }
 
         auto ns = ident->all_but_last();
-        if(ns->str() == "")continue;
         if (ns->equals(alias))
         {
           auto name = ident->last();
@@ -98,6 +95,7 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
           for(auto p:*fullname)deAliasedName.push_back(p);
           deAliasedName.push_back(name);
           *ident = deAliasedName;
+          continue;
         }
 
 
