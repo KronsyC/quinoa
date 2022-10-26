@@ -1,10 +1,12 @@
-import @lang::assertions;
+import @io;
+
 module Test is Entry{
 
     let age:int = 16;
 
     pub func main(argc:int, argv:c_str*)->int{
-        return IO::stdout;
+        io::println("This is a test!!!");
+        return age;
     }
 
 

@@ -112,10 +112,10 @@ public:
 
         case PR_boolean:
             return llvm::Type::getInt1Ty(*llctx());
-        case PR_string:
-            return llvm::Type::getInt8PtrTy(*llctx()); // This type is just temporary //TODO: implement string module within the language
         case PR_void:
             return llvm::Type::getVoidTy(*llctx());
+        case PR_string:
+            return llvm::Type::getInt8PtrTy(*llctx());
         default:
             error("Failed to generate primitive for " + std::to_string(type));
         }

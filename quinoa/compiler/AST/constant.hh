@@ -102,11 +102,14 @@ class String : public ConstantValue<std::string>
 
     Type *getType()
     {
-        return new TPtr(Primitive::get(PR_int8));
+        auto len = this->value.size();
+        return new ListType(Primitive::get(PR_int8), new Integer(len));
+        // return new TPtr(Primitive::get(PR_int8));
     }
     llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)
     {
         auto st = builder()->CreateGlobalStringPtr(value, "str");
+        st->print(llvm::outs());
         return st;
     }
 };

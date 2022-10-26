@@ -229,6 +229,7 @@ public:
 private:
   static int getCompat(Type *t1, Type *t2, bool second = false)
   {
+    Logger::debug("Get compat between " + t1->str() + " and " + t2->str());
     if (t1 == t2)
       return 0;
 
@@ -259,6 +260,18 @@ private:
     if (auto ref = t2->custom())
     {
       return getCompat(t1, ref->refersTo);
+    }
+    if(t1->list() && t2->list()){
+      auto a1 = t1->list();
+      auto a2 = t2->list();
+
+      return getCompat(a1->elements, a2->elements);
+    }
+    if(t1->list() && t2->ptr()){
+      auto l1 = t1->list();
+      auto p2 = t2->ptr();
+
+      return getCompat(l1->elements, p2->to);
     }
     if (second)
       return -1;
