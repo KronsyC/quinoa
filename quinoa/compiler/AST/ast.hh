@@ -24,14 +24,19 @@ inline bool instanceof (T * item)
 
 #include "./base.hh"
 #include "./identifier.hh"
-#include "./type.hh"
+
 
 Type *getCommonType(Type *t1, Type *t2);
 Type *getCommonType(std::vector<Expression *> items);
 Type *getCommonType(std::vector<Type *> items);
 
+
+
 #include "./module.hh"
+llvm::Type* structify(Module* mod);
+#include "./type.hh"
 #include "./module_member.hh"
+
 #include "./compilation_unit.hh"
 #include "./constant.hh"
 #include "./operations.hh"

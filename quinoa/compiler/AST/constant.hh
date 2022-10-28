@@ -109,7 +109,6 @@ class String : public ConstantValue<std::string>
     llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)
     {
         auto st = builder()->CreateGlobalStringPtr(value, "str");
-        st->print(llvm::outs());
         return st;
     }
 };

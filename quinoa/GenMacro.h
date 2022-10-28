@@ -57,7 +57,7 @@
 	new TokenDefinition(TT_float16, "__float16", {"f16"}, {"floating_point"}, false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_float32, "__float32", {"f32"}, {"floating_point"}, false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_float64, "__float64", {"f64", "float"}, {"floating_point"}, false, false, 0, false, false, ""),\
-	new TokenDefinition(TT_implicit, "__implicit", {}, {"implicit"}, false, false, 0, false, false, ""),\
+	new TokenDefinition(TT_module_instance_pfx, "__module_instance_pfx", {"\u00ac"}, {"module_instance"}, false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_double_quote, "__double_quote", {"\""}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_hashtag, "__hashtag", {"#"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_quote, "__quote", {"'"}, "", false, false, 0, false, false, ""),\
@@ -150,7 +150,7 @@
 	TT_float16,\
 	TT_float32,\
 	TT_float64,\
-	TT_implicit,\
+	TT_module_instance_pfx,\
 	TT_double_quote,\
 	TT_hashtag,\
 	TT_quote,\
@@ -317,7 +317,7 @@
 	PR_float16,\
 	PR_float32,\
 	PR_float64,\
-	PR_implicit,\
+	PR_module_instance_pfx,\
 	
 
 #define PRIMITIVES_ENUM_MAPPINGS \
@@ -335,7 +335,7 @@
 	{ TT_float16, PR_float16},\
 	{ TT_float32, PR_float32},\
 	{ TT_float64, PR_float64},\
-	{ TT_implicit, PR_implicit},\
+	{ TT_module_instance_pfx, PR_module_instance_pfx},\
 	
 
 #define PRIMITIVES_ENUM_NAMES \
@@ -353,7 +353,7 @@
 	{PR_float16, "PR_float16"},\
 	{PR_float32, "PR_float32"},\
 	{PR_float64, "PR_float64"},\
-	{PR_implicit, "PR_implicit"},\
+	{PR_module_instance_pfx, "PR_module_instance_pfx"},\
 	
 
 #define PRIMITIVES_ENUM_GROUPS \
@@ -371,6 +371,6 @@
 	{PR_float16, "floating_point"},\
 	{PR_float32, "floating_point"},\
 	{PR_float64, "floating_point"},\
-	{PR_implicit, "implicit"},\
+	{PR_module_instance_pfx, "module_instance"},\
 	
 

@@ -100,6 +100,11 @@ public:
         }
         return ret;
     }
+
+    // Create an llvm struct type from the module
+    llvm::Type* structify(){
+        return nullptr;
+    }
 };
 
 

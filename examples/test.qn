@@ -1,4 +1,11 @@
 import @io;
+import @lang::instantiable as Instantiable;
+import @lang::primitives::struct as Struct;
+
+module Person is Instantiable{
+    inst let age:int;
+    
+}
 
 module Test is Entry{
 
@@ -6,9 +13,11 @@ module Test is Entry{
 
     pub func main(argc:int, argv:c_str*)->int{
         io::println("This is a test!!!");
-        return age;
+        let my : @Person;
+
+        return 0;
     }
 
-
-
 }
+
+

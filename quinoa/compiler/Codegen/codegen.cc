@@ -200,8 +200,12 @@ void gen_src(vector<Statement *> content, llvm::Function *func, TVars vars, Cont
         else if (instanceof <Return>(stm))
         {
             auto ret = (Return *)stm;
+            if(ret->retValue){
             auto expr = ret->retValue->getLLValue(vars, func->getReturnType());
             builder()->CreateRet(cast(expr, func->getReturnType()));
+            }
+            else builder()->CreateRetVoid();
+            
         }
         // interpret as expression with dumped value
         else if (instanceof <Expression>(stm))
@@ -257,7 +261,6 @@ TVars inject_vars(llvm::Function *fn, CompilationUnit& ast, Method *method)
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
         auto i8p = (new TPtr(Primitive::get(PR_int8)))->getLLType();
-        // auto st = llvm::StructType::create(i32, i32, i8ptr, i8ptr);
         auto st = llvm::StructType::create(*llctx(), {i32, i32, i8p, i8p});
         auto alloc = builder()->CreateAlloca(st, nullptr, "var_args_obj");
         // Tracker / i
@@ -306,6 +309,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
         }
         if (auto prop = dynamic_cast<PropertyPredeclaration*>(d))
         {
+            if(prop->of->instance_access)continue;
             make_global(prop->of, m);
         }
     }
@@ -332,15 +336,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
         }
         else if (instanceof <Property>(child))
         {
-            auto prop = (Property *)child;
-            auto prop_name = prop->str();
-
-            auto ll_var = llmod->getGlobalVariable(prop_name);
-            if (ll_var == nullptr)
-            {
-                error("Lookup for property '" + prop_name + "' failed");
-            }
-            Logger::debug("Generate property " + prop_name);
+            continue;
         }
         else
             error("Failed to generate module member");

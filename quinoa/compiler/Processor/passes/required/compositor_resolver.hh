@@ -29,6 +29,9 @@ void resolve_compositor_refs(Module* mod, CompilationUnit unit){
                 break;
             }
         }
+        if(!comp->refersTo){
+            error("Failed to resolve compositor for " + comp->name->str());
+        }
     }
 }
 

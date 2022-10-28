@@ -1,5 +1,4 @@
 #pragma once
-#include "./ast.hh"
 #include "../../GenMacro.h"
 #include <map>
 #include "../token/TokenDef.h"
@@ -21,7 +20,8 @@ private:
     }
 
 public:
-    std::vector<Statement*> flatten(){
+    std::vector<Statement *> flatten()
+    {
         return {this};
     }
     PrimitiveType type;
@@ -34,7 +34,8 @@ public:
         return primitive_names[type];
     }
     Type *drill() { return this; }
-    Type* copy(SourceBlock* ctx){
+    Type *copy(SourceBlock *ctx)
+    {
         return this;
     }
     static Primitive *get(PrimitiveType t)
@@ -77,8 +78,10 @@ public:
         return w->getMutual(this, true);
     }
 
-    std::pair<Type*, Type*> find_mismatch(Type* against){
-        if(this != against->drill())return {this, against->drill()};
+    std::pair<Type *, Type *> find_mismatch(Type *against)
+    {
+        if (this != against->drill())
+            return {this, against->drill()};
         return {nullptr, nullptr};
     }
     llvm::Type *getLLType()
@@ -121,7 +124,6 @@ public:
         }
         return nullptr;
     }
-
 };
 class CustomType : public Type
 {
@@ -130,13 +132,16 @@ public:
     Block<Type> type_args;
     Identifier *name;
 
-    Type* copy(SourceBlock* ctx){
+    Type *copy(SourceBlock *ctx)
+    {
         auto ct = new CustomType(name);
         ct->ctx = ctx;
-        if(refersTo){
+        if (refersTo)
+        {
             ct->refersTo = refersTo->copy(ctx);
         }
-        for(auto a:type_args){
+        for (auto a : type_args)
+        {
             ct->type_args.push_back(a->copy(ctx));
         }
         return ct;
@@ -149,22 +154,24 @@ public:
     {
         return this;
     }
-    Type* drill(){
-        if(refersTo)return refersTo->drill();
+    Type *drill()
+    {
+        if (refersTo)
+            return refersTo->drill();
         return this;
     }
-
 
     llvm::Type *getLLType()
     {
         if (refersTo)
             return refersTo->getLLType();
-        error("Cannot get type for unresolved type reference", true);
+        error("Cannot get type for unresolved type reference " + name->str(), true);
         return nullptr;
     }
     std::string str()
     {
-        if (refersTo){
+        if (refersTo)
+        {
             auto child = refersTo->str();
             return child;
         }
@@ -172,74 +179,119 @@ public:
         return nullptr;
     }
 
-    std::vector<Statement*> flatten(){
-        std::vector<Statement*> ret = {this};
-        for(auto m:name->flatten())ret.push_back(m);
-        for(auto ta:type_args)for(auto f:ta->flatten())ret.push_back(f);
-        if(refersTo)for(auto t:refersTo->flatten())ret.push_back(t);
+    std::vector<Statement *> flatten()
+    {
+        Logger::debug("Flat");
+
+        std::vector<Statement *> ret = {this};
+        Logger::debug("1");
+        if (name)
+            for (auto m : name->flatten())
+                ret.push_back(m);
+        Logger::debug("2");
+
+        for (auto ta : type_args)
+            for (auto f : ta->flatten())
+                ret.push_back(f);
+        Logger::debug("3");
+
+        if (refersTo){
+            Logger::debug(name->str() + " -> " + refersTo->str());
+            for (auto t : refersTo->drill()->flatten()){
+                ret.push_back(t);
+
+            }
+        }
+
+        Logger::debug("4");
+
         return ret;
     }
 };
 
-class Generic:public CustomType{
+class Generic : public CustomType
+{
 public:
-    Type* constraint = nullptr;
+    Type *constraint = nullptr;
 
-    Generic(Ident* name, Type* constraint=nullptr)
-    :CustomType(name)
+    Generic(Ident *name, Type *constraint = nullptr)
+        : CustomType(name)
     {
         this->constraint = constraint;
     }
-    Type* copy(SourceBlock* ctx){
+    Type *copy(SourceBlock *ctx)
+    {
         auto gen = new Generic(*this);
         gen->ctx = ctx;
-        if(constraint)gen->constraint = constraint->copy(ctx);
-        if(refersTo)gen->refersTo = refersTo->copy(ctx);
+        if (constraint)
+            gen->constraint = constraint->copy(ctx);
+        if (refersTo)
+            gen->refersTo = refersTo->copy(ctx);
         return gen;
     }
-    Type* drill(){
-        if(refersTo)return refersTo;
+    Type *drill()
+    {
+        if (refersTo)
+            return refersTo;
         return this;
     }
-    std::string str(){
-        if(refersTo)return refersTo->str();
-        return "G_"+name->str();
+    std::string str()
+    {
+        if (refersTo)
+            return refersTo->str();
+        return "G_" + name->str();
     }
-    Generic* generic(){
+    Generic *generic()
+    {
         return this;
     }
 };
 
 class ModuleRef;
-class ModuleType:public Type{
+class ModuleType : public Type
+{
 public:
-    ModuleRef* ref;
-    ModuleType(ModuleRef* ref){
+    ModuleRef *ref;
+    ModuleType(ModuleRef *ref)
+    {
         this->ref = ref;
-    }   
+    }
 
-    std::string str(){
+    std::string str()
+    {
         return ref->str();
-    } 
+    }
 
-    std::vector<Statement*> flatten(){
+    std::vector<Statement *> flatten()
+    {
         return {this};
+    }
+    llvm::Type *getLLType()
+    {
+        error("Cannot get lltype of module reference", true);
+        return nullptr;
+    }
+        Type* drill(){
+        return this;
     }
 };
 
 class TPtr : public Type
 {
 public:
-    std::vector<Statement*> flatten(){
-        std::vector<Statement*> ret = {this};
-        for(auto m:to->flatten())ret.push_back(m);
+    std::vector<Statement *> flatten()
+    {
+        std::vector<Statement *> ret = {this};
+        for (auto m : to->flatten())
+            ret.push_back(m);
         return ret;
     }
     TPtr(Type *type)
     {
         to = type;
     }
-    Type* copy(SourceBlock* ctx){
+    Type *copy(SourceBlock *ctx)
+    {
         auto pt = new TPtr(to->copy(ctx));
         pt->ctx = ctx;
         return pt;
@@ -248,8 +300,9 @@ public:
     {
         return this;
     }
-    Type *to;
-    Type* drill(){
+    Type *to = nullptr;
+    Type *drill()
+    {
         return this;
     }
     std::string str()
@@ -264,26 +317,32 @@ public:
 class Constant;
 class ListType : public Type
 {
-private:
-
-
 public:
     ListType *list()
     {
         return this;
     }
-    Type* copy(SourceBlock* ctx){
+    Type *copy(SourceBlock *ctx)
+    {
         auto lt = new ListType(
             elements->copy(ctx),
-            size
-        );
+            size);
         lt->ctx = ctx;
-        return lt;        
+        return lt;
     }
     Type *elements;
     Expression *size = nullptr;
     ListType() = default;
-    Type* drill(){
+    std::vector<Statement *> flatten()
+    {
+        std::vector<Statement *> ret = {this};
+        for (auto m : elements->flatten())
+            ret.push_back(m);
+        if(size)for(auto ex:size->flatten())ret.push_back(ex);
+        return ret;
+    }
+    Type *drill()
+    {
         return this;
     }
     llvm::Type *getLLType()
@@ -298,9 +357,46 @@ public:
     {
         return instanceof <Constant>(size);
     }
-    ListType(Type *eT, Expression *n=nullptr)
+    ListType(Type *eT, Expression *n = nullptr)
     {
         elements = eT;
         size = n;
+    }
+};
+class ModuleInstanceType : public Type
+{
+public:
+    CustomType* of = nullptr;
+
+    ModuleInstanceType* copy(SourceBlock* ctx){
+        auto inst = new ModuleInstanceType(of);
+        return inst;
+    }
+    ModuleInstanceType(CustomType* of){
+        this->of = of;
+    }
+    llvm::Type* getLLType(){
+        auto of = this->of->drill();
+        // Logger::debug("Instance of " + of->str());
+        if(!instanceof<ModuleType>(of))error("Module Instance must refer to module type");
+        auto base_mod_ref = ((ModuleType*)of)->ref;
+        if(!base_mod_ref->refersTo)error("Module Instance must refer to a resolved module type");
+        auto mod = base_mod_ref->refersTo;
+        auto typ = structify(mod);
+        return typ;
+    }
+    std::vector<Statement *> flatten()
+    {
+        std::vector<Statement *> ret = {this};
+        for (auto m : of->flatten())
+            ret.push_back(m);
+        return ret;
+    }
+    Type* drill(){
+        return this;
+    }
+
+    std::string str(){
+        return "struct_"+of->str();
     }
 };

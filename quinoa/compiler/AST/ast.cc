@@ -51,3 +51,22 @@ Type *getCommonType(std::vector<Expression *> items)
     types.push_back(i->getType());
   return getCommonType(types);
 }
+
+llvm::Type* structify(Module* mod){
+
+  
+  std::vector<llvm::Type*> struct_elements;
+
+  auto llmod = builder()->GetInsertBlock()->getModule();
+  auto struct_name = "struct_"+mod->fullname()->str();
+  for(auto struct_type:llmod->getIdentifiedStructTypes()){
+    if(struct_type->getName().str() == struct_name)return struct_type;
+  }
+  for(auto prop:mod->getAllProperties()){
+    if(!prop->instance_access)continue;
+    auto prop_type = prop->type->getLLType();
+    struct_elements.push_back(prop_type);
+  }
+  auto struct_type = llvm::StructType::create(*llctx(), struct_elements, struct_name);
+  return struct_type;
+}

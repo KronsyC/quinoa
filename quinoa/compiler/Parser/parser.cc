@@ -106,8 +106,19 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
         ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else
     {
+        bool is_inst = false;
+        if (toks[0].is(TT_at_symbol))
+        {
+            is_inst = true;
+            popf(toks);
+        }
         auto references = parse_compound_ident(toks, ctx);
-        ret = new CustomType(references);
+        auto ct = new CustomType(references);
+        ret = ct;
+        if (is_inst)
+        {
+            ret = new ModuleInstanceType(ct);
+        }
     }
 
     while (toks.size() && toks[0].is(TT_star))
@@ -320,12 +331,14 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 
         toks = initial;
     }
-    
+
     // Compound variable (property access [remote / explicit])
-    if(c.is(TT_identifier)){
+    if (c.is(TT_identifier))
+    {
         auto initial = toks;
         auto ident = parse_compound_ident(toks, ctx);
-        if(!toks.size()){
+        if (!toks.size())
+        {
             ident->ctx = ctx;
             return ident;
         }
@@ -416,7 +429,6 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
             auto name = parse_compound_ident(toks, ctx);
             if (toks[0].is(TT_l_square_bracket))
             {
-                printToks(toks);
                 auto index_block = readBlock(toks, IND_square_brackets);
                 if (toks.size() == 0)
                 {
@@ -532,10 +544,14 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
         if (f.is(TT_return))
         {
             popf(line);
-            auto returnValue = parse_expr(line, block);
+            Expression *returnValue = nullptr;
+            if (line.size())
+            {
+                returnValue = parse_expr(line, block);
+                returnValue->ctx = block;
+            }
             auto ret = new Return(returnValue);
             ret->ctx = block;
-            returnValue->ctx = block;
             block->push_back(ret);
             continue;
         }
@@ -684,14 +700,22 @@ void parse_mod(vector<Token> &toks, Module *mod)
             {
                 popf(toks);
                 returnType = parse_type(toks, method);
-                if (auto typ = returnType->custom())
+                auto flat = returnType->flatten();
+                for (auto styp : flat)
                 {
-                    for (auto g : generic_args)
+                    if (auto typ = dynamic_cast<Type *>(styp))
                     {
-                        if (g->name->str() == typ->name->str())
+                        if (auto ct = typ->custom())
                         {
-                            typ->refersTo = g;
-                            break;
+                            for (auto g : generic_args)
+                            {
+
+                                if (g->name->str() == ct->name->str())
+                                {
+                                    ct->refersTo = g;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -744,7 +768,8 @@ void parse_mod(vector<Token> &toks, Module *mod)
         }
 
         // Property Parsing
-        if(c.is(TT_let)){
+        if (c.is(TT_let))
+        {
             auto line = readUntil(toks, TT_semicolon, true);
             auto propname_tok = popf(line);
             expects(propname_tok, TT_identifier);
@@ -757,8 +782,13 @@ void parse_mod(vector<Token> &toks, Module *mod)
             prop->name = new ModuleMemberRef;
             prop->name->member = Ident::get(name);
             prop->name->mod = mod->get_ref();
+            prop->instance_access = isInstance;
+            prop->public_access = isPublic;
+            isInstance = false;
+            isPublic = false;
             // Possible Initializer, not required;
-            if(line.size()){
+            if (line.size())
+            {
                 expects(popf(line), TT_assignment);
                 auto initial_value = parse_expr(line, nullptr);
                 prop->initializer = initial_value;

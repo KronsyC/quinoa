@@ -107,8 +107,6 @@ float32
 @type floating_point
 float64
 
-@type implicit
-implicit
 
 @alias "
 double_quote

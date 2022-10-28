@@ -45,6 +45,9 @@ public:
         ret.push_back(f);
     for (auto m : name->flatten())
       ret.push_back(m);
+    for(auto t:generic_params){
+      for(auto f:t->flatten())ret.push_back(f);
+    }
     return ret;
   }
   Type *getType()
@@ -97,8 +100,11 @@ public:
     auto mod = bld.GetInsertBlock()->getParent()->getParent();
     auto name = target->nomangle ? target->name->str() : target->sourcename();
     auto tgtFn = mod->getFunction(name);
-    if (tgtFn == nullptr)
+    if (tgtFn == nullptr){
+      mod->print(llvm::outs(), nullptr);
       error("Failed to locate function " + name);
+
+    }
     std::vector<llvm::Value *> llparams;
     int i = 0;
     for (auto p : this->params)
@@ -124,7 +130,7 @@ public:
 
     for (auto gp : generic_params)
     {
-      auto gen = new Generic(Ident::get("unknown_generic_param_name"));
+      auto gen = new Generic(Ident::get("Placeholder_Generic"));
       gen->refersTo = gp;
       g.push_back(gen);
     }
@@ -162,7 +168,6 @@ public:
     // Make sure the modules match up
 
     auto sigstr = callsig->sigstr();
-    Logger::debug("Call module " + name->mod->str());
     Module* searches = nullptr;
     for(auto mod:unit->getAllModules()){
       CompoundIdentifier* modname = new CompoundIdentifier;
@@ -229,7 +234,6 @@ public:
 private:
   static int getCompat(Type *t1, Type *t2, bool second = false)
   {
-    Logger::debug("Get compat between " + t1->str() + " and " + t2->str());
     if (t1 == t2)
       return 0;
 
@@ -348,6 +352,7 @@ private:
             error("Failed To Get Type For Generic Param " + name);
           gen->refersTo = refersTo;
         }
+
       }
     }
 
@@ -379,11 +384,11 @@ private:
 public:
   Expression *retValue;
   Return(Expression *value) { this->retValue = value; }
-
+  Return() = default;
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this};
-    for (auto i : retValue->flatten())
+    if(retValue)for (auto i : retValue->flatten())
       ret.push_back(i);
     return ret;
   }
@@ -394,7 +399,8 @@ public:
 
   Return *copy(SourceBlock *ctx)
   {
-    auto r = new Return(retValue->copy(ctx));
+    auto r = new Return;
+    if(retValue)r->retValue = retValue;
     r->ctx = ctx;
     return r;
   }
@@ -808,6 +814,8 @@ public:
     if (initializer)
       for (auto i : initializer->flatten())
         ret.push_back(i);
+    if(type)
+      for(auto f:type->flatten())ret.push_back(f);
     return ret;
   }
   std::string str()

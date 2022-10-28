@@ -1,0 +1,6 @@
+import @lang::instantiable as Instantiable;
+
+module Struct is Exported, CompilerImplemented{
+    pub func create<Inst:Instantiable>() -> @Inst;
+
+}

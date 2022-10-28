@@ -26,7 +26,6 @@ void gen_entrypoint(CompilationUnit &unit)
   for(auto item:*entry){
     if(instanceof<Method>(item)){
       auto m = (Method*)item;
-      Logger::debug("method " + m->sig->name->str());
       if(m->sig->name->str() == entryName){
         if(!m->public_access)error("The main() method must be public");
         unit.push_back(new Entrypoint(m->sig));
