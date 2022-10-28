@@ -44,6 +44,7 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 
 			if (init->type)
 				continue;
+			Logger::debug("Resolve init " + init->varname->str());
 			// Locate the initializer expression for this variable
 			// and set its type to be equal to that of the
 			// expression
@@ -75,13 +76,16 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 			if (!ctx->local_types)
 				error("Local Type Table is null", false);
 			auto exprType = initializer->getType();
+			
 			// If a nullptr is returned, there is not enough info
 			// currently available
 			if (exprType == nullptr)
 			{
+				Logger::warn("Fail");
 				isGood = false;
 				continue;
 			}
+			Logger::debug("Set type of " + init->varname->str() + " to " + exprType->str());
 			(*init->ctx->local_types)[init->varname->str()] = exprType;
 			init->type = exprType;
 			resolveCount++;

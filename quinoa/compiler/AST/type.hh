@@ -181,29 +181,23 @@ public:
 
     std::vector<Statement *> flatten()
     {
-        Logger::debug("Flat");
 
         std::vector<Statement *> ret = {this};
-        Logger::debug("1");
         if (name)
             for (auto m : name->flatten())
                 ret.push_back(m);
-        Logger::debug("2");
 
         for (auto ta : type_args)
             for (auto f : ta->flatten())
                 ret.push_back(f);
-        Logger::debug("3");
 
         if (refersTo){
-            Logger::debug(name->str() + " -> " + refersTo->str());
             for (auto t : refersTo->drill()->flatten()){
                 ret.push_back(t);
 
             }
         }
 
-        Logger::debug("4");
 
         return ret;
     }

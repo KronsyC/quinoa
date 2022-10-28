@@ -241,7 +241,6 @@ public:
 
     MethodSignature *impl_as_generic(Block<Generic> replaceWith)
     {
-        Logger::enqueueMode(false);
         auto newsig = new MethodSignature(*this);
         if (replaceWith.size() != generics.size())
             error("Cannot generate a replacement signature if generic lengths do not match");

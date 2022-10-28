@@ -717,6 +717,7 @@ public:
       case BIN_assignment: return right->getType();
       case BIN_dot:{
         auto parent_struct_type = left->getType();
+        if(parent_struct_type==nullptr)return nullptr;
         auto inst = parent_struct_type->drill()->inst();
         if(!inst)error("You can only use dot-notation on module instances");
         auto member = dynamic_cast<Ident*>(right);

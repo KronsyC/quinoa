@@ -62,7 +62,6 @@ public:
         if(!ctx)error("No Context for Ident");
         auto type = ctx->getType(str());
         
-        if(!type)error("Failed to locate type for " + str());
         return type;
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){

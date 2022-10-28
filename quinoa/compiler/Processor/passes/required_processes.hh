@@ -15,6 +15,7 @@ void process_required(CompilationUnit& unit){
     resolve_props(unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
+    Logger::enqueueMode(true);
     while (!(resolvedTypes && resolvedCalls))
     {
       Logger::clearQueue();
@@ -30,7 +31,6 @@ void process_required(CompilationUnit& unit){
         error("Type-Call Resolution Failed with " + std::to_string(res.second) + " resolved calls and " + std::to_string(typeres.second) + " resolved types");
       }
     }
-      Logger::debug("5");
     Logger::clearQueue();
     Logger::enqueueMode(false);
 }

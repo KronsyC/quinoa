@@ -1,33 +1,14 @@
 import @io;
-import @lang::instantiable as Instantiable;
 
-module Person is Instantiable{
-    inst let age:int;
-    inst let name:c_str;
-    inst let surname:c_str;
-    
-}
 
 module Test is Entry{
 
 
     pub func main(argc:int, argv:c_str*)->int{
-        let emp:@Person = test();
-
-        io::print("Employee: ");
-        io::print(emp.name);
-        io::print(" ");
-        io::println(emp.surname);
-        return emp.age;
+        io::println("This is a test");
+        return 0;
     }
 
-    func test() -> @Person{
-        let p : @Person;
-        p.age = 42;
-        p.name = "John";
-        p.surname = "Doe";
-        return p;
-    }
 
 }
 
