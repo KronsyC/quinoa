@@ -101,7 +101,6 @@ public:
     auto name = target->nomangle ? target->name->str() : target->sourcename();
     auto tgtFn = mod->getFunction(name);
     if (tgtFn == nullptr){
-      mod->print(llvm::outs(), nullptr);
       error("Failed to locate function " + name);
 
     }
@@ -663,6 +662,25 @@ public:
     this->right = right;
     this->op = op;
   }
+  llvm::Value* getPtr(TVars types){
+    if(op == BIN_dot){
+      auto struct_ref = left->getPtr(types);
+      auto name = dynamic_cast<Ident*>(right);
+      if(!name)error("Module references may only be indexed by identifiers");
+      if(!struct_ref->getType()->getPointerElementType()->isStructTy())error("You can only use dot notation on module references");
+      auto mod = left->getType()->drill()->inst()->of->drill()->mod()->ref->refersTo;
+
+      // Convert the name into a struct index, and GEP + Load it
+      auto idx = getModuleMemberIdx(mod, name->str());
+      if(idx==(size_t)-1)error("Failed to get prop " + name->str());
+
+      auto struct_type = struct_ref->getType()->getPointerElementType();
+      auto elementPtr = bld.CreateConstInBoundsGEP2_32(struct_type, struct_ref, 0, idx);
+      return elementPtr;
+    }
+    error("Cannot get Pointer to Binop of type " + std::to_string(op));
+    return nullptr;
+  }
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> flat = {this};
@@ -676,7 +694,43 @@ public:
   }
   Type *getType()
   {
-    // TODO: Fix this up
+    switch(op){
+      case BIN_plus:
+      case BIN_minus:
+      case BIN_star:
+      case BIN_slash:
+      case BIN_percent:
+      case BIN_bitiwse_or:
+      case BIN_bitwise_and:
+      case BIN_bitwise_shl:
+      case BIN_bitwise_shr:
+      case BIN_bitwise_xor:
+      case BIN_bool_and:
+      case BIN_bool_or:
+      case BIN_greater:
+      case BIN_greater_eq:
+      case BIN_equals:
+      case BIN_not_equals:
+      case BIN_lesser:
+      case BIN_lesser_eq:
+        return getCommonType(left->getType(), right->getType());
+      case BIN_assignment: return right->getType();
+      case BIN_dot:{
+        auto parent_struct_type = left->getType();
+        auto inst = parent_struct_type->drill()->inst();
+        if(!inst)error("You can only use dot-notation on module instances");
+        auto member = dynamic_cast<Ident*>(right);
+        auto parent = inst->of->drill()->mod();
+        if(!parent)error("Unresolved Module?");
+        if(!member)error("You can only use Identifiers to index module intances");
+        auto mod = parent->ref->refersTo;
+        auto prop = getProperty(mod, member->str());
+        if(!prop)error("Failed to get property " + mod->name->str() + "."+member->str());
+        if(!prop->instance_access)error("Cannot access non-instance property " + prop->str() + " from module instance");
+        return prop->type;
+      }
+    }
+    error("Failed to get type for op: " + std::to_string(op));
     return this->right->getType();
   }
   BinaryOperation *copy(SourceBlock *ctx)
@@ -687,6 +741,12 @@ public:
   }
   llvm::Value *getLLValue(TVars types, llvm::Type *expected)
   {
+    if(op==BIN_dot){
+      auto ptr = getPtr(types);
+      auto val = bld.CreateLoad(ptr->getType()->getPointerElementType(), ptr);
+      return val;
+    }
+
     auto rt = right->getType();
     auto lt = left->getType();
 
@@ -722,17 +782,24 @@ public:
         }
         return cast(r, expected);
       }
-      else if (instanceof <Subscript>(left))
+      if (instanceof <Subscript>(left))
       {
         auto r = right->getLLValue(types);
         auto sub = (Subscript *)left;
         sub->setAs(r, types);
         return cast(r, expected);
       }
-      else
-      {
-        error("Failed to generate Assignment");
+
+      if(auto struc_expr = dynamic_cast<BinaryOperation*>(left)){
+        if(struc_expr->op == BIN_dot){
+          auto r = right->getLLValue(types);
+          auto member = struc_expr->getPtr(types);
+          auto val = cast(r, member->getType()->getPointerElementType());
+          bld.CreateStore(val, member);
+          return cast(r, expected);
+        }
       }
+      error("Failed to generate Assignment");
     }
     auto l = left->getLLValue(types, common);
     auto r = right->getLLValue(types, common);

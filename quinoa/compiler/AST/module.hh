@@ -105,6 +105,7 @@ public:
     llvm::Type* structify(){
         return nullptr;
     }
+
 };
 
 

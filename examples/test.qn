@@ -1,21 +1,27 @@
 import @io;
 import @lang::instantiable as Instantiable;
-import @lang::primitives::struct as Struct;
 
 module Person is Instantiable{
     inst let age:int;
+    inst let name:c_str;
+    inst let surname:c_str;
     
 }
 
 module Test is Entry{
 
-    let age:int = 16;
 
     pub func main(argc:int, argv:c_str*)->int{
-        io::println("This is a test!!!");
-        let my : @Person;
+        let emp : @Person;
+        emp.age = 27;
+        emp.name = "John";
+        emp.surname = "Doe";
 
-        return 0;
+        io::print("Employee: ");
+        io::print(emp.name);
+        io::print(" ");
+        io::println(emp.surname);
+        return emp.age;
     }
 
 }

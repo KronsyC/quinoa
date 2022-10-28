@@ -40,6 +40,8 @@ class ListType;
 class TPtr;
 class CustomType;
 class Generic;
+class ModuleInstanceType;
+class ModuleType;
 struct Type : public Statement
 {
 public:
@@ -88,6 +90,13 @@ public:
         return nullptr;
     }
     virtual Generic* generic(){
+        return nullptr;
+    }
+    virtual ModuleInstanceType* inst(){
+        return nullptr;
+    }
+
+    virtual ModuleType* mod(){
         return nullptr;
     }
 

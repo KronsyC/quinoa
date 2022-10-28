@@ -1,6 +1,6 @@
 #include "./ast.hh"
 
-Type *getCommonType(Type *_t1, Type *_t2)
+Type *getCommonType(Type *_t1, Type *_t2, bool second_pass)
 {
   auto t1 = _t1->drill();
   auto t2 = _t2->drill();
@@ -22,8 +22,15 @@ Type *getCommonType(Type *_t1, Type *_t2)
     auto mut = getCommonType(t1l, t2l);
     return new ListType(mut);
   }
+  if(t1->ptr() && t2->list()){
+    auto t1p = t1->ptr();
+    auto t2l = t2->list();
+    auto mem = getCommonType(t1p->to, t2l->elements);
+    return new TPtr(mem);
+  }
+  if(second_pass)
   error("Failed To Get Common Type Between " + t1->str() + " and " + t2->str(), true);
-  return nullptr;
+  return getCommonType(t2, t1, true);
 }
 Type *getCommonType(std::vector<Type *> items)
 {
@@ -52,7 +59,7 @@ Type *getCommonType(std::vector<Expression *> items)
   return getCommonType(types);
 }
 
-llvm::Type* structify(Module* mod){
+llvm::StructType* structify(Module* mod){
 
   
   std::vector<llvm::Type*> struct_elements;
@@ -69,4 +76,20 @@ llvm::Type* structify(Module* mod){
   }
   auto struct_type = llvm::StructType::create(*llctx(), struct_elements, struct_name);
   return struct_type;
+}
+Property* getProperty(Module* mod, std::string propname){
+  for(auto p:mod->getAllProperties()){
+    if(p->name->member->str() == propname)return p;
+  }
+  return nullptr;
+}
+
+size_t getModuleMemberIdx(Module* mod, std::string name){
+  size_t i = -1;
+  for(auto prop:mod->getAllProperties()){
+    if(!prop->instance_access)continue;
+    i++;
+    if(prop->name->member->str() == name)break;
+  }
+  return i;
 }

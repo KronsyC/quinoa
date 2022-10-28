@@ -26,14 +26,17 @@ inline bool instanceof (T * item)
 #include "./identifier.hh"
 
 
-Type *getCommonType(Type *t1, Type *t2);
+Type *getCommonType(Type *t1, Type *t2, bool second_pass = false);
 Type *getCommonType(std::vector<Expression *> items);
 Type *getCommonType(std::vector<Type *> items);
 
 
 
 #include "./module.hh"
-llvm::Type* structify(Module* mod);
+class Property;
+llvm::StructType* structify(Module* mod);
+size_t getModuleMemberIdx(Module* mod, std::string name);
+Property* getProperty(Module* mod, std::string propname);
 #include "./type.hh"
 #include "./module_member.hh"
 

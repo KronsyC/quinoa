@@ -252,6 +252,9 @@ class ModuleType : public Type
 {
 public:
     ModuleRef *ref;
+    ModuleType* mod(){
+        return this;
+    }
     ModuleType(ModuleRef *ref)
     {
         this->ref = ref;
@@ -366,6 +369,9 @@ public:
 class ModuleInstanceType : public Type
 {
 public:
+    ModuleInstanceType* inst(){
+        return this;
+    }
     CustomType* of = nullptr;
 
     ModuleInstanceType* copy(SourceBlock* ctx){
@@ -375,9 +381,8 @@ public:
     ModuleInstanceType(CustomType* of){
         this->of = of;
     }
-    llvm::Type* getLLType(){
+    llvm::StructType* getLLType(){
         auto of = this->of->drill();
-        // Logger::debug("Instance of " + of->str());
         if(!instanceof<ModuleType>(of))error("Module Instance must refer to module type");
         auto base_mod_ref = ((ModuleType*)of)->ref;
         if(!base_mod_ref->refersTo)error("Module Instance must refer to a resolved module type");
@@ -398,5 +403,10 @@ public:
 
     std::string str(){
         return "struct_"+of->str();
+    }
+
+    size_t getMemberIdx(std::string name){
+        // auto typ = this->getLLType();
+        return 0;
     }
 };
