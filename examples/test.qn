@@ -24,6 +24,11 @@ module Test is Entry{
         return emp.age;
     }
 
+    func test() -> @Person{
+        let p : @Person;
+        return p;
+    }
+
 }
 
 

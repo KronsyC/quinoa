@@ -301,6 +301,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
     auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
 
     auto m = llmod.get();
+    mod.llmod = m;
     for (auto d : injectedDefinitions)
     {
         if (auto method = dynamic_cast<MethodPredeclaration*>(d))

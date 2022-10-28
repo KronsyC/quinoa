@@ -31,7 +31,8 @@ public:
     Block<Generic> generics;
     // The name of the Module, i.e 'Test', 'MyModule'
     Ident* name;
-
+    llvm::Module* llmod = nullptr;
+    llvm::StructType* struct_type = nullptr;
     // The Namespace Unique hash for the module
     // i.e abcdefg
     Ident* nspace = nullptr;

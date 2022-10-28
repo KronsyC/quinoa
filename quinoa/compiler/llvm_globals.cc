@@ -22,6 +22,9 @@ llvm::Value *cast(llvm::Value *val, llvm::Type *type)
       return val;
     auto tape = val->getType();
     if(type==tape)return val;
+
+    // auto code = llvm::CastInst::getCastOpcode(val, true, type, true);
+    // return builder()->CreateCast(code, val, type);
     if (isInt(tape) && isInt(type))
       return builder()->CreateIntCast(val, type, true);
     if(tape->isPointerTy() && type->isIntegerTy())
