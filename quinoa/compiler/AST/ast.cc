@@ -22,6 +22,15 @@ Type *getCommonType(Type *_t1, Type *_t2, bool second_pass)
     auto mut = getCommonType(t1l, t2l);
     return new ListType(mut);
   }
+  if(t1->inst() && t2->inst()){
+    auto i1 = t1->inst()->of->drill();
+    auto i2 = t2->inst()->of->drill();
+    if(i1->mod() && i2->mod()){
+      auto m1 = i1->mod()->ref->refersTo;
+      auto m2 = i2->mod()->ref->refersTo;
+      if(m1 == m2)return t1;
+    }
+  }
   if(t1->ptr() && t2->list()){
     auto t1p = t1->ptr();
     auto t2l = t2->list();

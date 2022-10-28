@@ -12,10 +12,7 @@ module Test is Entry{
 
 
     pub func main(argc:int, argv:c_str*)->int{
-        let emp : @Person;
-        emp.age = 27;
-        emp.name = "John";
-        emp.surname = "Doe";
+        let emp:@Person = test();
 
         io::print("Employee: ");
         io::print(emp.name);
@@ -26,6 +23,9 @@ module Test is Entry{
 
     func test() -> @Person{
         let p : @Person;
+        p.age = 42;
+        p.name = "John";
+        p.surname = "Doe";
         return p;
     }
 
