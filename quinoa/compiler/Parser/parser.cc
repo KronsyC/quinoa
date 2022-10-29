@@ -598,6 +598,7 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
 Param *parse_param(vector<Token> &toks)
 {
     bool isVarParam = false;
+    if(!toks.size())error("Cannot parse parameter with no tokens");
     if (toks[0].is(TT_ellipsis))
     {
         isVarParam = true;

@@ -1,18 +1,43 @@
+import @lang::instantiable as Instantiable;
+
+// https://man7.org/linux/man-pages/man2/lstat.2.html
+module Stat is Instantiable{
+	inst let dev     : int;
+	inst let ino     : int;
+	inst let mode    : int;
+	inst let nlink   : int;
+	inst let uid     : int;
+	inst let gid     : int;
+	inst let rdev    : int;
+	inst let size    : int;
+	inst let blksize : int;
+	inst let blocks  : int;
+}
+
+
 module Syscall is Exported{
 	#[ link_extern("syscall") ]
 	pub func call(callNo:i64, ...args:i64[]) -> i64;
 
+	// 0
 	#[ link_extern("read") ]
 	pub func read(fd:i64, ptr:i64, len:i64)->i64;
 
+	// 1
 	#[ link_extern("write") ]
 	pub func write(fd:int, ptr:i64, len:i64)->i64;
 
+	// 2
 	#[ link_extern("open") ]
 	pub func open(filename:i64, flags:int, mode:int)->i64;
 
+	// 3
 	#[ link_extern("close") ]
 	pub func close(fd:i64)->i64;
+
+	// 4
+	#[ link_extern("fstat") ]
+	pub func fstat(fd:i64, stats:int);
 
 	#[ link_extern("lseek") ]
 	pub func lseek(fd:i64, offset:i64, whence:i64)->i64;

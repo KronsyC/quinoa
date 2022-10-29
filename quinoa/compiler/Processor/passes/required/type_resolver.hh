@@ -16,6 +16,7 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 	{
 		auto flat = source->flatten();
 		for(auto t:source->sig->returnType->flatten())flat.push_back(t);
+		for(auto p:source->sig->params)for( auto f:p->type->flatten())flat.push_back(f);
 		// Transform Type-References into Module References
 		for (auto child : flat)
 		{

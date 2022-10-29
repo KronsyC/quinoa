@@ -1,4 +1,12 @@
 import @io;
+import @lang::instantiable as Instantiable;
+
+
+module Person is Instantiable{
+    inst let name:c_str;
+    inst let surname: c_str;
+    inst let age:int;
+}
 
 
 module Test is Entry{
@@ -6,15 +14,20 @@ module Test is Entry{
 
     pub func main(argc:int, argv:c_str*)->int{
 
-        let c:char;
-        while(1){
-            io::read(&c, 1);
-            if(c == -1){
-                io::println("Exit");
-            }
-            io::putc(c);
-        }
+        let my:@Person;
+        my.name = "John";
+        my.surname = "Doe";
+        my.age = 43;
+
+        greet(&my);
         return 0;
+    }
+
+    func greet(person:@Person*){
+        io::print("Hello, ");
+        io::print((*person).name);
+        io::print(" ");
+        io::println((*person).surname);
     }
 
 

@@ -231,8 +231,20 @@ public:
   }
 
 private:
-  static int getCompat(Type *t1, Type *t2, bool second = false)
+  static int getCompat(ModuleRef* r1, ModuleRef* r2){
+    if(!r1 || !r2)return -1;
+    if(!r1->refersTo || !r2->refersTo)return -1;
+    
+    auto m1 = r1->refersTo;
+    auto m2 = r2->refersTo;
+    if(m1 == m2)return 0;
+    // TODO: Crawl The Inheritance Tree, +1 for each level
+    return -1;
+  }
+  static int getCompat(Type *_t1, Type *_t2, bool second = false)
   {
+    auto t1 = _t1->drill();
+    auto t2 = _t2->drill();
     if (t1 == t2)
       return 0;
 
@@ -275,6 +287,16 @@ private:
       auto p2 = t2->ptr();
 
       return getCompat(l1->elements, p2->to);
+    }
+    if(t1->inst() && t2->inst()){
+      auto i1 = t1->inst();
+      auto i2 = t2->inst();
+      return getCompat(i1->of, i2->of);
+    }
+    if(t1->mod() && t2->mod()){
+      auto r1 = t1->mod()->ref;
+      auto r2 = t2->mod()->ref;
+      return getCompat(r1, r2);
     }
     if (second)
       return -1;
@@ -558,6 +580,18 @@ public:
       return same;
     }
     error("Failed to get type for unary op: " + std::to_string(op));
+    return nullptr;
+  }
+  
+  llvm::Value* getPtr(TVars vars){
+    switch(op){ 
+      
+      default:{
+         case PRE_star: return operand->getLLValue(vars, nullptr);
+         error("Cannot get pointer to unary operation of type " + std::to_string(op));
+         return nullptr;
+      }
+    }
     return nullptr;
   }
   llvm::Value *getLLValue(TVars types, llvm::Type *expected)

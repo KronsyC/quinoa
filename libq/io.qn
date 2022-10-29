@@ -2,7 +2,10 @@ import @syscall;
 
 module IO is Exported{
 
+    let stdin:int = 0;
     let stdout:int = 1;
+    let stderr:int = 2;
+    
     func strlen(str:c_str)->i64{
         let i:i64 = 0;
         while(str[i] != 0){
@@ -14,11 +17,11 @@ module IO is Exported{
         return syscall::read(0, cast<i64>(str), len);
     }
     pub func putc(ch:char){
-        syscall::write(1, cast<i64>(&ch), 1);
+        syscall::write(stdout, cast<i64>(&ch), 1);
     }
     pub func print(message:c_str)->i64{
         let len = syscall::write(
-            1, 
+            stdout, 
             cast<i64>(message), 
             IO::strlen(message)
         );

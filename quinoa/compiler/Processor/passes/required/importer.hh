@@ -173,7 +173,7 @@ void resolve_imports(CompilationUnit &unit)
       //  other benefits)
       if (import->isStdLib)
       {
-        string rpath = regex_replace(import->target->str(), regex("::"), "/");
+        string rpath = regex_replace(import->target->str(), regex("\\."), "/");
         rpath = libq_dir + "/" + rpath + ".qn";
         auto filename = import->target->last();
         auto ast = get_ast_from_path(rpath, filename);
