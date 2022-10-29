@@ -176,8 +176,11 @@ int getCompat(Type *_t1, Type *_t2, bool second = false)
     auto r2 = t2->mod()->ref;
     return getCompat(r1, r2);
   }
-  if (second)
+  if (second){
+    Logger::debug("No Compat: " + t1->str() + " " + t2->str());
     return -1;
+
+  }
   else
     return getCompat(t2, t1, true);
 }

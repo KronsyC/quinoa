@@ -130,7 +130,7 @@ class CustomType : public Type
 public:
     Type *refersTo = nullptr;
     Block<Type> type_args;
-    Identifier *name;
+    Identifier *name = nullptr;
 
     Type *copy(SourceBlock *ctx)
     {

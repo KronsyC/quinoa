@@ -95,7 +95,6 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 			// currently available
 			if (exprType == nullptr)
 			{
-				Logger::warn("Fail");
 				isGood = false;
 				continue;
 			}

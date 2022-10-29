@@ -13,6 +13,7 @@ void resolve_self_refs(SourceBlock *content, ModuleRef *mod)
       auto call = (MethodCall *)m;
       if (call->builtin())
         continue;
+      if(call->inst)continue;
       if(!call->name->mod){
         call->name->mod = mod;
       }

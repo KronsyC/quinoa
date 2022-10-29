@@ -13,20 +13,28 @@ void process_required(CompilationUnit* unit){
     resolve_imports(unit);
     resolve_compositors(*unit);
     resolve_props(*unit);
-    resolveInstanceCalls(*unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
-    Logger::enqueueMode(true);
-    while (!(resolvedTypes && resolvedCalls))
+    bool resolvedInstances = false;
+    // Logger::enqueueMode(true);
+    int run = 2;
+    while (run)
     {
       Logger::clearQueue();
       auto typeres = resolve_types(*unit);
       auto res = qualify_calls(*unit);
+      auto ins = resolveInstanceCalls(*unit);
       resolvedCalls = res.first;
       resolvedTypes = typeres.first;
+      resolvedInstances = ins.first;
 
-      // if no calls or types were resolved this iteration
-      if (!res.second && !typeres.second && !(resolvedCalls && resolvedTypes))
+      if(resolvedCalls && resolvedTypes && resolvedInstances){
+        run--;
+        continue;
+      }
+      
+      // if nothing was resolved this iteration
+      if (!res.second && !typeres.second && !ins.second)
       {
         Logger::printQueue();
         error("Type-Call Resolution Failed with " + std::to_string(res.second) + " resolved calls and " + std::to_string(typeres.second) + " resolved types");

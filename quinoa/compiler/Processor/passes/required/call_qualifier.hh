@@ -14,6 +14,7 @@ std::pair<bool, int> qualify_calls(Method &code,
       // Don't do redundant qualification
       if(call->target )continue;
       if(call->builtin())continue;
+      if(call->inst)continue;
       if(!call->active)continue;
       Logger::debug("Qualify call");
       auto sig = getMethodSig(code.memberOf, call);

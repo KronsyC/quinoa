@@ -11,6 +11,7 @@ static std::map<PrimitiveType, std::string> primitive_group_mappings{
 class MethodCall : public Expression
 {
 public:
+  bool inst = false;
   MethodSignature *target = nullptr;
 
   ModuleMemberRef *name;
@@ -101,7 +102,6 @@ public:
     auto tgtFn = mod->getFunction(name);
     if (tgtFn == nullptr)
     {
-      mod->print(llvm::outs(), nullptr);
       error("Failed to locate function " + name);
     }
     std::vector<llvm::Value *> llparams;
@@ -294,10 +294,11 @@ public:
     auto same = operand->getType();
     auto sameptr = new TPtr(same);
     Type *pointed = nullptr;
+    if(same){
     if (auto pt = same->ptr())
       pointed = pt->to;
     else if (auto pt = same->list())
-      pointed = pt->elements;
+      pointed = pt->elements;}
     switch (op)
     {
     case PRE_amperand:
@@ -503,6 +504,9 @@ public:
       return right->getType();
     case BIN_dot:
     {
+      if(auto func = dynamic_cast<MethodCall*>(right)){
+        return func->getType();
+      }
       auto parent_struct_type = left->getType();
       if (parent_struct_type == nullptr)
         return nullptr;
@@ -541,6 +545,9 @@ public:
   {
     if (op == BIN_dot)
     {
+      if(auto func = dynamic_cast<MethodCall*>(right)){
+        return func->getLLValue(types, expected);
+      }
       auto ptr = getPtr(types);
       auto val = bld.CreateLoad(ptr->getType()->getPointerElementType(), ptr);
       return val;

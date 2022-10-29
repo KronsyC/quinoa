@@ -458,6 +458,11 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
     auto optype = binary_op_mappings[op.type];
 
     auto binop = new BinaryOperation(leftAST, rightAST, optype);
+    if(optype == BIN_dot){
+        if(auto call = dynamic_cast<MethodCall*>(rightAST)){
+            call->inst = true;
+        }
+    }
     binop->ctx = ctx;
     return binop;
 }

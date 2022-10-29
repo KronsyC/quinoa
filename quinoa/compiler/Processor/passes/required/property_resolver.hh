@@ -11,6 +11,7 @@
 void inject_prop_type_defs(CompilationUnit& unit){
     for(auto method:unit.getAllMethods()){
         for(auto prop:unit.getAllProperties()){
+            if(prop->instance_access)continue;
             (*method->local_types)[prop->name->str()] = prop->type;
 
             // if they are within the same module, also inject the non-prefixed equivalent
