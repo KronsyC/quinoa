@@ -39,7 +39,7 @@ public:
     {
         if (nomangle)
             return name->str();
-        std::string n = "fn_";
+        std::string n = "fn.";
         n += name->str();
         if (generics.size())
         {
@@ -48,7 +48,7 @@ public:
             for (auto g : generics)
             {
                 if (!first)
-                    n += ",";
+                    n += ".";
                 n += g->str();
                 first = false;
             }
@@ -56,18 +56,17 @@ public:
         }
         if (params.size())
         {
-            n += "(";
+            n += ".";
             bool first = true;
             for (auto p : params)
             {
                 if (!first)
-                    n += ",";
+                    n += ".";
                 if (p->isVariadic)
                     n += "...";
                 n += p->type->str();
                 first = false;
             }
-            n += ")";
         }
         return n;
     }
@@ -111,7 +110,7 @@ public:
 
     std::string str()
     {
-        return "prop_" + name->str();
+        return "prop." + name->str();
     }
 };
 class PropertyPredeclaration : public TopLevelExpression

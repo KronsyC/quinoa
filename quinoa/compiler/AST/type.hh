@@ -304,7 +304,7 @@ public:
     }
     std::string str()
     {
-        return to->str() + "*";
+        return to->str() + "-p";
     }
     llvm::Type *getLLType()
     {
@@ -396,7 +396,7 @@ public:
     }
 
     std::string str(){
-        return "struct_"+of->str();
+        return "ins_"+of->str();
     }
 
     size_t getMemberIdx(std::string name){

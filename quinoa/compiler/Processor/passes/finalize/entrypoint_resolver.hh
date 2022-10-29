@@ -22,7 +22,7 @@ void gen_entrypoint(CompilationUnit &unit)
         "Multiple Entry-Points were found, this may cause Unexpected Behavior");
   }
   auto entry = entryPointCandidates[0];
-  std::string entryName =entry->name->str()+"::main";
+  std::string entryName =entry->name->str()+".main";
   for(auto item:*entry){
     if(instanceof<Method>(item)){
       auto m = (Method*)item;

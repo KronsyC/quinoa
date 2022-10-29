@@ -10,10 +10,10 @@ module IO is Exported{
         }
         return i;
     }
-    func read(str:c_str, len:i64)->i64{
+    pub func read(str:c_str, len:i64)->i64{
         return syscall::read(0, cast<i64>(str), len);
     }
-    func putc(ch:char){
+    pub func putc(ch:char){
         syscall::write(1, cast<i64>(&ch), 1);
     }
     pub func print(message:c_str)->i64{

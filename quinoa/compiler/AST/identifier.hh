@@ -109,7 +109,7 @@ public:
         std::string name;
         bool first = true;
         for(auto p:*this){
-            if(!first)name+="::";
+            if(!first)name+=".";
             name+=p->str();
             first = false;
         }
@@ -228,7 +228,7 @@ public:
     }
     std::string str(){
         std::string ret;
-        if(mod)ret+=mod->str()+"::";
+        if(mod)ret+=mod->str()+".";
         return ret+member->str();
     }
 };

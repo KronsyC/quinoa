@@ -5,7 +5,15 @@ module Test is Entry{
 
 
     pub func main(argc:int, argv:c_str*)->int{
-        io::println("This is a test");
+
+        let c:char;
+        while(1){
+            io::read(&c, 1);
+            if(c == -1){
+                io::println("Exit");
+            }
+            io::putc(c);
+        }
         return 0;
     }
 

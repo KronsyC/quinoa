@@ -54,7 +54,7 @@ std::map<std::string, Module*> gen_export_table(CompilationUnit& unit){
 
 void prefixify_children(CompilationUnit &unit, std::string prefix)
 {
-  auto pfx = Ident::get("$"+prefix);
+  auto pfx = Ident::get("_"+prefix+"_");
   for (auto mod : unit.getAllModules()){
     if (mod->isImported)continue;
     mod->nspace = pfx;
