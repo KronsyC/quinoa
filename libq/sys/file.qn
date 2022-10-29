@@ -7,8 +7,8 @@ module File is Exported{
         return f;
     }
 
-    pub inst func write(ptr:c_str, len:i64) -> i64{
-        write_raw((*this).fd, cast<i64>(ptr), len );
+    pub inst func write(ptr:i64, len:i64) -> i64{
+        write_raw((*this).fd, ptr, len );
         return 0;
     }
 

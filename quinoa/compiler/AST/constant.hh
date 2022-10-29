@@ -102,14 +102,14 @@ class String : public ConstantValue<std::string>
 
     Type *getType()
     {
-        auto len = this->value.size();
-        return new ListType(Primitive::get(PR_int8), new Integer(len));
-        // return new TPtr(Primitive::get(PR_int8));
+        return new TPtr(Primitive::get(PR_int8));
     }
     llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)
     {
         auto st = builder()->CreateGlobalStringPtr(value, "str");
-        return st;
+        auto opcode = llvm::CastInst::getCastOpcode(st, true, expected, true);
+        auto cast =  llvm::ConstantExpr::getCast(opcode, st, expected);
+        return cast;
     }
 };
 class Boolean : public ConstantValue<bool>

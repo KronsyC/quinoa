@@ -116,7 +116,7 @@ void gen_src(vector<Statement *> content, llvm::Function *func, TVars vars, Cont
                 }
             }
             else
-                alloca = builder()->CreateAlloca(type, nullptr, "var " + varname);
+                alloca = builder()->CreateAlloca(type, nullptr, varname);
 
             vars[varname] = alloca;
         }
