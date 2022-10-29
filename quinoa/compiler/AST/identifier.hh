@@ -59,9 +59,9 @@ public:
         return loaded;
     }
     Type* getType(){
-        if(!ctx)error("No Context for Ident");
+        if(!ctx)error("No Context for Ident: " +name, true);
         auto type = ctx->getType(str());
-        
+        if(!type)Logger::error("Failed to get type of '" + name+"'");
         return type;
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
@@ -161,6 +161,10 @@ public:
         for(auto m:name->flatten())ret.push_back(m);
         for(auto tp:type_params)for(auto f:tp->flatten())ret.push_back(f);
         return ret;
+    }
+    ModuleRef() = default;
+    ModuleRef(Module* mod){
+        this->refersTo = mod;
     }
     std::string str(){
         std::string ret = name->str();

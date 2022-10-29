@@ -1,0 +1,18 @@
+module File is Exported{
+    inst let fd:i64 = 0;
+
+    pub func create(fd:int) -> @File{
+        let f : @File;
+        f.fd = fd;
+        return f;
+    }
+
+    pub inst func write(ptr:c_str, len:i64) -> i64{
+        write_raw(1, cast<i64>(ptr), len);
+        return 0;
+    }
+
+    #[ link_extern("write") ]
+    func write_raw(fd:i64, ptr:i64, len:i64) -> i64;
+
+}

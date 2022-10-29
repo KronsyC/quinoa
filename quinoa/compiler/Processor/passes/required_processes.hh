@@ -8,19 +8,20 @@
 #include "./required/importer.hh"
 #include "./required/type_resolver.hh"
 #include "./required/property_resolver.hh"
-
-void process_required(CompilationUnit& unit){
+#include "./required/instance_call_resolver.hh"
+void process_required(CompilationUnit* unit){
     resolve_imports(unit);
-    resolve_compositors(unit);
-    resolve_props(unit);
+    resolve_compositors(*unit);
+    resolve_props(*unit);
+    resolveInstanceCalls(*unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
     Logger::enqueueMode(true);
     while (!(resolvedTypes && resolvedCalls))
     {
       Logger::clearQueue();
-      auto typeres = resolve_types(unit);
-      auto res = qualify_calls(unit);
+      auto typeres = resolve_types(*unit);
+      auto res = qualify_calls(*unit);
       resolvedCalls = res.first;
       resolvedTypes = typeres.first;
 

@@ -12,13 +12,13 @@
 
 
 
-void Processor::process(CompilationUnit &unit, bool finalize)
+void Processor::process(CompilationUnit *unit, bool finalize)
 {
   
-  apply_syntactic_sugar(unit);
+  apply_syntactic_sugar(*unit);
   process_required(unit);
   if(finalize){
-    process_metadata(unit);
-    finalize_ast(unit);
+    process_metadata(*unit);
+    finalize_ast(*unit);
   }
 };

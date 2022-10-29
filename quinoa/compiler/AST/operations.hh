@@ -8,15 +8,12 @@
 static std::map<PrimitiveType, std::string> primitive_group_mappings{
     PRIMITIVES_ENUM_GROUPS};
 
-
-
 class MethodCall : public Expression
 {
 public:
   MethodSignature *target = nullptr;
-  
-  ModuleMemberRef* name;
 
+  ModuleMemberRef *name;
   Block<Expression> params;
   Block<Type> generic_params;
 
@@ -45,8 +42,10 @@ public:
         ret.push_back(f);
     for (auto m : name->flatten())
       ret.push_back(m);
-    for(auto t:generic_params){
-      for(auto f:t->flatten())ret.push_back(f);
+    for (auto t : generic_params)
+    {
+      for (auto f : t->flatten())
+        ret.push_back(f);
     }
     return ret;
   }
@@ -100,9 +99,10 @@ public:
     auto mod = bld.GetInsertBlock()->getParent()->getParent();
     auto name = target->nomangle ? target->name->str() : target->sourcename();
     auto tgtFn = mod->getFunction(name);
-    if (tgtFn == nullptr){
+    if (tgtFn == nullptr)
+    {
+      mod->print(llvm::outs(), nullptr);
       error("Failed to locate function " + name);
-
     }
     std::vector<llvm::Value *> llparams;
     int i = 0;
@@ -136,268 +136,7 @@ public:
 
     return g.take();
   }
-  void qualify(
-      CompilationUnit* unit,
-      LocalTypeTable type_info)
-  {
-    if (ctx == nullptr)
-      error("Cannot Resolve a contextless call");
-    if (builtin())
-      return;
-    std::vector<Param *> testparams;
-    int i = 0;
-    for (auto p : params)
-    {
-      auto type = p->getType();
-      if (type == nullptr)
-      {
-        Logger::error("Failed to get type for param " + name->str() + "[" + std::to_string(i) + "]");
-        return;
-      }
-      testparams.push_back(new Param(type, nullptr));
-      i++;
-    }
-
-    // Construct a fake signature to match against
-    auto callsig = new MethodSignature;
-    callsig->name = name;
-    callsig->params = testparams;
-    callsig->generics = make_generic_refs();
-
-    // Make sure the modules match up
-
-    auto sigstr = callsig->sigstr();
-    Module* searches = nullptr;
-    for(auto mod:unit->getAllModules()){
-      CompoundIdentifier* modname = new CompoundIdentifier;
-      if(mod->nspace)modname->push_back(mod->nspace);
-      modname->push_back(mod->name);
-      if(modname->str() == name->mod->str()){
-        searches = mod;
-      }
-    }
-    if(searches==nullptr){
-      Logger::error("Failed to locate module " + name->mod->str());
-      return;
-    }
-    // Run Compatibility Checks on each sigstr pair to find
-    // the most compatible function to match to
-    int best = -1;
-    int idx = -1;
-    i = -1;
-    MethodSigStr bestSigStr;
-    auto cs = callsig->sigstr();
-    for (auto method:searches->getAllMethods())
-    {
-      i++;
-      auto sig = method->sig;
-      if (sig->nomangle)
-        continue;
-      auto sigs = sig->sigstr();
-      int compat = getCompatabilityScore(sigs, cs);
-      if (compat == -1)
-        continue;
-      if (compat <= best || best == -1)
-      {
-        best = compat;
-        bestSigStr = sigs;
-        idx = i;
-      }
-    }
-    if (idx == -1)
-    {
-      Logger::error("Failed to generate function call to " + sigstr.str());
-      return;
-    }
-    int ind = 0;
-    for (auto method:searches->getAllMethods())
-    {
-      auto sig = method->sig;
-      if (ind == idx)
-      {
-        if (sig->isGeneric())
-        {
-          auto gen = sig->impl_as_generic(bestSigStr.generics);
-          target = gen;
-        }
-        else
-          target = sig;
-
-        return;
-      }
-      ind++;
-    }
-    return;
-  }
-
-private:
-  static int getCompat(ModuleRef* r1, ModuleRef* r2){
-    if(!r1 || !r2)return -1;
-    if(!r1->refersTo || !r2->refersTo)return -1;
-    
-    auto m1 = r1->refersTo;
-    auto m2 = r2->refersTo;
-    if(m1 == m2)return 0;
-    // TODO: Crawl The Inheritance Tree, +1 for each level
-    return -1;
-  }
-  static int getCompat(Type *_t1, Type *_t2, bool second = false)
-  {
-    auto t1 = _t1->drill();
-    auto t2 = _t2->drill();
-    if (t1 == t2)
-      return 0;
-
-    if (t1->primitive() && t2->primitive())
-    {
-      auto p1 = t1->primitive();
-      auto p2 = t2->primitive();
-      auto g1 = primitive_group_mappings[p1->type];
-      auto g2 = primitive_group_mappings[p2->type];
-      if (g1 == g2)
-        return 1;
-      else
-        return -1;
-    }
-    if (t1->ptr() && t2->ptr())
-    {
-      auto p1 = t1->ptr();
-      auto p2 = t2->ptr();
-
-      auto r1 = p1->to;
-      auto r2 = p2->to;
-      return getCompat(r1, r2);
-    }
-    if (auto ref = t1->custom())
-    {
-      return getCompat(ref->refersTo, t2);
-    }
-    if (auto ref = t2->custom())
-    {
-      return getCompat(t1, ref->refersTo);
-    }
-    if(t1->list() && t2->list()){
-      auto a1 = t1->list();
-      auto a2 = t2->list();
-
-      return getCompat(a1->elements, a2->elements);
-    }
-    if(t1->list() && t2->ptr()){
-      auto l1 = t1->list();
-      auto p2 = t2->ptr();
-
-      return getCompat(l1->elements, p2->to);
-    }
-    if(t1->inst() && t2->inst()){
-      auto i1 = t1->inst();
-      auto i2 = t2->inst();
-      return getCompat(i1->of, i2->of);
-    }
-    if(t1->mod() && t2->mod()){
-      auto r1 = t1->mod()->ref;
-      auto r2 = t2->mod()->ref;
-      return getCompat(r1, r2);
-    }
-    if (second)
-      return -1;
-    else
-      return getCompat(t2, t1, true);
-  }
-  static int getCompatabilityScore(MethodSigStr &func,
-                                   MethodSigStr mock)
-  {
-    // Namespace compat is presumably accounted for
-    if (func.name->member->str() != mock.name->member->str())
-    {
-      return -1;
-    }
-    if (!func.isVariadic())
-    {
-      if (func.params.size() != mock.params.size())
-      {
-        return -1;
-      }
-    }
-
-    // We got a generic function
-    // Try to decipher each generic type
-    if (func.generics.size())
-    {
-      if (func.generics.size() > 1)
-        error("Functions may only have one generic parameter for the time being");
-      if (mock.generics.size() > func.generics.size())
-        return -1;
-      if (mock.generics.size())
-      {
-        func.generics[0]->generic()->refersTo = mock.generics[0];
-
-      }
-      else
-      {
-        // find all the params that share the generic type
-        // put them into a list, and use the getType method
-        std::map<std::string, Type *> generic_type_mappings;
-        for (unsigned int i = 0; i < mock.params.size(); i++)
-        {
-          auto fp = func.params[i];
-          auto mp = mock.params[i];
-
-          /*
-          type_pair.first -> Found Type
-          type_pair.second -> Found Against (Should be generic name)
-          */
-          auto type_pair = mp->type->find_mismatch(fp->type);
-          if (!type_pair.second->generic())
-            error("Expected A Generic Type");
-          auto gen = type_pair.second->generic();
-          auto as = type_pair.first;
-          auto name = gen->name->str();
-          if (!generic_type_mappings[name])
-            generic_type_mappings[name] = as;
-          else
-          {
-            // Get Compatable Type
-            auto old_type = generic_type_mappings[name];
-            auto new_type = getCommonType(old_type, as);
-            generic_type_mappings[name] = new_type;
-          }
-        }
-
-        // write the references according to the table
-        for (auto generic_param : func.generics)
-        {
-          auto gen = generic_param->generic();
-          auto name = gen->name->str();
-          auto refersTo = generic_type_mappings[name];
-          if (!refersTo)
-            error("Failed To Get Type For Generic Param " + name);
-          gen->refersTo = refersTo;
-        }
-
-      }
-    }
-
-    // Start with a base score, each infraction has a cost based on how
-    // different it is
-    int score = 0;
-    for (unsigned int i = 0; i < mock.params.size(); i++)
-    {
-      auto baram = func.getParam(i)->type;
-      auto taram = mock.getParam(i)->type;
-      auto score = getCompat(baram, taram);
-      if (score == -1)
-        return -1;
-      else
-        score += 10 * score;
-    }
-
-    // TODO: Implement Type Reference Inheritance Tree Crawling (Each step up
-    // the tree is +10)
-    return score;
-  }
 };
-
-
 
 class Return : public Statement
 {
@@ -409,8 +148,9 @@ public:
   std::vector<Statement *> flatten()
   {
     std::vector<Statement *> ret{this};
-    if(retValue)for (auto i : retValue->flatten())
-      ret.push_back(i);
+    if (retValue)
+      for (auto i : retValue->flatten())
+        ret.push_back(i);
     return ret;
   }
   bool returns()
@@ -421,7 +161,8 @@ public:
   Return *copy(SourceBlock *ctx)
   {
     auto r = new Return;
-    if(retValue)r->retValue = retValue;
+    if (retValue)
+      r->retValue = retValue;
     r->ctx = ctx;
     return r;
   }
@@ -582,15 +323,19 @@ public:
     error("Failed to get type for unary op: " + std::to_string(op));
     return nullptr;
   }
-  
-  llvm::Value* getPtr(TVars vars){
-    switch(op){ 
-      
-      default:{
-         case PRE_star: return operand->getLLValue(vars, nullptr);
-         error("Cannot get pointer to unary operation of type " + std::to_string(op));
-         return nullptr;
-      }
+
+  llvm::Value *getPtr(TVars vars)
+  {
+    switch (op)
+    {
+
+    default:
+    {
+    case PRE_star:
+      return operand->getLLValue(vars, nullptr);
+      error("Cannot get pointer to unary operation of type " + std::to_string(op));
+      return nullptr;
+    }
     }
     return nullptr;
   }
@@ -696,17 +441,22 @@ public:
     this->right = right;
     this->op = op;
   }
-  llvm::Value* getPtr(TVars types){
-    if(op == BIN_dot){
+  llvm::Value *getPtr(TVars types)
+  {
+    if (op == BIN_dot)
+    {
       auto struct_ref = left->getPtr(types);
-      auto name = dynamic_cast<Ident*>(right);
-      if(!name)error("Module references may only be indexed by identifiers");
-      if(!struct_ref->getType()->getPointerElementType()->isStructTy())error("You can only use dot notation on module references");
+      auto name = dynamic_cast<Ident *>(right);
+      if (!name)
+        error("Module references may only be indexed by identifiers");
+      if (!struct_ref->getType()->getPointerElementType()->isStructTy())
+        error("You can only use dot notation on module references");
       auto mod = left->getType()->drill()->inst()->of->drill()->mod()->ref->refersTo;
 
       // Convert the name into a struct index, and GEP + Load it
       auto idx = getModuleMemberIdx(mod, name->str());
-      if(idx==(size_t)-1)error("Failed to get prop " + name->str());
+      if (idx == (size_t)-1)
+        error("Failed to get prop " + name->str());
 
       auto struct_type = struct_ref->getType()->getPointerElementType();
       auto elementPtr = bld.CreateConstInBoundsGEP2_32(struct_type, struct_ref, 0, idx);
@@ -728,42 +478,55 @@ public:
   }
   Type *getType()
   {
-    switch(op){
-      case BIN_plus:
-      case BIN_minus:
-      case BIN_star:
-      case BIN_slash:
-      case BIN_percent:
-      case BIN_bitiwse_or:
-      case BIN_bitwise_and:
-      case BIN_bitwise_shl:
-      case BIN_bitwise_shr:
-      case BIN_bitwise_xor:
-      case BIN_bool_and:
-      case BIN_bool_or:
-      case BIN_greater:
-      case BIN_greater_eq:
-      case BIN_equals:
-      case BIN_not_equals:
-      case BIN_lesser:
-      case BIN_lesser_eq:
-        return getCommonType(left->getType(), right->getType());
-      case BIN_assignment: return right->getType();
-      case BIN_dot:{
-        auto parent_struct_type = left->getType();
-        if(parent_struct_type==nullptr)return nullptr;
-        auto inst = parent_struct_type->drill()->inst();
-        if(!inst)error("You can only use dot-notation on module instances");
-        auto member = dynamic_cast<Ident*>(right);
-        auto parent = inst->of->drill()->mod();
-        if(!parent)error("Unresolved Module?");
-        if(!member)error("You can only use Identifiers to index module intances");
-        auto mod = parent->ref->refersTo;
+    switch (op)
+    {
+    case BIN_plus:
+    case BIN_minus:
+    case BIN_star:
+    case BIN_slash:
+    case BIN_percent:
+    case BIN_bitiwse_or:
+    case BIN_bitwise_and:
+    case BIN_bitwise_shl:
+    case BIN_bitwise_shr:
+    case BIN_bitwise_xor:
+    case BIN_bool_and:
+    case BIN_bool_or:
+    case BIN_greater:
+    case BIN_greater_eq:
+    case BIN_equals:
+    case BIN_not_equals:
+    case BIN_lesser:
+    case BIN_lesser_eq:
+      return getCommonType(left->getType(), right->getType());
+    case BIN_assignment:
+      return right->getType();
+    case BIN_dot:
+    {
+      auto parent_struct_type = left->getType();
+      if (parent_struct_type == nullptr)
+        return nullptr;
+      auto inst = parent_struct_type->drill()->inst();
+      if (!inst)
+        error("You can only use dot-notation on module instances");
+
+      auto parent = inst->of->drill()->mod();
+      if (!parent)
+        error("Unresolved Module?");
+      auto mod = parent->ref->refersTo;
+      // Property Access
+      if (auto member = dynamic_cast<Ident *>(right))
+      {
         auto prop = getProperty(mod, member->str());
-        if(!prop)error("Failed to get property " + mod->name->str() + "."+member->str());
-        if(!prop->instance_access)error("Cannot access non-instance property " + prop->str() + " from module instance");
+        if (!prop)
+          error("Failed to get property " + mod->name->str() + "." + member->str());
+        if (!prop->instance_access)
+          error("Cannot access non-instance property " + prop->str() + " from module instance");
         return prop->type;
       }
+      else
+        error("You may only use identifiers to index module instances");
+    }
     }
     error("Failed to get type for op: " + std::to_string(op));
     return this->right->getType();
@@ -776,7 +539,8 @@ public:
   }
   llvm::Value *getLLValue(TVars types, llvm::Type *expected)
   {
-    if(op==BIN_dot){
+    if (op == BIN_dot)
+    {
       auto ptr = getPtr(types);
       auto val = bld.CreateLoad(ptr->getType()->getPointerElementType(), ptr);
       return val;
@@ -784,6 +548,9 @@ public:
 
     auto rt = right->getType();
     auto lt = left->getType();
+
+    if(lt==nullptr)error("Failed to get type of left-hand operand");
+    if(rt==nullptr)error("Failed to get type of right-hand operand");
 
     auto common_t = getCommonType(lt, rt);
     auto common = common_t->getLLType();
@@ -825,8 +592,10 @@ public:
         return cast(r, expected);
       }
 
-      if(auto struc_expr = dynamic_cast<BinaryOperation*>(left)){
-        if(struc_expr->op == BIN_dot){
+      if (auto struc_expr = dynamic_cast<BinaryOperation *>(left))
+      {
+        if (struc_expr->op == BIN_dot)
+        {
           auto r = right->getLLValue(types);
           auto member = struc_expr->getPtr(types);
           auto val = cast(r, member->getType()->getPointerElementType());
@@ -916,8 +685,9 @@ public:
     if (initializer)
       for (auto i : initializer->flatten())
         ret.push_back(i);
-    if(type)
-      for(auto f:type->flatten())ret.push_back(f);
+    if (type)
+      for (auto f : type->flatten())
+        ret.push_back(f);
     return ret;
   }
   std::string str()

@@ -134,6 +134,9 @@ public:
     Block<Generic> generics;
     Type *returnType = nullptr;
     Method *belongsTo = nullptr;
+
+
+    ModuleType* call_instance = nullptr;
     bool assured_generic = false;
     bool isGeneric()
     {
@@ -275,7 +278,6 @@ public:
         return sig;
     }
 };
-class Module;
 class Method : public ModuleMember, public SourceBlock
 {
 public:

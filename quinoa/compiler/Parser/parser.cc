@@ -448,12 +448,18 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
     }
     auto op = toks[splitPoint];
     auto [left, right] = split(toks, splitPoint);
-    auto l = left;
-    auto r = right;
     auto leftAST = parse_expr(left, ctx);
+    leftAST->ctx = ctx;
     auto rightAST = parse_expr(right, ctx);
+    rightAST->ctx = ctx;
+
+
+
     auto optype = binary_op_mappings[op.type];
-    return new BinaryOperation(leftAST, rightAST, optype);
+
+    auto binop = new BinaryOperation(leftAST, rightAST, optype);
+    binop->ctx = ctx;
+    return binop;
 }
 
 SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTypeTable typeinfo)
@@ -743,12 +749,11 @@ void parse_mod(vector<Token> &toks, Module *mod)
             }
 
             method->sig = sig;
-            auto nm = mod->fullname();
 
             auto name = new ModuleMemberRef;
             name->mod = new ModuleRef();
             name->mod->refersTo = mod;
-            name->mod->name = nm;
+            name->mod->name = mod->fullname();;
             name->member = Ident::get(nameTok.value);
             sig->name = name;
 
@@ -862,9 +867,9 @@ Compositor *parse_compositor(vector<Token> &toks)
     return c;
 }
 
-CompilationUnit Parser::makeAst(vector<Token> &toks)
+CompilationUnit* Parser::makeAst(vector<Token> &toks)
 {
-    CompilationUnit unit;
+    auto unit = new CompilationUnit;
     while (toks.size())
     {
         auto c = popf(toks);
@@ -906,7 +911,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                     {
                         auto import = new Import(target, isStd, new CompoundIdentifier(member->name));
                         import->member = member;
-                        unit.push_back(import);
+                        unit->push_back(import);
                     }
                     break;
                 }
@@ -922,13 +927,14 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
                 if (importExprToks.size())
                     error("An Import Alias may only be a single identifier");
             }
-            unit.push_back(new Import(target, isStd, alias));
+            unit->push_back(new Import(target, isStd, alias));
             // Import Path foo.bar.baz
             break;
         }
         case TT_module:
         {
             auto mod = new Module();
+            mod->unit = unit;
             auto name = popf(toks);
             Block<Generic> generics;
             if (toks[0].is(TT_lesser))
@@ -957,7 +963,7 @@ CompilationUnit Parser::makeAst(vector<Token> &toks)
             mod->compositors = compositors.take();
             mod->generics = generics;
             parse_mod(moduleToks, mod);
-            unit.push_back(mod);
+            unit->push_back(mod);
             break;
         }
         default:

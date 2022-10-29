@@ -27,9 +27,22 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 					if(mod->name->str() == name){
 						auto modref = new ModuleRef;
 						modref->refersTo = mod;
-						modref->name = (CompoundIdentifier*)custom->name;
+						modref->name = mod->fullname();
 						modref->type_params = custom->type_args;
 						custom->refersTo = new ModuleType(modref);
+						break;
+					}
+				}
+			}
+		}
+
+		// Fix unresolved modrefs
+		for(auto child:flat){
+			if(auto modref = dynamic_cast<ModuleRef*>(child)){
+				if(modref->refersTo)continue;
+				for(auto mod:unit.getAllModules()){
+					if(mod->fullname()->str() == modref->name->str()){
+						modref->refersTo = mod;
 						break;
 					}
 				}

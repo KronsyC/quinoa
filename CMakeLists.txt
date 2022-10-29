@@ -30,6 +30,6 @@ file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 # )
 # FetchContent_MakeAvailable(toml11)
 add_executable(quinoa ${sources})
-target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter)
+target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -g)
 
 # target_link_libraries(quinoa PRIVATE toml11)

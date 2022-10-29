@@ -6,7 +6,7 @@
 #include "../lib/logger.h"
 #include<fstream>
 
-CompilationUnit makeAst(std::string sourceCode, std::string path, bool process){
+CompilationUnit* makeAst(std::string sourceCode, std::string path, bool process){
     auto toks = Lexer::lexify(sourceCode, path);
     auto ast = Parser::makeAst(toks);
     if(process)Processor::process(ast, false);
@@ -30,7 +30,7 @@ llvm::Module* createModule(std::string sourceCode, std::string path, bool log){
     Logger::debug("Parsed");
     Processor::process(ast, true);
     if(log)Logger::log("Generated the AST");
-    auto mod = Codegen::codegen(ast);
+    auto mod = Codegen::codegen(*ast);
     if(log)Logger::log("Generated LLVM IR Code");
     return mod;
 }

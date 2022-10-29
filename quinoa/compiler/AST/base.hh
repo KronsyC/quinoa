@@ -159,10 +159,11 @@ private:
 
 
 class TopLevelMetadata;
-
+struct CompilationUnit;
 struct TopLevelExpression : public AstNode
 {
 public:
+    CompilationUnit* unit;
     virtual bool isModule(){
         return false;
     }

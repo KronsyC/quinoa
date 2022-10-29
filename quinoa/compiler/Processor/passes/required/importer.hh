@@ -110,19 +110,20 @@ void deAliasify(CompilationUnit &unit, CompoundIdentifier *alias,
     }
   }
 }
-void merge_units(CompilationUnit &tgt, CompilationUnit donor)
+void merge_units(CompilationUnit *tgt, CompilationUnit donor)
 {
   for (auto e : donor.take())
   {
     e->isImported = true;
-    if(includes(tgt,e))continue;
-    tgt.push_back(e);
+    e->unit = tgt;
+    if(includes(*tgt,e))continue;
+    tgt->push_back(e);
   }
 }
 
 static std::map<std::string, std::map<std::string, Module *>> exports;
 static std::map<std::string, CompilationUnit *> import_cache;
-CompilationUnit get_ast_from_path(std::string path, Ident* filename)
+CompilationUnit* get_ast_from_path(std::string path, Ident* filename)
 {
   Logger::log("Importing module from " + path);
   auto cached = import_cache[path];
@@ -133,22 +134,22 @@ CompilationUnit get_ast_from_path(std::string path, Ident* filename)
 
     // add the unique namespace prefix to the module
     auto prefix = gen_random_str(10);
-    prefixify_children(ast, prefix);
+    prefixify_children(*ast, prefix);
 
-    auto export_table = gen_export_table(ast);
+    auto export_table = gen_export_table(*ast);
     exports[path] = export_table;
 
-    import_cache[path] = new CompilationUnit(ast);
+    import_cache[path] = ast;
     return ast;
   }
   else{
-    return *cached;
+    return cached;
 
   }
 }
 
 
-void resolve_imports(CompilationUnit &unit)
+void resolve_imports(CompilationUnit *unit)
 {
   // TODO: Load this from the project config files, this wont work on any other
   // pc
@@ -162,9 +163,9 @@ void resolve_imports(CompilationUnit &unit)
    *
    */
   int removals = 0;
-  for (unsigned int i = 0; i < unit.size(); i++)
+  for (unsigned int i = 0; i < unit->size(); i++)
   {
-    auto item = unit[i - removals];
+    auto item = (*unit)[i - removals];
     if (item->isImport())
     {
       auto import = (Import *)item;
@@ -185,14 +186,14 @@ void resolve_imports(CompilationUnit &unit)
         if(!mod)error("Failed to import Module");
         // Replace all references to the alias with the actual name
         auto alias = import->alias;
-        deAliasify(unit, alias, mod->fullname());
+        deAliasify(*unit, alias, mod->fullname());
 
-        merge_units(unit, ast);
+        merge_units(unit, *ast);
       }
 
       else
         error("Non-stdlib imports are not yet supported");
-      unit.erase(unit.begin() + i - removals);
+      unit->erase(unit->begin() + i - removals);
       removals++;
     }
   }

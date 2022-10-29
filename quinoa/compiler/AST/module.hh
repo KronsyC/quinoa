@@ -26,6 +26,7 @@ public:
 
 class Method;
 class Property;
+struct CompilationUnit;
 class Module:public TopLevelExpression, public Block<ModuleMember>{
 public:
     Block<Generic> generics;

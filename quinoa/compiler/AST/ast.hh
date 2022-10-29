@@ -34,9 +34,15 @@ Type *getCommonType(std::vector<Type *> items);
 
 #include "./module.hh"
 class Property;
+class MethodCall;
+struct CompilationUnit;
+class MethodSignature;
 llvm::StructType* structify(Module* mod);
 size_t getModuleMemberIdx(Module* mod, std::string name);
+
 Property* getProperty(Module* mod, std::string propname);
+Method* getMethod(Module* mod,  MethodCall* call);
+MethodSignature *getMethodSig(Module *mod, MethodCall *call);
 #include "./type.hh"
 #include "./module_member.hh"
 

@@ -14,8 +14,12 @@ std::pair<bool, int> qualify_calls(Method &code,
       // Don't do redundant qualification
       if(call->target )continue;
       if(call->builtin())continue;
-      call->qualify(&unit, *code.local_types);
-      if(call->target ){
+      if(!call->active)continue;
+      Logger::debug("Qualify call");
+      auto sig = getMethodSig(code.memberOf, call);
+      Logger::debug("Qualified");
+      if(sig ){
+        call->target = sig;
         auto method = call->target->belongsTo;
         if(!method->public_access){
           auto method_mod = method->memberOf;

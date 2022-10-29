@@ -150,6 +150,9 @@ public:
     {
         name = refersTo;
     }
+    CustomType(Type* refersTo){
+        this->refersTo = refersTo;
+    }
     CustomType *custom()
     {
         return this;
