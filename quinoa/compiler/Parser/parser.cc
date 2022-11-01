@@ -106,10 +106,10 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
         ret = Primitive::get(primitive_mappings[popf(toks).type]);
     else
     {
-        bool is_inst = false;
+        bool is_inst = true;
         if (toks[0].is(TT_at_symbol))
         {
-            is_inst = true;
+            is_inst = false;
             popf(toks);
         }
         auto references = parse_compound_ident(toks, ctx);

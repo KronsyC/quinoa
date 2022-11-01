@@ -3,8 +3,8 @@ import @util::cstr as CStr;
 module File is Exported{
     inst let fd:i64 = 0;
 
-    pub func create(fd:int) -> @File{
-        let f : @File;
+    pub func create(fd:int) -> File{
+        let f : File;
         f.fd = fd;
         return f;
     }

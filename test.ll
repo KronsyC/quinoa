@@ -12,21 +12,18 @@ entry_block:
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
   %stdout = alloca %0, align 8
-  %0 = call %0 @fn._EELIHVqMS0_.File.create.PR_int32(i32 1)
+  %0 = call %0 @fn._Sp51bOChyU_.File.create.PR_int32(i32 1)
   store %0 %0, %0* %stdout, align 4
   %1 = getelementptr inbounds %0, %0* %stdout, i32 0, i32 0
   store i64 2, i64* %1, align 4
-  %one_hundred = alloca i8, align 1
-  store i8 100, i8* %one_hundred, align 1
   %res = alloca i32, align 4
-  %2 = call i32 @fn._EELIHVqMS0_.File.write.ins_File-p.PR_int8-p(%0* %stdout, i8* getelementptr inbounds ([15 x i8], [15 x i8]* @str, i32 0, i32 0))
+  %2 = call i32 @fn._Sp51bOChyU_.File.write.ins_File-p.PR_int8-p(%0* %stdout, i8* getelementptr inbounds ([15 x i8], [15 x i8]* @str, i32 0, i32 0))
   store i32 %2, i32* %res, align 4
-  %3 = load i8, i8* %one_hundred, align 1
-  %4 = sext i8 %3 to i32
-  ret i32 %4
+  %3 = load i32, i32* %res, align 4
+  ret i32 %3
 }
 
-define i32 @fn._EELIHVqMS0_.File.write.ins_File-p.PR_int8-p(%0* %this, i8* %str) {
+define i32 @fn._Sp51bOChyU_.File.write.ins_File-p.PR_int8-p(%0* %this, i8* %str) {
 entry_block:
   %"param this" = alloca %0*, align 8
   store %0* %this, %0** %"param this", align 8
@@ -34,18 +31,18 @@ entry_block:
   store i8* %str, i8** %"param str", align 8
   %len = alloca i64, align 8
   %0 = load i8*, i8** %"param str", align 8
-  %1 = call i64 @fn._LbPsIwhMPZ_.CString.len.PR_int8-p(i8* %0)
+  %1 = call i64 @fn._F79IHgM2v9_.CString.len.PR_int8-p(i8* %0)
   store i64 %1, i64* %len, align 4
   %2 = load %0*, %0** %"param this", align 8
   %3 = load i8*, i8** %"param str", align 8
   %4 = ptrtoint i8* %3 to i64
   %5 = load i64, i64* %len, align 4
-  %6 = call i64 @fn._EELIHVqMS0_.File.write.ins_File-p.PR_int64.PR_int64(%0* %2, i64 %4, i64 %5)
+  %6 = call i64 @fn._Sp51bOChyU_.File.write.ins_File-p.PR_int64.PR_int64(%0* %2, i64 %4, i64 %5)
   %7 = trunc i64 %6 to i32
   ret i32 %7
 }
 
-define i64 @fn._EELIHVqMS0_.File.write.ins_File-p.PR_int64.PR_int64(%0* %this, i64 %ptr, i64 %len) {
+define i64 @fn._Sp51bOChyU_.File.write.ins_File-p.PR_int64.PR_int64(%0* %this, i64 %ptr, i64 %len) {
 entry_block:
   %"param this" = alloca %0*, align 8
   store %0* %this, %0** %"param this", align 8
@@ -64,7 +61,7 @@ entry_block:
 
 declare i64 @write(i64, i64, i64)
 
-define %0 @fn._EELIHVqMS0_.File.create.PR_int32(i32 %fd) {
+define %0 @fn._Sp51bOChyU_.File.create.PR_int32(i32 %fd) {
 entry_block:
   %"param fd" = alloca i32, align 4
   store i32 %fd, i32* %"param fd", align 4
@@ -77,7 +74,7 @@ entry_block:
   ret %0 %3
 }
 
-define i64 @fn._LbPsIwhMPZ_.CString.len.PR_int8-p(i8* %str) {
+define i64 @fn._F79IHgM2v9_.CString.len.PR_int8-p(i8* %str) {
 entry_block:
   %"param str" = alloca i8*, align 8
   store i8* %str, i8** %"param str", align 8

@@ -6,9 +6,8 @@ module Test is Entry{
     pub func main(argc:int, argv:c_str*)->int{
         let stdout = File::create(1);
         stdout.fd = 2;
-        const one_hundred = 100;
         let res = stdout.write("Hello, World!\n");
-        return one_hundred;
+        return res;
     }
 
 
