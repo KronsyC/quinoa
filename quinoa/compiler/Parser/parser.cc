@@ -874,6 +874,8 @@ Compositor *parse_compositor(vector<Token> &toks)
 
 CompilationUnit* Parser::makeAst(vector<Token> &toks)
 {
+    Logger::log("PARSING");
+    printToks(toks);
     auto unit = new CompilationUnit;
     while (toks.size())
     {

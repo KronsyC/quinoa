@@ -1,3 +1,5 @@
+import @util::cstr as CStr;
+
 module File is Exported{
     inst let fd:i64 = 0;
 
@@ -10,6 +12,11 @@ module File is Exported{
     pub inst func write(ptr:i64, len:i64) -> i64{
         write_raw((*this).fd, ptr, len );
         return 0;
+    }
+
+    pub inst func write(str:c_str)->int{
+        let len = CStr::len(str);
+        return (*this).write(cast<i64>(str), len);
     }
 
     #[ link_extern("write") ]

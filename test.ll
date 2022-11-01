@@ -3,7 +3,7 @@ source_filename = "Quinoa Program"
 
 %0 = type { i64 }
 
-@str = private unnamed_addr constant [4 x i8] c"Hi\0A\00", align 1
+@str = private unnamed_addr constant [15 x i8] c"Hello, World!\0A\00", align 1
 
 define i32 @fn.Test.main.PR_int32.PR_int8-p-p(i32 %argc, i8** %argv) {
 entry_block:
@@ -12,19 +12,37 @@ entry_block:
   %"param argv" = alloca i8**, align 8
   store i8** %argv, i8*** %"param argv", align 8
   %stdout = alloca %0, align 8
-  %0 = call %0 @fn._LcM5nSMwX9_.File.create.PR_int32(i32 1)
+  %0 = call %0 @fn._PYk962XYbY_.File.create.PR_int32(i32 1)
   store %0 %0, %0* %stdout, align 4
   %1 = getelementptr inbounds %0, %0* %stdout, i32 0, i32 0
   store i64 2, i64* %1, align 4
-  %res = alloca i64, align 8
-  %2 = call i64 @fn._LcM5nSMwX9_.File.write.ins_File-p.PR_int64.PR_int64(%0* %stdout, i64 ptrtoint ([4 x i8]* @str to i64), i64 3)
-  store i64 %2, i64* %res, align 4
-  %3 = load i64, i64* %res, align 4
-  %4 = trunc i64 %3 to i32
-  ret i32 %4
+  %res = alloca i32, align 4
+  %2 = call i32 @fn._PYk962XYbY_.File.write.ins_File-p.PR_int8-p(%0* %stdout, i8* getelementptr inbounds ([15 x i8], [15 x i8]* @str, i32 0, i32 0))
+  store i32 %2, i32* %res, align 4
+  %3 = load i32, i32* %res, align 4
+  ret i32 %3
 }
 
-define i64 @fn._LcM5nSMwX9_.File.write.ins_File-p.PR_int64.PR_int64(%0* %this, i64 %ptr, i64 %len) {
+define i32 @fn._PYk962XYbY_.File.write.ins_File-p.PR_int8-p(%0* %this, i8* %str) {
+entry_block:
+  %"param this" = alloca %0*, align 8
+  store %0* %this, %0** %"param this", align 8
+  %"param str" = alloca i8*, align 8
+  store i8* %str, i8** %"param str", align 8
+  %len = alloca i64, align 8
+  %0 = load i8*, i8** %"param str", align 8
+  %1 = call i64 @fn._bLuqzS7lcw_.CString.len.PR_int8-p(i8* %0)
+  store i64 %1, i64* %len, align 4
+  %2 = load %0*, %0** %"param this", align 8
+  %3 = load i8*, i8** %"param str", align 8
+  %4 = ptrtoint i8* %3 to i64
+  %5 = load i64, i64* %len, align 4
+  %6 = call i64 @fn._PYk962XYbY_.File.write.ins_File-p.PR_int64.PR_int64(%0* %2, i64 %4, i64 %5)
+  %7 = trunc i64 %6 to i32
+  ret i32 %7
+}
+
+define i64 @fn._PYk962XYbY_.File.write.ins_File-p.PR_int64.PR_int64(%0* %this, i64 %ptr, i64 %len) {
 entry_block:
   %"param this" = alloca %0*, align 8
   store %0* %this, %0** %"param this", align 8
@@ -43,7 +61,7 @@ entry_block:
 
 declare i64 @write(i64, i64, i64)
 
-define %0 @fn._LcM5nSMwX9_.File.create.PR_int32(i32 %fd) {
+define %0 @fn._PYk962XYbY_.File.create.PR_int32(i32 %fd) {
 entry_block:
   %"param fd" = alloca i32, align 4
   store i32 %fd, i32* %"param fd", align 4
@@ -54,6 +72,33 @@ entry_block:
   store i64 %2, i64* %1, align 4
   %3 = load %0, %0* %f, align 4
   ret %0 %3
+}
+
+define i64 @fn._bLuqzS7lcw_.CString.len.PR_int8-p(i8* %str) {
+entry_block:
+  %"param str" = alloca i8*, align 8
+  store i8* %str, i8** %"param str", align 8
+  %i = alloca i64, align 8
+  store i64 0, i64* %i, align 4
+  br label %while_eval
+
+while_eval:                                       ; preds = %while_exec, %entry_block
+  %0 = load i64, i64* %i, align 4
+  %1 = load i8*, i8** %"param str", align 8
+  %2 = getelementptr i8, i8* %1, i64 %0
+  %3 = load i8, i8* %2, align 1
+  %4 = icmp ne i8 %3, 0
+  br i1 %4, label %while_exec, label %while_cont
+
+while_exec:                                       ; preds = %while_eval
+  %5 = load i64, i64* %i, align 4
+  %6 = add i64 %5, 1
+  store i64 %6, i64* %i, align 4
+  br label %while_eval
+
+while_cont:                                       ; preds = %while_eval
+  %7 = load i64, i64* %i, align 4
+  ret i64 %7
 }
 
 define i32 @main(i32 %argc, i8** %argv) {
