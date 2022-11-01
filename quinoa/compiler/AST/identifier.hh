@@ -51,18 +51,24 @@ public:
     std::vector<Statement*> flatten(){
         return {this};
     }
-    llvm::AllocaInst* getPtr(TVars vars){
+    Variable* getVar(TVars vars){
         auto loaded = vars[str()];
         
         if (loaded == nullptr)
             error("Failed to read variable '" + str() + "'");
         return loaded;
     }
+    llvm::AllocaInst* getPtr(TVars vars){
+        return getVar(vars)->value;
+    }
     Type* getType(){
         if(!ctx)error("No Context for Ident: " +name, true);
         auto type = ctx->getType(str());
         if(!type)Logger::error("Failed to get type of '" + name+"'");
         return type;
+    }
+    bool isConst(TVars vars){
+        return getVar(vars)->constant;
     }
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){
         auto loaded = getPtr(vars);
@@ -218,7 +224,7 @@ public:
         
         if (loaded == nullptr)
             error("Failed to read variable '" + str() + "'");
-        return loaded;
+        return loaded->value;
     }
 
     llvm::Value* getLLValue(TVars vars, llvm::Type* expected=nullptr){

@@ -436,6 +436,10 @@ public:
   Expression *left;
   Expression *right;
   BinaryOp op;
+  // If this node was injected into the tree
+  // by the compiler, and not a direct result
+  // of user-provided source code
+  bool manufactured = false;
   BinaryOperation(Expression *left, Expression *right, BinaryOp op)
   {
     this->left = left;
@@ -541,14 +545,14 @@ public:
     bop->ctx = ctx;
     return bop;
   }
-  llvm::Value *getLLValue(TVars types, llvm::Type *expected)
+  llvm::Value *getLLValue(TVars vars, llvm::Type *expected)
   {
     if (op == BIN_dot)
     {
       if(auto func = dynamic_cast<MethodCall*>(right)){
-        return func->getLLValue(types, expected);
+        return func->getLLValue(vars, expected);
       }
-      auto ptr = getPtr(types);
+      auto ptr = getPtr(vars);
       auto val = bld.CreateLoad(ptr->getType()->getPointerElementType(), ptr);
       return val;
     }
@@ -567,9 +571,10 @@ public:
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
-        auto ptr = id->getPtr(types);
+        if(id->isConst(vars) && !manufactured)error("Cannot assign value to constant variable: " + id->str());
+        auto ptr = id->getPtr(vars);
         auto typ = ptr->getType()->getPointerElementType();
-        auto r = right->getLLValue(types, typ);
+        auto r = right->getLLValue(vars, typ);
         if (r->getType()->isPointerTy())
         {
           auto elType = r->getType()->getPointerElementType();
@@ -593,9 +598,9 @@ public:
       }
       if (instanceof <Subscript>(left))
       {
-        auto r = right->getLLValue(types);
+        auto r = right->getLLValue(vars);
         auto sub = (Subscript *)left;
-        sub->setAs(r, types);
+        sub->setAs(r, vars);
         return cast(r, expected);
       }
 
@@ -603,8 +608,8 @@ public:
       {
         if (struc_expr->op == BIN_dot)
         {
-          auto r = right->getLLValue(types);
-          auto member = struc_expr->getPtr(types);
+          auto r = right->getLLValue(vars);
+          auto member = struc_expr->getPtr(vars);
           auto val = cast(r, member->getType()->getPointerElementType());
           bld.CreateStore(val, member);
           return cast(r, expected);
@@ -612,8 +617,8 @@ public:
       }
       error("Failed to generate Assignment");
     }
-    auto l = left->getLLValue(types, common);
-    auto r = right->getLLValue(types, common);
+    auto l = left->getLLValue(vars, common);
+    auto r = right->getLLValue(vars, common);
     auto result = getOp(l, r);
     if (result == nullptr)
       error("Failed to generate IR for binary expression");
@@ -680,6 +685,7 @@ public:
   Type *type;
   Identifier *varname;
   Expression *initializer = nullptr;
+  bool constant = false;
   InitializeVar(Type *t, Identifier *name, Expression *initializer = nullptr)
   {
     type = t;

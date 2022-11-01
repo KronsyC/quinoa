@@ -566,7 +566,7 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
             block->push_back(ret);
             continue;
         }
-        else if (f.is(TT_let))
+        else if (f.is(TT_let) || f.is(TT_const))
         {
             popf(line);
             auto varname = popf(line).value;
@@ -585,12 +585,16 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
             (*type_info)[varname] = vartype;
             auto init = new InitializeVar(vartype, name);
             init->ctx = block;
+            init->constant = f.is(TT_const);
             if (line.size() != 0)
             {
                 expects(popf(line), TT_assignment);
                 auto val = parse_expr(line, block);
                 val->ctx = block;
                 init->initializer = val;
+            }
+            else if(init->constant){
+                error("Uninitialized Constant: " + init->varname->str());
             }
             block->push_back(init);
             continue;
@@ -874,8 +878,6 @@ Compositor *parse_compositor(vector<Token> &toks)
 
 CompilationUnit* Parser::makeAst(vector<Token> &toks)
 {
-    Logger::log("PARSING");
-    printToks(toks);
     auto unit = new CompilationUnit;
     while (toks.size())
     {

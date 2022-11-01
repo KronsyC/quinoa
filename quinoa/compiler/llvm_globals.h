@@ -5,7 +5,21 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/Type.h"
-#define TVars std::map<std::string, llvm::AllocaInst *>
+struct Type;
+class Variable{
+public:
+    Type* type;
+    llvm::AllocaInst* value;
+    bool constant = false;
+
+    Variable(Type* type, llvm::AllocaInst* value, bool _const = true){
+        this->type = type;
+        this->value = value;
+        this->constant = _const;
+    }
+};
+
+#define TVars std::map<std::string, Variable*>
 
 llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();

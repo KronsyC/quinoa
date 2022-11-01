@@ -118,7 +118,7 @@ void gen_src(vector<Statement *> content, llvm::Function *func, TVars vars, Cont
             else
                 alloca = builder()->CreateAlloca(type, nullptr, varname);
 
-            vars[varname] = alloca;
+            vars[varname] = new Variable(init->type, alloca, init->constant);
         }
         else if (instanceof <WhileCond>(stm))
         {
@@ -231,21 +231,25 @@ TVars inject_vars(llvm::Function *fn, CompilationUnit& ast, Method *method)
     // Inject the peer properties as non-prefixed variables
     for(auto prop:method->memberOf->getAllProperties()){
         auto prop_name = prop->name->member;
-        vars[prop_name->str()] = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
+        auto init = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
+        vars[prop_name->str()] = new Variable(prop->type, init);
     }
     // Inject all properties as full variables
     for(auto prop:ast.getAllProperties()){
         auto prop_name = prop->name;
-        vars[prop_name->str()] = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
+        auto init = (llvm::AllocaInst*)fn->getParent()->getGlobalVariable(prop->str());
+        vars[prop_name->str()] = new Variable(prop->type, init);
     }
 
     // Inject the args as variables
     for (unsigned int i = 0; i < fn->arg_size(); i++)
     {
+        auto param = method->sig->getParam(i);
         auto arg = fn->getArg(i);
         auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
+
         builder()->CreateStore(arg, alloc);
-        vars[arg->getName().str()] = alloc;
+        vars[arg->getName().str()] = new Variable(param->type, alloc);
     }
 
     // Inject the var-args as a known-length list
@@ -257,12 +261,12 @@ TVars inject_vars(llvm::Function *fn, CompilationUnit& ast, Method *method)
         auto one = builder()->getInt32(1);
         auto lenptr = vars["+vararg_count"];
         varParamType->size = Ident::get("+vararg_count");
-        auto len = builder()->CreateLoad(lenptr->getType()->getPointerElementType(), lenptr, "varargs_len");
+        auto len = builder()->CreateLoad(lenptr->value->getType()->getPointerElementType(), lenptr->value, "varargs_len");
 
         auto list = builder()->CreateAlloca(elementType, len, "varargs_list");
         auto init = builder()->CreateAlloca(elementType->getPointerTo());
         builder()->CreateStore(list, init);
-        vars[varParam->name->str()] = init;
+        vars[varParam->name->str()] = new Variable(varParamType->elements, init);
         pushf(*method, (Statement *)list);
 
         auto i32 = Primitive::get(PR_int32)->getLLType();
