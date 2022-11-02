@@ -1,5 +1,5 @@
 import @syscall;
-import @util::c_str as CStr;
+import @util::cstr as CStr;
 module IO is Exported{
 
     let stdin:int = 0;

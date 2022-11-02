@@ -375,6 +375,7 @@ public:
       }
       else
         error("Cannot dereference type: " + typ->str());
+      return nullptr;
     }
     case PRE_increment:
     {
@@ -426,6 +427,7 @@ public:
     }
     }
     error("Failed to generate llvalue for unary operation: " + std::to_string(op));
+    return nullptr;
   }
 };
 
@@ -634,8 +636,10 @@ private:
     {
     case BIN_assignment:
       error("Assignment Operators are not supported by this function");
+      break;
     case BIN_dot:
       error("Dot Operators are not supported by this function");
+      break;
     case BIN_plus:
       b.CreateAdd(l, r);
     case BIN_minus:
@@ -676,6 +680,8 @@ private:
     case BIN_bool_or:
       b.CreateLogicalOr(l, r);
     }
+  error("Failed to generate binary operation");
+  return nullptr;
   }
 };
 

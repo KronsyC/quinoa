@@ -760,8 +760,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
             method->sig = sig;
 
             auto name = new ModuleMemberRef;
-            name->mod = new ModuleRef();
-            name->mod->refersTo = mod;
+            name->mod = new ModuleRef(mod);
             name->mod->name = mod->fullname();;
             name->member = Ident::get(nameTok.value);
             sig->name = name;
@@ -859,18 +858,6 @@ Compositor *parse_compositor(vector<Token> &toks)
     auto c = new Compositor;
     c->name = name;
 
-    if (toks.size())
-    {
-        Block<Expression> params;
-        auto block = readBlock(toks, IND_parens);
-        auto csv = parse_cst(block);
-        for (auto e : csv)
-        {
-            auto expr = parse_expr(e, nullptr);
-            params.push_back(expr);
-        }
-        c->params = params.take();
-    }
     if (toks.size())
         error("Failed to parse module compositor");
     return c;

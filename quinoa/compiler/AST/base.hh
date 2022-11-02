@@ -6,7 +6,9 @@
 class AstNode
 {
 public:
-    virtual ~AstNode() = default;
+    virtual ~AstNode(){
+
+    };
 };
 
 class SourceBlock;
@@ -207,10 +209,6 @@ public:
             sb->push_back(c->copy(sb));
         }
         return sb;
-    }
-    // Deep Copy
-    SourceBlock(SourceBlock& from){
-
     }
 
     SourceBlock() = default;

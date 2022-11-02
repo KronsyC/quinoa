@@ -156,21 +156,25 @@ public:
 
 
 class Module;
+class Seed;
+class TLContainer;
 
-class ModuleRef:public Identifier{
+class TLCRef: public Identifier{
 public:
-    CompoundIdentifier* name;
-    Module* refersTo = nullptr;
+
+    TLCRef() = default;
+    TLCRef(TLContainer* cont){
+        this->refersTo = cont;
+    }
+
+    CompoundIdentifier* name = nullptr;
+    TLContainer* refersTo = nullptr;
     Block<Type> type_params;
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};
         for(auto m:name->flatten())ret.push_back(m);
         for(auto tp:type_params)for(auto f:tp->flatten())ret.push_back(f);
         return ret;
-    }
-    ModuleRef() = default;
-    ModuleRef(Module* mod){
-        this->refersTo = mod;
     }
     std::string str(){
         std::string ret = name->str();
@@ -186,8 +190,10 @@ public:
         }
         return ret;
     }
-    ModuleRef* copy(SourceBlock* ctx){
-        auto ret = new ModuleRef;
+
+
+    TLCRef* copy(SourceBlock* ctx){
+        auto ret = new TLCRef;
         ret->name = name->copy(ctx);
         ret->refersTo = refersTo;
         for(auto tp:type_params){
@@ -195,6 +201,25 @@ public:
         }
         return ret;
     }
+};
+
+class SeedRef : public TLCRef{
+public:
+    Seed* refersTo;
+};
+class ModuleRef:public TLCRef{
+public:
+    Module* refersTo;
+    ModuleRef* copy(SourceBlock* ctx){
+        error("Cannot copy moduleref");
+        return nullptr;
+    }
+
+    ModuleRef(Module* to){
+        refersTo = to;
+    }
+    ModuleRef() = default;
+
 };
 /**
  * 

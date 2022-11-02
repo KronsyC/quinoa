@@ -1,16 +1,21 @@
-import @sys::file as File;
+import @io;
 
-module Test is Entry{
-
-
-    pub func main(argc:int, argv:c_str*)->int{
-        let stdout = File::create(1);
-        stdout.fd = 2;
-        let res = stdout.write("Hello, World!\n");
-        return res;
-    }
-
-
+seed Pet{
+    pub inst func make_noise();
 }
 
+module Cat is Pet{
+    pub inst func make_noise(){
+        io::println("Meow?");
+    }
+}
 
+module Main is Entry{
+    pub func main(argc: int, argv:c_str*) -> int{
+        return 0;
+    }
+
+    func noise(pet : Pet){
+        pet.make_noise();
+    }
+}

@@ -35,17 +35,8 @@ std::map<std::string, Module*> gen_export_table(CompilationUnit& unit){
   std::map<std::string, Module*> exports;
   for(auto mod:unit.getAllModules()){
     if(mod->isImported)continue;
-    if(auto comp = mod->comp("Exported")){
-      if(comp->params.size()){
-        if(comp->params.size() != 1)error("The `Exported` attribute only takes one parameter");
-        auto name = comp->params[0];
-        if(!instanceof<String>(name))error("An Exports name must be a string");
-        auto nm = (String*)name;
-        exports[nm->value] = mod;
-      }
-      else{
-        exports["__default__"] = mod;
-      }
+    if(mod->comp("Exported")){
+      exports["__default__"] = mod;
     }
   }
   return exports;

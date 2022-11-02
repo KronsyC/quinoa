@@ -21,19 +21,21 @@ public:
 
 class Compositor:public ModuleRef{
 public:
-    Block<Expression> params;
+    Block<Type> generic_args;
 };
 
 class Method;
 class Property;
 struct CompilationUnit;
-class Module:public TopLevelExpression, public Block<ModuleMember>{
+
+class TLContainer : public TopLevelExpression, public Block<ModuleMember>{
 public:
     Block<Generic> generics;
     // The name of the Module, i.e 'Test', 'MyModule'
     Ident* name;
-    llvm::Module* llmod = nullptr;
-    llvm::StructType* struct_type = nullptr;
+
+    Block<Compositor> compositors; 
+
     // The Namespace Unique hash for the module
     // i.e abcdefg
     Ident* nspace = nullptr;
@@ -43,38 +45,12 @@ public:
         id->push_back(name);
         return id;
     }
-    
-    ModuleRef* get_ref(){
-        auto ref = new ModuleRef;
-        ref->refersTo = this;
-        ref->name = this->fullname();
-        return ref;
-    }
-    Block<Compositor> compositors; 
-    bool isModule(){
-        return true;
-    }
-
-    Compositor* comp(std::string comp){
+        Compositor* comp(std::string comp){
         for(auto c:compositors){
             if(c->name->str() == comp)return c;
         }
         return nullptr;
     } 
-    void remove(std::string comp){
-        int idx = -1;
-        for(unsigned int i  = 0;i<compositors.size();i++){
-            auto c = compositors[i];
-            if(c->name->str() == comp){
-                idx = i;
-                break;
-            }
-        }
-        if(idx!=-1){
-            
-            compositors.erase(compositors.begin()+idx);
-        }
-    }
 
     std::vector<Method*> getAllMethods(){
         std::vector<Method*> ret;
@@ -85,14 +61,6 @@ public:
             if(instanceof<Method>(m))ret.push_back(mt);
         }
 
-        // inherited children
-        for(auto comp:compositors){
-            if(auto mod = comp->refersTo){
-                for(auto method:mod->getAllMethods()){
-                    ret.push_back(method);
-                }
-            }
-        }
         return ret;
     }
     std::vector<Property*> getAllProperties(){
@@ -102,13 +70,25 @@ public:
         }
         return ret;
     }
-
-    // Create an llvm struct type from the module
-    llvm::Type* structify(){
-        return nullptr;
-    }
-
 };
 
+class Seed: public TLContainer{
 
+};
+class Module:public TLContainer{
+public:
 
+    llvm::Module* llmod = nullptr;
+    llvm::StructType* struct_type = nullptr;
+
+    
+    ModuleRef* get_ref(){
+        auto ref = new ModuleRef;
+        ref->refersTo = this;
+        ref->name = this->fullname();
+        return ref;
+    }
+    bool isModule(){
+        return true;
+    }
+};
