@@ -45,14 +45,12 @@ int main(int argc, char **argv)
     signal(SIGSEGV, segfault);
     signal(SIGILL, ill);
     signal(SIGABRT, abort);
-    if (argc < 2)
-        error("You Must Pass Options To The Compiler [INSERT INFO PAGE HERE]");
+    if (argc < 2)except(E_BAD_ARGS, "The compiler expects at least ONE argument. Use the 'help' command for usage information");
     string command = argv[1];
     // Compile the file
     if (command == "build")
     {
-        if (argc < 3)
-            error("Must Provide a File Path to the build command");
+        if (argc < 3)except(E_BAD_ARGS, "The 'build' command expects a target file path");
         string filePath = argv[2];
 
         auto ir = buildIr(filePath);
@@ -60,7 +58,6 @@ int main(int argc, char **argv)
         ofstream out("test.ll");
         out.write(ir.c_str(), ir.size());
     }
-    else
-        error("Unrecognized Command '" + command + "'");
+    else except(E_BAD_ARGS, "Unrecognized Command '" + command + "'");
     return 0;
 };

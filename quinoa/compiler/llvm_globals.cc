@@ -48,6 +48,6 @@ llvm::Value *cast(llvm::Value *val, llvm::Type *type)
   Logger::debug("type: ");
   type->print(llvm::outs());
   printf("\n");
-  error("Failed to cast", true);
+  except(E_BAD_CAST, "Failed to cast between types");
   return nullptr;
 }

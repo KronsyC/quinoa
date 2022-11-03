@@ -23,3 +23,17 @@ void error(string reason, bool trace){
     print_trace();
     exit(1);
 }
+#define X(ename) {E_##ename, #ename},
+
+std::map<ErrorType, std::string> error_names = {
+    ERR_TYPES
+};
+
+#undef X
+void except(ErrorType err, std::string message){
+
+    if( err == E_INTERNAL && DEBUG_MODE)print_trace();
+    auto errname = error_names[err];
+    Logger::error(errname + " - " + message);
+    exit( 100 + (int)err );
+}

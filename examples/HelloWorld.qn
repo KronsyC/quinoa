@@ -1,4 +1,4 @@
-import @io;
+import @io as io;
 module HelloWorld is Entry{
 
     pub func main(argc:int, argv:c_str*) -> int{

@@ -1,6 +1,5 @@
 #include "./logger.h"
 #include<vector>
-#define DEBUG_MODE 1
 using namespace std;
 static bool enqueue = false;
 static std::vector<std::pair<Logger::LogLevel, std::string>> queue;

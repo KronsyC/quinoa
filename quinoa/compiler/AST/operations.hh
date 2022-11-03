@@ -88,21 +88,21 @@ public:
       if (name == "cast")
       {
         if (params.size() != 1)
-          error("cast<T>() takes one parameter");
+          except(E_BAD_CALL, "cast<T>() takes one parameter");
         auto type = generic_params[0]->getLLType();
         auto val = params[0]->getLLValue(vars, type);
         return val;
       }
-      error("Failed to generate builtin " + name, true);
+      except(E_INTERNAL, "Failed to generate builtin " + name);
     }
     if (target == nullptr)
-      error("Call to " + name->str() + " is unresolved");
+      except(E_BAD_CALL, "Unresolved call to " + name->str());
     auto mod = bld.GetInsertBlock()->getParent()->getParent();
     auto name = target->nomangle ? target->name->str() : target->sourcename();
     auto tgtFn = mod->getFunction(name);
     if (tgtFn == nullptr)
     {
-      error("Failed to locate function " + name);
+      except(E_INTERNAL, "Failed to locate function " + name);
     }
     std::vector<llvm::Value *> llparams;
     int i = 0;
@@ -191,9 +191,9 @@ public:
   {
     auto elementType = tgt->getType();
     if (elementType == nullptr)
-      error("No Element Type");
+      except(E_INTERNAL, "No Element Type");
     if (!(instanceof <TPtr>(elementType) || instanceof <ListType>(elementType)))
-      error("List has member type which is a non-pointer", true);
+      except(E_INTERNAL, "List has member type which is a non-pointer");
     if (instanceof <TPtr>(elementType))
       return ((TPtr *)elementType)->to;
     else
@@ -294,11 +294,13 @@ public:
     auto same = operand->getType();
     auto sameptr = new TPtr(same);
     Type *pointed = nullptr;
-    if(same){
-    if (auto pt = same->ptr())
-      pointed = pt->to;
-    else if (auto pt = same->list())
-      pointed = pt->elements;}
+    if (same)
+    {
+      if (auto pt = same->ptr())
+        pointed = pt->to;
+      else if (auto pt = same->list())
+        pointed = pt->elements;
+    }
     switch (op)
     {
     case PRE_amperand:
@@ -321,7 +323,7 @@ public:
     case POST_decrement:
       return same;
     }
-    error("Failed to get type for unary op: " + std::to_string(op));
+    except(E_INTERNAL, "Failed to get type for unary op: " + std::to_string(op));
     return nullptr;
   }
 
@@ -329,14 +331,9 @@ public:
   {
     switch (op)
     {
-
-    default:
-    {
     case PRE_star:
       return operand->getLLValue(vars, nullptr);
-      error("Cannot get pointer to unary operation of type " + std::to_string(op));
-      return nullptr;
-    }
+    default: except(E_BAD_OPERAND, "Cannot get pointer to unary operation of type " + std::to_string(op));
     }
     return nullptr;
   }
@@ -374,13 +371,13 @@ public:
         return cast(loaded, expected);
       }
       else
-        error("Cannot dereference type: " + typ->str());
+        except(E_BAD_OPERAND, "Cannot dereference type: " + typ->str());
       return nullptr;
     }
     case PRE_increment:
     {
       if (! instanceof <Ident>(operand))
-        error("Cannot Increment non-identifiers");
+        except(E_BAD_OPERAND,"Cannot increment non-identifiers");
       auto var = (Ident *)operand;
       auto val = var->getLLValue(types);
       auto typ = val->getType();
@@ -392,7 +389,7 @@ public:
     case PRE_decrement:
     {
       if (! instanceof <Ident>(operand))
-        error("Cannot Increment non-identifiers");
+        except(E_BAD_OPERAND,"Cannot decrement non-identifiers");
       auto var = (Ident *)operand;
       auto val = var->getLLValue(types);
       auto typ = val->getType();
@@ -404,7 +401,7 @@ public:
     case POST_increment:
     {
       if (! instanceof <Ident>(operand))
-        error("Cannot Increment non-identifiers");
+        except(E_BAD_OPERAND,"Cannot increment non-identifiers");
       auto var = (Ident *)operand;
       auto val = var->getLLValue(types);
       auto typ = val->getType();
@@ -416,7 +413,7 @@ public:
     case POST_decrement:
     {
       if (! instanceof <Ident>(operand))
-        error("Cannot Increment non-identifiers");
+        except(E_BAD_OPERAND,"Cannot decrement non-identifiers");
       auto var = (Ident *)operand;
       auto val = var->getLLValue(types);
       auto typ = val->getType();
@@ -426,7 +423,7 @@ public:
       return cast(val, expected);
     }
     }
-    error("Failed to generate llvalue for unary operation: " + std::to_string(op));
+    except(E_INTERNAL,"Failed to generate llvalue for unary operation: " + std::to_string(op));
     return nullptr;
   }
 };
@@ -455,21 +452,21 @@ public:
       auto struct_ref = left->getPtr(types);
       auto name = dynamic_cast<Ident *>(right);
       if (!name)
-        error("Module references may only be indexed by identifiers");
+        except(E_BAD_MEMBER_ACCESS, "Module references may only be indexed by identifiers");
       if (!struct_ref->getType()->getPointerElementType()->isStructTy())
-        error("You can only use dot notation on module references");
+        except(E_BAD_MEMBER_ACCESS, "You can only use dot notation on module references");
       auto mod = left->getType()->drill()->inst()->of->drill()->mod()->ref->refersTo;
 
       // Convert the name into a struct index, and GEP + Load it
       auto idx = getModuleMemberIdx(mod, name->str());
       if (idx == (size_t)-1)
-        error("Failed to get prop " + name->str());
+        except(E_UNDEFINED_PROPERTY, "Failed to get property " + name->str());
 
       auto struct_type = struct_ref->getType()->getPointerElementType();
       auto elementPtr = bld.CreateConstInBoundsGEP2_32(struct_type, struct_ref, 0, idx);
       return elementPtr;
     }
-    error("Cannot get Pointer to Binop of type " + std::to_string(op));
+    except(E_BAD_OPERAND, "Cannot get Pointer to Binary Operation of type " + std::to_string(op));
     return nullptr;
   }
   std::vector<Statement *> flatten()
@@ -510,7 +507,8 @@ public:
       return right->getType();
     case BIN_dot:
     {
-      if(auto func = dynamic_cast<MethodCall*>(right)){
+      if (auto func = dynamic_cast<MethodCall *>(right))
+      {
         return func->getType();
       }
       auto parent_struct_type = left->getType();
@@ -518,28 +516,28 @@ public:
         return nullptr;
       auto inst = parent_struct_type->drill()->inst();
       if (!inst)
-        error("You can only use dot-notation on module instances");
+        except(E_BAD_MEMBER_ACCESS, "You can only use dot-notation on module instances");
 
       auto parent = inst->of->drill()->mod();
       if (!parent)
-        error("Unresolved Module?");
+        except(E_INTERNAL, "Unresolved Module?");
       auto mod = parent->ref->refersTo;
       // Property Access
       if (auto member = dynamic_cast<Ident *>(right))
       {
         auto prop = getProperty(mod, member->str());
         if (!prop)
-          error("Failed to get property " + mod->name->str() + "." + member->str());
+          except(E_UNDEFINED_PROPERTY, "Failed to get property " + mod->name->str() + "." + member->str());
         if (!prop->instance_access)
-          error("Cannot access non-instance property " + prop->str() + " from module instance");
+          except(E_UNDEFINED_PROPERTY, "Cannot access non-instance property " + prop->str() + " from module instance");
         return prop->type;
       }
       else
-        error("You may only use identifiers to index module instances");
+        except(E_BAD_MEMBER_ACCESS, "You may only use identifiers to index module instances");
     }
     }
-    error("Failed to get type for op: " + std::to_string(op));
-    return this->right->getType();
+    except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op));
+    return nullptr;
   }
   BinaryOperation *copy(SourceBlock *ctx)
   {
@@ -551,7 +549,8 @@ public:
   {
     if (op == BIN_dot)
     {
-      if(auto func = dynamic_cast<MethodCall*>(right)){
+      if (auto func = dynamic_cast<MethodCall *>(right))
+      {
         return func->getLLValue(vars, expected);
       }
       auto ptr = getPtr(vars);
@@ -562,8 +561,10 @@ public:
     auto rt = right->getType();
     auto lt = left->getType();
 
-    if(lt==nullptr)error("Failed to get type of left-hand operand");
-    if(rt==nullptr)error("Failed to get type of right-hand operand");
+    if (lt == nullptr)
+      except(E_UNRESOLVED_TYPE, "Failed to get type of left-hand operand");
+    if (rt == nullptr)
+      except(E_UNRESOLVED_TYPE, "Failed to get type of right-hand operand");
 
     auto common_t = getCommonType(lt, rt);
     auto common = common_t->getLLType();
@@ -573,7 +574,8 @@ public:
       if (instanceof <Ident>(left))
       {
         auto id = (Ident *)left;
-        if(id->isConst(vars) && !manufactured)error("Cannot assign value to constant variable: " + id->str());
+        if (id->isConst(vars) && !manufactured)
+          except(E_CONST_ASSIGNMENT, "Cannot assign value to constant variable: " + id->str());
         auto ptr = id->getPtr(vars);
         auto typ = ptr->getType()->getPointerElementType();
         auto r = right->getLLValue(vars, typ);
@@ -617,13 +619,13 @@ public:
           return cast(r, expected);
         }
       }
-      error("Failed to generate Assignment");
+      except(E_INTERNAL, "Failed to generate Assignment");
     }
     auto l = left->getLLValue(vars, common);
     auto r = right->getLLValue(vars, common);
     auto result = getOp(l, r);
     if (result == nullptr)
-      error("Failed to generate IR for binary expression");
+      except(E_INTERNAL, "Failed to generate IR for binary expression");
     auto casted = cast(result, expected);
     return casted;
   }
@@ -634,12 +636,6 @@ private:
 #define b return bld
     switch (op)
     {
-    case BIN_assignment:
-      error("Assignment Operators are not supported by this function");
-      break;
-    case BIN_dot:
-      error("Dot Operators are not supported by this function");
-      break;
     case BIN_plus:
       b.CreateAdd(l, r);
     case BIN_minus:
@@ -679,9 +675,9 @@ private:
       b.CreateLogicalAnd(l, r);
     case BIN_bool_or:
       b.CreateLogicalOr(l, r);
+    default: except(E_INTERNAL, "Failed to generate binary operation");
     }
-  error("Failed to generate binary operation");
-  return nullptr;
+    return nullptr;
   }
 };
 

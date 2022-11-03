@@ -2,8 +2,7 @@
 
 Type *getCommonType(Type *_t1, Type *_t2, bool second_pass)
 {
-  if (_t1 == nullptr || _t2 == nullptr)
-    error("one of the types is null", true);
+  if (_t1 == nullptr || _t2 == nullptr)except(E_INTERNAL ,"one of the types is null");
   auto t1 = _t1->drill();
   auto t2 = _t2->drill();
 
@@ -48,16 +47,14 @@ Type *getCommonType(Type *_t1, Type *_t2, bool second_pass)
     auto mem = getCommonType(t1p->to, t2l->elements);
     return new TPtr(mem);
   }
-  if (second_pass)
-    error("Failed To Get Common Type Between " + t1->str() + " and " + t2->str(), true);
+  if (second_pass)except(E_NONEQUIVALENT_TYPES, "Failed To Get Common Type Between " + t1->str() + " and " + t2->str());
   return getCommonType(t2, t1, true);
 }
 Type *getCommonType(std::vector<Type *> items)
 {
   if (items.size() == 1)
     return items[0];
-  if (items.size() == 0)
-    error("Cannot get type of list with 0 elements");
+  if (items.size() == 0)except(E_INTERNAL, "Cannot get universal common type of empty list");
 
   // Divide and conquer
   auto splitIdx = items.size() / 2;
@@ -204,13 +201,13 @@ int getCompatabilityScore(MethodSigStr &func,
   // Try to decipher each generic type
   if (func.generics.size())
   {
-    if (func.generics.size() > 1)
-      error("Functions may only have one generic parameter for the time being");
     if (mock.generics.size() > func.generics.size())
       return -1;
     if (mock.generics.size())
     {
-      func.generics[0]->generic()->refersTo = mock.generics[0];
+      for(unsigned int i = 0; i<mock.generics.size();i++){
+        func.generics[i]->generic()->refersTo = mock.generics[i];
+      }
     }
     else
     {
@@ -249,8 +246,7 @@ int getCompatabilityScore(MethodSigStr &func,
         auto gen = generic_param->generic();
         auto name = gen->name->str();
         auto refersTo = generic_type_mappings[name];
-        if (!refersTo)
-          error("Failed To Get Type For Generic Param " + name);
+        if (!refersTo)except(E_UNRESOLVED_TYPE, "Failed To Get Type For Generic Param " + name);
         gen->refersTo = refersTo;
       }
     }
@@ -283,7 +279,7 @@ int getCompatabilityScore(MethodSigStr &func,
 MethodSignature *getMethodSig(Module *mod, MethodCall *call)
 {
   if (call->ctx == nullptr)
-    error("Cannot Resolve a contextless call");
+    except(E_INTERNAL, "Call to " + call->name->str() + " has no context");
   if (call->builtin())
     return nullptr;
   std::vector<Param *> testparams;
@@ -365,8 +361,6 @@ MethodSignature *getMethodSig(Module *mod, MethodCall *call)
   return nullptr;
 }
 Method* getMethod(Module* mod,  MethodCall* call){
-  if(!mod)error("No mod?");
-  if(!call)error("No Call?");
   Logger::debug("Get Method of " + mod->name->str());
   getMethodSig(mod, call);
   return nullptr;

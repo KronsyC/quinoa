@@ -11,7 +11,7 @@ public:
         return this;
     }
     virtual llvm::Constant* getLLConstValue(llvm::Type* expected){
-        error("Cannot get the ConstantValue of the base constant class");
+        except(E_INTERNAL, "Cannot get the ConstantValue of the base constant class");
         return nullptr;
     }
 };
@@ -33,7 +33,7 @@ public:
     }
     Type *getType()
     {
-        error("GetType not implemented for constant", true);
+        except(E_INTERNAL, "GetType not implemented for constant");
         return nullptr;
     }
     llvm::Value *getLLValue(TVars vars, llvm::Type *expected = nullptr)
@@ -52,7 +52,7 @@ public:
         // 63 bits will yield 0, hence this has to be manually
         // returned
         if (bits > 64)
-            error("Cannot Get the Max Val larger than 64 bits");
+            except(E_INTERNAL, "Cannot Get the Max Val larger than 64 bits");
         if (bits == 64)
             return 18446744073709551615U;
         return ((long long)1 << bits) - 1;
@@ -69,7 +69,7 @@ public:
             return Primitive::get(PR_int32);
         if (value <= maxVal(64))
             return Primitive::get(PR_int64);
-        error("Cannot infer types for ints larger than 64 bit");
+        except(E_INTERNAL, "Cannot infer types for ints larger than 64 bit");
         return Primitive::get(PR_int64);
     }
     llvm::Constant *getLLConstValue(llvm::Type *expected = nullptr)

@@ -25,12 +25,12 @@ public:
     SourceBlock* ctx = nullptr;
     virtual std::vector<Statement *> flatten()
     {
-        error("Cannot Flatten a raw Statement", true);
+        except(E_INTERNAL, "Cannot Flatten a raw Statement");
         return {};
     }
 
     virtual Statement* copy(SourceBlock* ctx){
-        error("Cannot Copy base Statement Type", true);
+        except(E_INTERNAL, "Cannot Copy base Statement Type");
         return nullptr;
     }
 
@@ -48,15 +48,15 @@ struct Type : public Statement
 {
 public:
     virtual std::string str(){
-        error("Cannot stringify base type");
+        except(E_INTERNAL, "Cannot stringify base type");
         return "";
     }
     virtual llvm::Type* getLLType(){
-        error("Cannot get LL Type for base Type Class");
+        except(E_INTERNAL, "Cannot get LL Type for base Type Class");
         return nullptr;
     }
     std::vector<Statement *> flatten(){
-        error("Cannot Flatten Base Type");
+        except(E_INTERNAL, "Cannot Flatten Base Type");
         return {};
     }
 
@@ -64,7 +64,7 @@ public:
     // Return the deepest possble type from a potentially complex
     // type tree, useful for generic detection amongst other things
     virtual Type* drill(){
-        error("Cannot drill base type class");
+        except(E_INTERNAL, "Cannot drill base type class");
         return nullptr;
     }
 
@@ -72,11 +72,11 @@ public:
     // Produce a deep copy of a type tree
     //
     Type* copy(SourceBlock* ctx){
-        error("Cannot copy base type");
+        except(E_INTERNAL, "Cannot copy base type");
         return nullptr;
     }
     virtual std::pair<Type*, Type*> find_mismatch(Type* _){
-        error("Cannot differ types against base type object");
+        except(E_INTERNAL, "Cannot differ types against base type object");
         return {};
     }
     virtual Primitive* primitive(){
@@ -109,23 +109,23 @@ struct Expression : public Statement
 public:
     virtual Type *getType()
     {
-        error("GetType Fn is not implemented for Expression", true);
+        except(E_INTERNAL, "GetType Fn is not implemented for Expression");
         return nullptr;
     };
 
     virtual llvm::Value* getLLValue(TVars _vars, llvm::Type* _expected=nullptr){
-        error("Cannot get llvm value for base expression type", true);
+        except(E_INTERNAL, "Cannot get llvm value for base expression type");
         return nullptr;
     }
     virtual llvm::Value* getPtr(TVars _vars){
-        error("Cannot get ptr to base expression type");
+        except(E_INTERNAL, "Cannot get ptr to base expression type");
         return nullptr;
     }
     virtual Constant* constant(){
         return nullptr;
     }
     Expression* copy(SourceBlock* ctx){
-        error("Cannot copy base expression type", true);
+        except(E_INTERNAL, "Cannot copy base expression type");
         return nullptr;
     }
 };
@@ -217,7 +217,7 @@ public:
 
 
     Type* getType(std::string var){
-        if(!local_types)error("No Type Table?");
+        if(!local_types)except(E_INTERNAL, "No Type Table?");
         auto ty = (*local_types)[var];
         if(!ty && ctx){
             return ctx->getType(var);
@@ -239,7 +239,7 @@ public:
 
 
     void gobble(SourceBlock* donor){
-        if(!donor)error("Cannot merge with a null donor");
+        if(!donor)except(E_INTERNAL, "Cannot merge with a null donor");
         auto old = donor;
         for(auto item:donor->take()){
             // update the ctx
@@ -252,7 +252,7 @@ public:
             this->push_back(item);
         }
         for(auto pair:*donor->local_types){
-            if(!local_types)error("My locals are null?");
+            if(!local_types)except(E_INTERNAL, "My locals are null?");
             auto my = *local_types;
             if(my[pair.first] == nullptr){
                 (*local_types)[pair.first] = pair.second;

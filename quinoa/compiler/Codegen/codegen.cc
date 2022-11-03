@@ -60,7 +60,7 @@ llvm::GlobalValue *make_global(Property *prop, llvm::Module *mod, llvm::GlobalVa
     llvm::Constant* const_initializer = nullptr;
     if(initializer){
         auto constant = initializer->constant();
-        if(!constant)error("Initialzers must be constant");
+        if(!constant)except(E_BAD_OPERAND, "Initialzer to " + prop->name->str() + " must be a constant value");
         const_initializer = constant->getLLConstValue(type);
     }
     auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->str());
@@ -99,13 +99,13 @@ void gen_src(vector<Statement *> content, llvm::Function *func, TVars vars, Cont
                 auto l = init->type->list();
                 llvm::Value *size = l->size->getLLValue(vars, Primitive::get(PR_int32)->getLLType());
                 if (!size)
-                    error("You must know the size of an array while allocating it");
+                    except(E_NO_ARRAY_LEN, "Array lengths must be known at compile time");
 
                 // decide on static or dynamic type
                 if (l->isStatic())
                 {
                     if (! instanceof <Integer>(l->size))
-                        error("Cannot initialize list with non-integer length");
+                        except(E_BAD_ARRAY_LEN, "Cannot initialize list with non-integer length");
                     auto size = ((Integer *)l->size)->value;
                     auto arrayType = llvm::ArrayType::get(l->elements->getLLType(), size);
                     alloca = builder()->CreateAlloca(arrayType);
@@ -219,13 +219,13 @@ void gen_src(vector<Statement *> content, llvm::Function *func, TVars vars, Cont
             ((Expression *)stm)->getLLValue(vars);
         }
         else
-            error("Failed Generate IR for statement");
+            except(E_INTERNAL, "Failed Generate IR for statement");
     }
 }
 TVars inject_vars(llvm::Function *fn, CompilationUnit& ast, Method *method)
 {
     if (fn == nullptr)
-        error("Cannot varify the args of a null function", true);
+        except(E_INTERNAL, "Cannot varify the args of a null function");
     TVars vars;
 
     // Inject the peer properties as non-prefixed variables
@@ -334,7 +334,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
             auto fname = method->sig->sourcename();
             auto fn = llmod->getFunction(fname);
             if (fn == nullptr)
-                error("Function " + fname + " could not be found");
+                except(E_MISSING_FUNCTION, "Function " + fname + " could not be found");
             if (!method->size())
                 continue;
             auto entry_block = llvm::BasicBlock::Create(*llctx(), "entry_block", fn);
@@ -350,7 +350,7 @@ std::unique_ptr<llvm::Module> generateModule(Module &mod, std::vector<TopLevelEx
             continue;
         }
         else
-            error("Failed to generate module member");
+            except(E_INTERNAL, "Failed to generate module member");
     }
     return llmod;
 }
@@ -382,7 +382,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             auto tgt = entry->calls->sourcename();
             auto fn = rootmod->getFunction(tgt);
             if (fn == nullptr)
-                error("Failed to locate entrypoint function '" + tgt + "'");
+                except(E_NO_ENTRYPOINT, "Failed to locate entrypoint function '" + tgt + "'");
 
             MethodSignature entrySig;
             std::vector<Param *> params;
@@ -408,7 +408,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
             defs.push_back(unit);
         }
         else
-            error("An Unknown top-level entity was encountered");
+            except(E_INTERNAL, "An Unknown top-level entity was encountered");
     }
     return rootmod;
 }

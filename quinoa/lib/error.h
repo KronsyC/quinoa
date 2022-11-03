@@ -5,41 +5,52 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <sys/prctl.h>
-
+#include<map>
 void print_trace();
 void error(std::string reason, bool trace=false);
 
+#define ERR_TYPES \
+X(ERR) \
+X(INTERNAL) \
+X(BAD_ARGS) \
+X(UNDECLARED_VAR) \
+X(UNRESOLVED_CALL) \
+X(BAD_OPERAND) \
+X(BAD_CALL) \
+X(BAD_ASSIGNMENT) \
+X(CONST_ASSIGNMENT) \
+X(UNINITIALIZED_CONST) \
+X(UNDEFINED_PROPERTY) \
+X(BAD_CAST) \
+X(NONEQUIVALENT_TYPES) \
+X(UNRESOLVED_TYPE) \
+X(NO_ARRAY_LEN) \
+X(BAD_ARRAY_LEN) \
+X(NO_ENTRYPOINT) \
+X(MODULE_INHERITANCE) \
+X(UNESCAPABLE) \
+X(UNREADABLE_CHAR) \
+X(BAD_TYPE) \
+X(BAD_EXPRESSION) \
+X(BAD_CONDITIONAL) \
+X(BAD_PARAMETER) \
+X(BAD_IMPORT_ALIAS) \
+X(UNEXPECTED_TOKEN) \
+X(PRIVATE_CALL) \
+X(UNRECOGNIZED_SEED) \
+X(BAD_IMPORT) \
+X(BAD_MEMBER_ACCESS) \
+X(MISSING_FUNCTION)
+
+#define X(ename) E_##ename,
+
 enum ErrorType{
-    E_ERR,
-    E_INTERNAL,
-    E_BAD_ARGS,
-    E_UNDECLARED_VAR,
-    E_UNRESOLVED_CALL,
-    E_BAD_OPERAND,
-    E_BAD_ASSIGNMENT,
-    E_UNININTIALIZED_CONST,
-    E_UNRELATED_TYPE,
-    E_UNRESOLVED_TYPE,
-    E_NO_ARRAY_LEN,
-    E_BAD_ARRAY_LEN,
-    E_NO_ENTRYPOINT,
-
-    // Parser-Related Errors
-    E_UNESCAPABLE,
-    E_UNREADABLE_CHAR,
-    E_BAD_TYPE_SYNTAX,
-    E_BAD_EXPRESSION,
-    E_BAD_CONDITIONAL,
-    E_BAD_PARAMETER,
-    E_BAD_IMPORT_ALIAS,
-    E_UNEXPECTED_TOKEN,
-
-    E_PRIVATE_CALL,
-    E_UNREGONIZED_SEED,
-    E_BAD_IMPORT,
-    E_BAD_MEMBER_ACCESS
-
+    ERR_TYPES
 };
+
+#undef X
+
+
 
 
 void except(ErrorType err, std::string message);

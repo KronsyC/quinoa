@@ -74,7 +74,7 @@ public:
             return w;
 
         if (secondPass)
-            error("Failed to generate mutual primitive type for " + str() + " and " + w->str());
+            except(E_NONEQUIVALENT_TYPES, "Failed to generate mutual primitive type for " + str() + " and " + w->str());
         return w->getMutual(this, true);
     }
 
@@ -120,7 +120,7 @@ public:
         case PR_string:
             return llvm::Type::getInt8PtrTy(*llctx());
         default:
-            error("Failed to generate primitive for " + std::to_string(type));
+            except(E_INTERNAL, "Failed to generate primitive for " + std::to_string(type));
         }
         return nullptr;
     }
@@ -168,7 +168,7 @@ public:
     {
         if (refersTo)
             return refersTo->getLLType();
-        error("Cannot get type for unresolved type reference " + name->str(), true);
+        except(E_UNRESOLVED_TYPE, "Cannot get type for unresolved type reference " + name->str());
         return nullptr;
     }
     std::string str()
@@ -178,7 +178,7 @@ public:
             auto child = refersTo->str();
             return child;
         }
-        error("Cannot get name for unresolved type reference: " + name->str(), true);
+        except(E_UNRESOLVED_TYPE, "Cannot get name for unresolved type reference: " + name->str());
         return nullptr;
     }
 
@@ -268,7 +268,7 @@ public:
     }
     llvm::Type *getLLType()
     {
-        error("Cannot get lltype of module reference", true);
+        except(E_INTERNAL, "Cannot get lltype of module reference");
         return nullptr;
     }
         Type* drill(){
@@ -380,9 +380,9 @@ public:
     }
     llvm::StructType* getLLType(){
         auto of = this->of->drill();
-        if(!instanceof<ModuleType>(of))error("Module Instance must refer to module type");
+        if(!instanceof<ModuleType>(of))except(E_UNRESOLVED_TYPE, "Module Instance must refer to module type");
         auto base_mod_ref = ((ModuleType*)of)->ref;
-        if(!base_mod_ref->refersTo)error("Module Instance must refer to a resolved module type");
+        if(!base_mod_ref->refersTo)except(E_UNRESOLVED_TYPE, "Module Instance must refer to a resolved module type");
         auto mod = base_mod_ref->refersTo;
         auto typ = structify(mod);
         return typ;

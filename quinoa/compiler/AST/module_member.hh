@@ -13,7 +13,7 @@ public:
     {
         auto list = type->list();
         if (!list)
-            error("Cannot have non-list varargs: " + name->str());
+            except(E_INTERNAL, "Cannot have non-list varargs: " + name->str());
         auto p = new Param(list->elements, name);
         return p;
     }
@@ -245,11 +245,11 @@ public:
     {
         auto newsig = new MethodSignature(*this);
         if (replaceWith.size() != generics.size())
-            error("Cannot generate a replacement signature if generic lengths do not match");
+            except(E_INTERNAL, "Cannot generate a replacement signature if generic lengths do not match");
         for (auto g : replaceWith)
         {
             if (!g->refersTo)
-                error("Cannot clone a method signature with unresolved generics");
+                except(E_INTERNAL, "Cannot clone a method signature with unresolved generics");
         }
         auto gp = cloneTypes_Preserve();
         newsig->generics = std::get<1>(gp);
@@ -304,7 +304,7 @@ public:
                 return false;
         }
         if (!sig)
-            error("Method got no sig");
+            except(E_INTERNAL, "Method has no signature");
         return !sig->isGeneric();
     }
     Module *memberOf = nullptr;
@@ -331,7 +331,7 @@ public:
     void genFor(MethodSignature *sig)
     {
         if (generate())
-            error("Cannot generate non-generic function");
+            except(E_INTERNAL, "Cannot generate non-generic function");
         auto m = this->copy(nullptr);
         m->sig = sig;
         sig->generics.clear();

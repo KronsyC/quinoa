@@ -94,7 +94,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx);
 Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
 {
     if (!toks.size())
-        error("Failed To Parse Type");
+        except(E_BAD_TYPE, "Failed To Parse Type");
     Type *ret = nullptr;
     // Special case for strings
     if (toks[0].is(TT_string))
@@ -140,7 +140,7 @@ Type *parse_type(vector<Token> &toks, SourceBlock *ctx)
     if (toks.size() && toks[0].is(TT_lesser))
     {
         if (!ret->custom())
-            error("You can only pass type-parameters to a named type-reference");
+            except(E_INTERNAL, "You can only pass type-parameters to a named type-reference");
         auto argsBlock = readBlock(toks, IND_angles);
         auto csv = parse_cst(argsBlock);
         Block<Type> args;
@@ -200,7 +200,7 @@ vector<Identifier_Segment> parse_segmented_identifier(vector<Token> &toks, Sourc
 ModuleMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segments)
 {
     if (segments.size() < 1)
-        error("Call must consist of at least 1 segment");
+        except(E_INTERNAL, "Call must consist of at least 1 segment");
     Identifier_Segment end = segments[segments.size() - 1];
     vector<Identifier_Segment> modname(segments.begin(), segments.end() - 1);
     if (segments.size() == 1)
@@ -219,7 +219,7 @@ ModuleMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segmen
         }
         else if (p.type_args.size())
         {
-            error("Cannot pass Type Arguments to non-module");
+            except(E_BAD_ARGS, "Cannot pass Type Arguments to non-module");
         }
         i++;
     }
@@ -237,7 +237,7 @@ ModuleMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segmen
 Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
 {   
     if (toks.size() == 0)
-        error("Cannot Generate an Expression from no tokens");
+        except(E_INTERNAL, "Cannot Generate an Expression from no tokens");
     if (toks.size() == 1)
     {
         switch (toks[0].type)
@@ -257,7 +257,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
             return Ident::get(toks[0].value, ctx);
         }
         default:
-            error("Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'", true);
+            except(E_INTERNAL, "Failed To Generate an Appropriate Constant Value for '" + getTokenTypeName(toks[0].type) + "'");
         }
     }
 
@@ -302,8 +302,6 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
     {
         auto initial = toks;
         auto segments = parse_segmented_identifier(toks, ctx);
-        if (!segments.size())
-            error("Function Call with 0 segments?!?!?!?!");
         auto generic_args = segments[segments.size() - 1].type_args;
         auto memberRef = parse_memberref_from_segments(segments);
         if (toks[0].is(TT_l_paren))
@@ -444,7 +442,7 @@ Expression *parse_expr(vector<Token> &toks, SourceBlock *ctx)
         }
 
         printToks(toks);
-        error("Failed To Parse Expression");
+        except(E_BAD_EXPRESSION, "Failed To Parse Expression");
     }
     auto op = toks[splitPoint];
     auto [left, right] = split(toks, splitPoint);
@@ -507,7 +505,7 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
             auto does = readBlock(toks, IND_braces);
             auto doesA = parse_source(does, block, *type_info);
             if (!doesA)
-                error("Failed to parse conditional block");
+                except(E_BAD_CONDITIONAL, "Failed to parse conditional block");
             iff->does = doesA;
             if (toks[0].is(TT_else))
             {
@@ -594,7 +592,7 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
                 init->initializer = val;
             }
             else if(init->constant){
-                error("Uninitialized Constant: " + init->varname->str());
+                except(E_UNINITIALIZED_CONST ,"Uninitialized Constant: " + init->varname->str());
             }
             block->push_back(init);
             continue;
@@ -613,7 +611,7 @@ SourceBlock *parse_source(vector<Token> toks, SourceBlock *predecessor, LocalTyp
 Param *parse_param(vector<Token> &toks)
 {
     bool isVarParam = false;
-    if(!toks.size())error("Cannot parse parameter with no tokens");
+    if(!toks.size())except(E_BAD_PARAMETER, "Cannot parse parameter with no tokens");
     if (toks[0].is(TT_ellipsis))
     {
         isVarParam = true;
@@ -627,7 +625,7 @@ Param *parse_param(vector<Token> &toks)
     if (toks.size())
     {
         printToks(toks);
-        error("Failed to Parse Parameter");
+        except(E_BAD_PARAMETER, "Failed to Parse Parameter");
     }
     auto p = new Param(type, Ident::get(name.value));
     p->isVariadic = isVarParam;
@@ -848,7 +846,8 @@ void parse_mod(vector<Token> &toks, Module *mod)
             isInstance = true;
             continue;
         }
-        error("Functions are the only module members currently supported");
+
+        except(E_ERR, "Failed to generate member");
     }
 }
 
@@ -858,8 +857,7 @@ Compositor *parse_compositor(vector<Token> &toks)
     auto c = new Compositor;
     c->name = name;
 
-    if (toks.size())
-        error("Failed to parse module compositor");
+    if (toks.size())except(E_ERR, "Failed to parse module compositor");
     return c;
 }
 
@@ -895,8 +893,6 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
                     auto members_csv = parse_cst(members);
                     for (auto m : members_csv)
                     {
-                        if (m.size() != 1)
-                            error("Can only import as a simple ident");
                         auto name = m[0];
                         expects(name, TT_identifier);
                         specific_members.push_back(Ident::get(name.value));
@@ -920,8 +916,7 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
                     error("Expected An Import Alias at " + as.afterpos());
                 expects(importExprToks[0], TT_identifier);
                 alias = new CompoundIdentifier(popf(importExprToks).value);
-                if (importExprToks.size())
-                    error("An Import Alias may only be a single identifier");
+                if (importExprToks.size())except(E_BAD_IMPORT_ALIAS, "An import alias may only consist of one token");
             }
             unit->push_back(new Import(target, isStd, alias));
             // Import Path foo.bar.baz

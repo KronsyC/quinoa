@@ -63,7 +63,7 @@ string escapeNextVal(string& str){
         
         case 'n': return "\n";
     }
-    error("Failed To Escape std::string");
+    except(E_UNESCAPABLE, "Failed To Escape string");
     return "";
 }
 bool compareLength(string s1, std::string s2){
@@ -181,7 +181,7 @@ Token readNextToken(string& str){
     }
     std::string s;
     s+=str[0];
-    error("Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
+    except(E_UNREADABLE_CHAR, "Failed To Parse The File, An Unreadable Character '" + s + "' was Encountered");
     throw exception();
 }   
 

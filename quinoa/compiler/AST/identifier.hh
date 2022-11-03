@@ -4,23 +4,23 @@
 struct Identifier:public Expression{
 public:
     virtual std::string str(){
-        error("Cannot get Str of raw identifier");
+        except(E_INTERNAL, "Cannot get Str of raw identifier");
         return "";
     }
     virtual const char* c_str(){
         return "";
     }
     std::vector<Statement*> flatten(){
-        error("Cannot flatten base Identifier type");
+        except(E_INTERNAL, "Cannot flatten base Identifier type");
         return {this};
     }
     
     virtual llvm::AllocaInst* getPtr(TVars vars){
-        error("Cannot getPtr to a base identifier");
+        except(E_INTERNAL, "Cannot getPtr to a base identifier");
         return nullptr;
     }
     Identifier* copy(SourceBlock* _ctx){
-        error("Cannot copy base identifier type");
+        except(E_INTERNAL, "Cannot copy base identifier type");
         return nullptr;
     }
 };
@@ -55,14 +55,14 @@ public:
         auto loaded = vars[str()];
         
         if (loaded == nullptr)
-            error("Failed to read variable '" + str() + "'");
+            except(E_UNDECLARED_VAR, "Failed to read variable '" + str() + "'");
         return loaded;
     }
     llvm::AllocaInst* getPtr(TVars vars){
         return getVar(vars)->value;
     }
     Type* getType(){
-        if(!ctx)error("No Context for Ident: " +name, true);
+        if(!ctx)except(E_INTERNAL, "No Context for Ident: " +name);
         auto type = ctx->getType(str());
         if(!type)Logger::error("Failed to get type of '" + name+"'");
         return type;
@@ -89,7 +89,7 @@ public:
     }
     CompoundIdentifier(std::vector<Ident*> parts){
         for(auto p:*this){
-            if(p==nullptr)error("Cannot initialize a Compound Identifier with a nullptr");
+            if(p==nullptr)except(E_INTERNAL, "Cannot initialize a Compound Identifier with a nullptr");
             this->push_back(p);
         }
     }
@@ -126,7 +126,7 @@ public:
         return std::move(s.c_str());
     }
     Ident* last(){
-        if(size() == 0)error("Cannot get last element of 0-length name");
+        if(size() == 0)except(E_INTERNAL, "Cannot get last element of 0-length name");
         // guaranteed to be an Ident after flattening
         auto p = at(size()-1);
         return p;
@@ -211,7 +211,7 @@ class ModuleRef:public TLCRef{
 public:
     Module* refersTo;
     ModuleRef* copy(SourceBlock* ctx){
-        error("Cannot copy moduleref");
+        except(E_INTERNAL, "Cannot copy moduleref");
         return nullptr;
     }
 
@@ -248,7 +248,7 @@ public:
         auto loaded = vars[str()];
         
         if (loaded == nullptr)
-            error("Failed to read variable '" + str() + "'");
+            except(E_UNDECLARED_VAR, "Failed to read variable '" + str() + "'");
         return loaded->value;
     }
 
