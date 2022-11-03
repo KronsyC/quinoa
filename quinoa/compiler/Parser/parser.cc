@@ -650,6 +650,10 @@ Generic *parse_generic(vector<Token> &toks, SourceBlock *ctx)
     return gen;
 }
 
+Block<ModuleMember> parse_tlc_members(vector<Token>& toks, TLContainer* parent){
+    
+}
+
 void parse_mod(vector<Token> &toks, Module *mod)
 {
 
@@ -851,6 +855,10 @@ void parse_mod(vector<Token> &toks, Module *mod)
     }
 }
 
+void parse_seed(vector<Token> &toks, Seed* seed){
+
+}
+
 Compositor *parse_compositor(vector<Token> &toks)
 {
     auto name = parse_compound_ident(toks, nullptr);
@@ -923,11 +931,16 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
             break;
         }
         case TT_module:
+        case TT_seed:
         {
-            auto mod = new Module();
-            mod->unit = unit;
+            bool is_seed = c.is(TT_seed);
+            TLContainer* cont = nullptr;
+            if(is_seed)cont = new Seed();
+            else cont = new Module();
+
+            cont->unit = unit;
             auto name = popf(toks);
-            Block<Generic> generics;
+            Block<Generic> generic_parameters;
             if (toks[0].is(TT_lesser))
             {
                 auto block = readBlock(toks, IND_angles);
@@ -935,7 +948,7 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
                 for (auto gp : generic_params)
                 {
                     auto generic = parse_generic(gp, nullptr);
-                    generics.push_back(generic);
+                    generic_parameters.push_back(generic);
                 }
             }
             Block<Compositor> compositors;
@@ -950,11 +963,12 @@ CompilationUnit* Parser::makeAst(vector<Token> &toks)
                 }
             }
             auto moduleToks = readBlock(toks, IND_braces);
-            mod->name = Ident::get(name.value);
-            mod->compositors = compositors.take();
-            mod->generics = generics;
-            parse_mod(moduleToks, mod);
-            unit->push_back(mod);
+            cont->name = Ident::get(name.value);
+            cont->compositors = compositors.take();
+            cont->generics = generic_parameters;
+            if(is_seed)parse_seed(moduleToks, static_cast<Seed*>(cont));
+            else parse_mod(moduleToks, static_cast<Module*>(cont));
+            unit->push_back(cont);
             break;
         }
         default:

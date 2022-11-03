@@ -1,13 +1,8 @@
 import @io;
 
-seed Pet{
-    pub inst func make_noise();
-}
 
-module Cat is Pet{
-    pub inst func make_noise(){
-        io::println("Meow?");
-    }
+seed Pet{
+    
 }
 
 module Main is Entry{
@@ -15,7 +10,4 @@ module Main is Entry{
         return 0;
     }
 
-    func noise(pet : Pet){
-        pet.make_noise();
-    }
 }
