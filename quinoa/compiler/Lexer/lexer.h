@@ -1,7 +1,8 @@
 #pragma once
-#include<vector>
 #include "../token/token.h"
+#include <vector>
 
-namespace Lexer{
-    std::vector<Token> lexify(std::string source, std::string filename);
+namespace Lexer
+{
+std::vector<Token> lexify(std::string source, std::string filename);
 };

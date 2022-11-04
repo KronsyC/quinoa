@@ -1,7 +1,8 @@
 #pragma once
-#include<vector>
+#include "../AST_old/ast.hh"
 #include "../token/token.h"
-#include "../AST/ast.hh"
-namespace Parser{
-    CompilationUnit* makeAst(std::vector<Token>& tokens);
+#include <vector>
+namespace Parser
+{
+CompilationUnit* makeAst(std::vector<Token>& tokens);
 }

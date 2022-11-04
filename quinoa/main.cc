@@ -1,15 +1,15 @@
 
 
-#include "stdio.h"
-#include <vector>
-#include "./lib/error.h"
-#include "./lib/logger.h"
 #include "./compiler/AST/ast.hh"
 #include "./compiler/compiler.h"
-#include <string>
-#include <iostream>
+#include "./lib/error.h"
+#include "./lib/logger.h"
+#include "stdio.h"
 #include <fstream>
+#include <iostream>
 #include <signal.h>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -35,8 +35,7 @@ string buildIr(string path)
     return ir;
 }
 
-
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     // initialize random numbers
     srand((unsigned)time(NULL) * getpid());
@@ -45,19 +44,20 @@ int main(int argc, char **argv)
     signal(SIGSEGV, segfault);
     signal(SIGILL, ill);
     signal(SIGABRT, abort);
-    if (argc < 2)except(E_BAD_ARGS, "The compiler expects at least ONE argument. Use the 'help' command for usage information");
+    if(argc < 2)
+	except(E_BAD_ARGS, "The compiler expects at least ONE argument. Use the 'help' command for usage information");
     string command = argv[1];
     // Compile the file
-    if (command == "build")
-    {
-        if (argc < 3)except(E_BAD_ARGS, "The 'build' command expects a target file path");
-        string filePath = argv[2];
+    if(command == "build") {
+	if(argc < 3)
+	    except(E_BAD_ARGS, "The 'build' command expects a target file path");
+	string filePath = argv[2];
 
-        auto ir = buildIr(filePath);
+	auto ir = buildIr(filePath);
 
-        ofstream out("test.ll");
-        out.write(ir.c_str(), ir.size());
-    }
-    else except(E_BAD_ARGS, "Unrecognized Command '" + command + "'");
+	ofstream out("test.ll");
+	out.write(ir.c_str(), ir.size());
+    } else
+	except(E_BAD_ARGS, "Unrecognized Command '" + command + "'");
     return 0;
 };

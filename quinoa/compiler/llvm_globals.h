@@ -1,21 +1,22 @@
 #pragma once
 
-
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Value.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
+#include "llvm/IR/Value.h"
 struct Type;
-class Variable{
+class Variable
+{
 public:
     Type* type;
     llvm::AllocaInst* value;
     bool constant = false;
 
-    Variable(Type* type, llvm::AllocaInst* value, bool _const = true){
-        this->type = type;
-        this->value = value;
-        this->constant = _const;
+    Variable(Type* type, llvm::AllocaInst* value, bool _const = true)
+    {
+	this->type = type;
+	this->value = value;
+	this->constant = _const;
     }
 };
 
@@ -24,10 +25,8 @@ public:
 llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();
 
-llvm::Value *cast(llvm::Value *val, llvm::Type *type);
+llvm::Value* cast(llvm::Value* val, llvm::Type* type);
 
+llvm::Type* getCommonType(llvm::Type* t1, llvm::Type* t2);
 
-llvm::Type *getCommonType(llvm::Type *t1, llvm::Type *t2);
-
-bool isInt(llvm::Type *t);
-
+bool isInt(llvm::Type* t);
