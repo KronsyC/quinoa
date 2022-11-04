@@ -19,7 +19,7 @@ public:
 
 
 
-class Compositor:public ModuleRef{
+class Compositor:public TLCRef{
 public:
     Block<Type> generic_args;
 };
@@ -70,6 +70,12 @@ public:
         }
         return ret;
     }
+    TLCRef* get_ref(){
+        auto ref = new TLCRef;
+        ref->refersTo = this;
+        ref->name = this->fullname();
+        return ref;
+    }
 };
 
 class Seed: public TLContainer{
@@ -82,12 +88,7 @@ public:
     llvm::StructType* struct_type = nullptr;
 
     
-    ModuleRef* get_ref(){
-        auto ref = new ModuleRef;
-        ref->refersTo = this;
-        ref->name = this->fullname();
-        return ref;
-    }
+
     bool isModule(){
         return true;
     }

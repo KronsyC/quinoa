@@ -15,7 +15,7 @@ void inject_prop_type_defs(CompilationUnit& unit){
             (*method->local_types)[prop->name->str()] = prop->type;
 
             // if they are within the same module, also inject the non-prefixed equivalent
-            if(prop->name->mod->refersTo && (prop->name->mod->refersTo == method->sig->name->mod->refersTo)){
+            if(prop->name->parent->refersTo && (prop->name->parent->refersTo == method->sig->name->parent->refersTo)){
                 (*method->local_types)[prop->name->member->str()] = prop->type;                
             }
         }

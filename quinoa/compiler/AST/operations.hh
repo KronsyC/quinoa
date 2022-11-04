@@ -14,7 +14,7 @@ public:
   bool inst = false;
   MethodSignature *target = nullptr;
 
-  ModuleMemberRef *name;
+  TLCMemberRef *name;
   Block<Expression> params;
   Block<Type> generic_params;
 

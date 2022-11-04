@@ -244,15 +244,15 @@ public:
     }
 };
 
-class ModuleRef;
-class ModuleType : public Type
+class TLCRef;
+class TLCType : public Type
 {
 public:
-    ModuleRef *ref;
-    ModuleType* mod(){
+    TLCRef *ref;
+    TLCType* mod(){
         return this;
     }
-    ModuleType(ModuleRef *ref)
+    TLCType(TLCRef *ref)
     {
         this->ref = ref;
     }
@@ -380,11 +380,11 @@ public:
     }
     llvm::StructType* getLLType(){
         auto of = this->of->drill();
-        if(!instanceof<ModuleType>(of))except(E_UNRESOLVED_TYPE, "Module Instance must refer to module type");
-        auto base_mod_ref = ((ModuleType*)of)->ref;
+        if(!instanceof<TLCType>(of))except(E_UNRESOLVED_TYPE, "Module Instance must refer to module type");
+        auto base_mod_ref = ((TLCType*)of)->ref;
         if(!base_mod_ref->refersTo)except(E_UNRESOLVED_TYPE, "Module Instance must refer to a resolved module type");
         auto mod = base_mod_ref->refersTo;
-        auto typ = structify(mod);
+        auto typ = structify((Module*)mod);
         return typ;
     }
     std::vector<Statement *> flatten()

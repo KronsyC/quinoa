@@ -197,7 +197,7 @@ vector<Identifier_Segment> parse_segmented_identifier(vector<Token> &toks, Sourc
     return segs;
 }
 
-ModuleMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segments)
+TLCMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segments)
 {
     if (segments.size() < 1)
         except(E_INTERNAL, "Call must consist of at least 1 segment");
@@ -224,13 +224,13 @@ ModuleMemberRef *parse_memberref_from_segments(vector<Identifier_Segment> segmen
         i++;
     }
 
-    ModuleRef *modref = nullptr;
+    TLCRef *modref = nullptr;
     if (modname_ident.size())
     {
-        modref = new ModuleRef();
+        modref = new TLCRef();
         modref->name = new CompoundIdentifier(modname_ident);
     }
-    auto ref = new ModuleMemberRef(modref, Ident::get(end.name));
+    auto ref = new TLCMemberRef(modref, Ident::get(end.name));
     return ref;
 }
 
@@ -650,13 +650,12 @@ Generic *parse_generic(vector<Token> &toks, SourceBlock *ctx)
     return gen;
 }
 
+/**
+ * Generalized Implementation for parsing the content of modules / seeds / any future containers
+ * 
+*/
 Block<ModuleMember> parse_tlc_members(vector<Token>& toks, TLContainer* parent){
-    
-}
-
-void parse_mod(vector<Token> &toks, Module *mod)
-{
-
+    Block<ModuleMember> ret;
     Block<TopLevelMetadata> metadata;
     bool isPublic = false;
     bool isInstance = false;
@@ -670,7 +669,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
             auto nameTok = popf(toks);
             expects(nameTok, TT_identifier);
             auto method = new Method();
-            method->memberOf = mod;
+            method->memberOf = parent;
             Block<Generic> generic_args;
             if (toks[0].is(TT_lesser))
             {
@@ -761,9 +760,9 @@ void parse_mod(vector<Token> &toks, Module *mod)
 
             method->sig = sig;
 
-            auto name = new ModuleMemberRef;
-            name->mod = new ModuleRef(mod);
-            name->mod->name = mod->fullname();;
+            auto name = new TLCMemberRef;
+            name->parent = new TLCRef(parent);
+            name->parent->name = parent->fullname();;
             name->member = Ident::get(nameTok.value);
             sig->name = name;
 
@@ -779,7 +778,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
             isInstance = false;
             isPublic = false;
 
-            mod->push_back(method);
+            parent->push_back(method);
             continue;
         }
 
@@ -795,9 +794,9 @@ void parse_mod(vector<Token> &toks, Module *mod)
 
             auto prop = new Property;
             prop->type = type;
-            prop->name = new ModuleMemberRef;
+            prop->name = new TLCMemberRef;
             prop->name->member = Ident::get(name);
-            prop->name->mod = mod->get_ref();
+            prop->name->parent = parent->get_ref();
             prop->instance_access = isInstance;
             prop->public_access = isPublic;
             isInstance = false;
@@ -810,7 +809,7 @@ void parse_mod(vector<Token> &toks, Module *mod)
                 prop->initializer = initial_value;
             }
 
-            mod->push_back(prop);
+            ret.push_back(prop);
             continue;
         }
         // Metadata
@@ -853,6 +852,14 @@ void parse_mod(vector<Token> &toks, Module *mod)
 
         except(E_ERR, "Failed to generate member");
     }
+    return ret;
+
+}
+
+void parse_mod(vector<Token> &toks, Module *mod)
+{
+    auto content = parse_tlc_members(toks, mod);
+    for(auto m:content)mod->push_back(m);
 }
 
 void parse_seed(vector<Token> &toks, Seed* seed){

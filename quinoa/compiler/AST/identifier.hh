@@ -210,8 +210,8 @@ public:
 class ModuleRef:public TLCRef{
 public:
     Module* refersTo;
-    ModuleRef* copy(SourceBlock* ctx){
-        except(E_INTERNAL, "Cannot copy moduleref");
+    TLCRef* copy(SourceBlock* ctx){
+        except(E_INTERNAL, "Cannot copy ModuleRef");
         return nullptr;
     }
 
@@ -227,21 +227,21 @@ public:
  * with info about the generic params that may be passed
  * 
 */
-class ModuleMemberRef:public Identifier{
+class TLCMemberRef:public Identifier{
 public:
     //
     // if the module is null, it means that the member is part of the global namespace
     //
-    ModuleRef* mod;
+    TLCRef* parent;
     Ident* member;
 
-    ModuleMemberRef(ModuleRef* mod, Ident* member){
-        this->mod = mod;
+    TLCMemberRef(TLCRef* parent, Ident* member){
+        this->parent = parent;
         this->member = member;
     }
-    ModuleMemberRef() = default;
-    ModuleMemberRef* copy(SourceBlock* ctx){
-        auto ret = new ModuleMemberRef(mod->copy(ctx), member->copy(ctx));
+    TLCMemberRef() = default;
+    TLCMemberRef* copy(SourceBlock* ctx){
+        auto ret = new TLCMemberRef(parent->copy(ctx), member->copy(ctx));
         return ret;
     }
     llvm::AllocaInst* getPtr(TVars vars){
@@ -258,12 +258,12 @@ public:
     }
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this, member};
-        if(mod)for(auto m:mod->flatten())ret.push_back(m);
+        if(parent)for(auto m:parent->flatten())ret.push_back(m);
         return ret;
     }
     std::string str(){
         std::string ret;
-        if(mod)ret+=mod->str()+".";
+        if(parent)ret+=parent->str()+".";
         return ret+member->str();
     }
 };

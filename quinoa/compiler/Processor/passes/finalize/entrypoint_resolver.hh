@@ -1,7 +1,6 @@
 #pragma once
 #include "../include.h"
 
-
 void gen_entrypoint(CompilationUnit &unit)
 {
   std::vector<Module *> entryPointCandidates;
@@ -22,17 +21,22 @@ void gen_entrypoint(CompilationUnit &unit)
         "Multiple Entry-Points were found, this may cause Unexpected Behavior");
   }
   auto entry = entryPointCandidates[0];
-  std::string entryName =entry->name->str()+".main";
-  for(auto item:*entry){
-    if(instanceof<Method>(item)){
-      auto m = (Method*)item;
-      if(m->sig->name->str() == entryName){
-        if(!m->public_access)error("The main() method must be public");
+  std::string entryName = entry->name->str() + ".main";
+  for (auto item : *entry)
+  {
+    Logger::debug("it");
+    if (instanceof <Method>(item))
+    {
+      auto m = (Method *)item;
+      if (m->sig->name->str() == entryName)
+      {
+        if (!m->public_access)
+          error("The main() method must be public");
         unit.push_back(new Entrypoint(m->sig));
         return;
       }
     }
   }
-    error("The Entrypoint '" + entry->name->str() +
-          "' does not contain a main method");
+  except(E_NO_ENTRYPOINT, "The Entrypoint '" + entry->name->str() +
+                              "' does not contain a main method");
 }

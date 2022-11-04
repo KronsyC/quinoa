@@ -96,7 +96,7 @@ llvm::StructType *structify(Module *mod)
   mod->struct_type = struct_type;
   return struct_type;
 }
-Property *getProperty(Module *mod, std::string propname)
+Property *getProperty(TLContainer *mod, std::string propname)
 {
   for (auto p : mod->getAllProperties())
   {
@@ -106,7 +106,7 @@ Property *getProperty(Module *mod, std::string propname)
   return nullptr;
 }
 
-int getCompat(ModuleRef *r1, ModuleRef *r2)
+int getCompat(TLCRef *r1, TLCRef *r2)
 {
   if (!r1 || !r2)
     return -1;
@@ -276,7 +276,7 @@ int getCompatabilityScore(MethodSigStr &func,
  * this function respects access control, as well as overloads
  *
  */
-MethodSignature *getMethodSig(Module *mod, MethodCall *call)
+MethodSignature *getMethodSig(TLContainer *mod, MethodCall *call)
 {
   if (call->ctx == nullptr)
     except(E_INTERNAL, "Call to " + call->name->str() + " has no context");
@@ -306,10 +306,10 @@ MethodSignature *getMethodSig(Module *mod, MethodCall *call)
   // Make sure the modules match up
 
   auto sigstr = callsig->sigstr();
-  Module *searches = call->name->mod->refersTo;
+  auto searches = call->name->parent->refersTo;
   if (searches == nullptr)
   {
-    Logger::error("Failed to locate module " + call->name->mod->str());
+    Logger::error("Failed to locate module " + call->name->parent->str());
     return nullptr;
   }
   // Run Compatibility Checks on each sigstr pair to find
@@ -360,14 +360,13 @@ MethodSignature *getMethodSig(Module *mod, MethodCall *call)
   }
   return nullptr;
 }
-Method* getMethod(Module* mod,  MethodCall* call){
+Method* getMethod(TLContainer* mod,  MethodCall* call){
   Logger::debug("Get Method of " + mod->name->str());
   getMethodSig(mod, call);
   return nullptr;
-  // return sigstr->belongsTo;
 }
 
-size_t getModuleMemberIdx(Module *mod, std::string name)
+size_t getModuleMemberIdx(TLContainer *mod, std::string name)
 {
   size_t i = -1;
   for (auto prop : mod->getAllProperties())

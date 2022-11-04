@@ -30,7 +30,7 @@ public:
     MethodSigStr() = default;
 
 public:
-    ModuleMemberRef *name;
+    TLCMemberRef *name;
     Block<Param> params;
     Block<Generic> generics;
     bool nomangle = false;
@@ -105,7 +105,7 @@ class Property : public ModuleMember
 {
 public:
     Type *type = nullptr;
-    ModuleMemberRef *name = nullptr;
+    TLCMemberRef *name = nullptr;
     Expression *initializer;
 
     std::string str()
@@ -128,7 +128,7 @@ class Method;
 class MethodSignature : public AstNode
 {
 public:
-    ModuleMemberRef *name;
+    TLCMemberRef *name;
     bool nomangle = false;
     Block<Param> params;
     Block<Generic> generics;
@@ -136,7 +136,7 @@ public:
     Method *belongsTo = nullptr;
 
 
-    ModuleType* call_instance = nullptr;
+    TLCType* call_instance = nullptr;
     bool assured_generic = false;
     bool isGeneric()
     {
@@ -307,7 +307,6 @@ public:
             except(E_INTERNAL, "Method has no signature");
         return !sig->isGeneric();
     }
-    Module *memberOf = nullptr;
     MethodSignature *sig = nullptr;
     // If nomangle is enabled, matching is done via names directly
     // instead of using the overload chosing algorithm

@@ -38,11 +38,11 @@ class MethodCall;
 struct CompilationUnit;
 class MethodSignature;
 llvm::StructType* structify(Module* mod);
-size_t getModuleMemberIdx(Module* mod, std::string name);
+size_t getModuleMemberIdx(TLContainer* container, std::string name);
 
-Property* getProperty(Module* mod, std::string propname);
-Method* getMethod(Module* mod,  MethodCall* call);
-MethodSignature *getMethodSig(Module *mod, MethodCall *call);
+Property* getProperty(TLContainer* container, std::string propname);
+Method* getMethod(TLContainer* container,  MethodCall* call);
+MethodSignature *getMethodSig(TLContainer* container, MethodCall *call);
 #include "./type.hh"
 #include "./module_member.hh"
 

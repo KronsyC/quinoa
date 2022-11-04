@@ -23,7 +23,7 @@ std::pair<bool, int> resolveInstanceCalls(CompilationUnit& unit){
         fn->instance_access = false;
         auto mod = fn->memberOf;
         auto modref = mod->get_ref();
-        auto custom = new CustomType(new ModuleType(modref));
+        auto custom = new CustomType(new TLCType(modref));
         auto inst_ty = new ModuleInstanceType(custom);
         auto inst_ptr_ty = new TPtr(inst_ty);
         auto param = new Param(inst_ptr_ty, Ident::get("this"));
@@ -56,7 +56,7 @@ std::pair<bool, int> resolveInstanceCalls(CompilationUnit& unit){
                         res = false;
                         continue;
                     }
-                    call->name->mod = mod->ref;
+                    call->name->parent = mod->ref;
                     pushf(call->params, (Expression*)selfptr);
                     call->inst = false;
                     count++;

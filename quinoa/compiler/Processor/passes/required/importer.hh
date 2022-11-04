@@ -50,10 +50,10 @@ void prefixify_children(CompilationUnit &unit, std::string prefix)
     if (mod->isImported)continue;
     mod->nspace = pfx;
     for(auto method:mod->getAllMethods()){
-      pushf(*method->sig->name->mod->name, pfx);
+      pushf(*method->sig->name->parent->name, pfx);
     }
     for(auto prop:mod->getAllProperties()){
-      pushf(*prop->name->mod->name, pfx);
+      pushf(*prop->name->parent->name, pfx);
     }
 
   }

@@ -43,7 +43,7 @@ class TPtr;
 class CustomType;
 class Generic;
 class ModuleInstanceType;
-class ModuleType;
+class TLCType;
 struct Type : public Statement
 {
 public:
@@ -98,7 +98,7 @@ public:
         return nullptr;
     }
 
-    virtual ModuleType* mod(){
+    virtual TLCType* mod(){
         return nullptr;
     }
 
@@ -175,9 +175,12 @@ public:
     bool isImported = false;
 
 };
+
+class TLContainer;
 struct ModuleMember : public AstNode
 {
 public:
+    TLContainer *memberOf = nullptr;
     Block<TopLevelMetadata> metadata;
     bool public_access = false;
     bool instance_access = false;

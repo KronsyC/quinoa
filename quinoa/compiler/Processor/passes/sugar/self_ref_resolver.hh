@@ -2,7 +2,7 @@
 #include "../include.h"
 using namespace std;
 
-void resolve_self_refs(SourceBlock *content, ModuleRef *mod)
+void resolve_self_refs(SourceBlock *content, TLCRef *mod)
 {
   auto flat = content->flatten();
 
@@ -14,8 +14,8 @@ void resolve_self_refs(SourceBlock *content, ModuleRef *mod)
       if (call->builtin())
         continue;
       if(call->inst)continue;
-      if(!call->name->mod){
-        call->name->mod = mod;
+      if(!call->name->parent){
+        call->name->parent = mod;
       }
     }
   }
@@ -24,6 +24,6 @@ void resolve_self_refs(CompilationUnit &unit)
 {
   for (auto fn : unit.getAllMethods())
   {
-    resolve_self_refs(fn, fn->sig->name->mod );
+    resolve_self_refs(fn, fn->sig->name->parent );
   }
 }
