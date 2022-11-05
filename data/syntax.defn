@@ -45,8 +45,6 @@ literal_int
 
 literal_float
 
-literal_string
-
 literal_char
 
 # Type Definitions

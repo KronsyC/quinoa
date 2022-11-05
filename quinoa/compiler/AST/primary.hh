@@ -29,11 +29,12 @@ public:
     }
 };
 
-
+class Scope;
 class Statement : public ANode{
 public:
     virtual void generate() = 0;
     virtual std::string str() = 0;
+    Scope* scope = nullptr;
 };
 
 /**
@@ -97,8 +98,25 @@ private:
 /**
  * A 'scope' represents the contents of a braced block
  */
+#include<regex>
 class Scope: public Statement{
 public:
-private:
     Vec<Statement> content;  
+
+    std::string str(){
+        std::string output = "{\n";
+        for(auto& item : content){
+            auto str = item.str();
+            str = std::regex_replace(str, std::regex("\n"), "\n\t");
+            output += str;
+            output+="\n";
+        }
+        return output + "\n}";
+    }
+
+    void generate(){
+        for(auto& child : content){
+            child.generate();
+        }
+    }
 };

@@ -34,4 +34,5 @@ public:
     std::unique_ptr<Scope> content;
     Vec<Generic>           generic_params;
     Vec<Param>             parameters;
+    std::unique_ptr<Type>  return_type;
 };

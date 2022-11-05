@@ -228,20 +228,6 @@ Expression* parse_expr(vector<Token>& toks, SourceBlock* ctx)
 
     auto c = toks[0];
 
-    // List Literal
-    if(c.is(TT_l_square_bracket)) {
-	auto content = readBlock(toks, IND_square_brackets);
-	auto entries = parse_cst(content);
-
-	auto list = new List;
-
-	for(auto entry : entries) {
-	    auto entryExpr = parse_expr(entry, ctx);
-	    list->push_back(entryExpr);
-	}
-	return list;
-    }
-
     // Unwrap Parenthesis
     if(c.is(TT_l_paren)) {
 	auto initial = toks;
@@ -259,6 +245,8 @@ Expression* parse_expr(vector<Token>& toks, SourceBlock* ctx)
     // foo::bar<T>();
     // foo<T>::bar<U>();
     // foo::bar<T>::baz();
+    // foo::bar<T>::baz<U>();
+    // foo::bar::baz<T>();
     //
     if(c.is(TT_identifier)) {
 	auto initial = toks;

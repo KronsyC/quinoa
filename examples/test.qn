@@ -3,6 +3,7 @@ import @io;
 
 module Hello{
     func main(argc: int) -> int{
-        reutrn 0;
+        io::println("Hello, World!");
+        return 0;
     }
 }

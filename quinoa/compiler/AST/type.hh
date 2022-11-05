@@ -4,9 +4,10 @@
 #include "./ast.hh"
 #include "../../GenMacro.h"
 #include "../llvm_globals.h"
+#include "../token/token.h"
 enum PrimitiveType { PRIMITIVES_ENUM_MEMBERS };
-static std::map<PrimitiveType, std::string> primitive_names { PRIMITIVES_ENUM_NAMES };
-static std::map<TokenType, PrimitiveType> primitive_mappings {PRIMITIVES_ENUM_MAPPINGS};
+static std::map<PrimitiveType, std::string> primitive_names{ PRIMITIVES_ENUM_NAMES };
+static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAPPINGS};
 class Type: public ANode{
 public:
     virtual llvm::Type* llvm_type() = 0;
@@ -54,6 +55,7 @@ public:
             case PR_boolean: T(Int1)
             case PR_void: T(Void)
             case PR_string: T(Int8Ptr)
+            default: except(E_INTERNAL, "Failed to generate primitive type");
         }
     }
 };

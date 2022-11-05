@@ -25,6 +25,9 @@ public:
     std::string str(){
         return value;
     }
+    void set_name(std::string val){
+        this->value = val;
+    }
 };
 
 class LongName : public Reference{
@@ -62,7 +65,7 @@ public:
 
 class ContainerMemberRef : public Reference{
 public:
-    std::shared_ptr<ContainerRef> container;
+    std::unique_ptr<ContainerRef> container;
     std::unique_ptr<Name> member;
 
     std::string str(){

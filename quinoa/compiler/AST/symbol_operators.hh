@@ -23,6 +23,9 @@ class UnaryOperation: public Expr{
 public:
     std::unique_ptr<Expr> operand;
     UnaryOpType op_type;
+    std::string str(){
+        return "Some Unary op";
+    }
 
 protected:
     std::unique_ptr<Type> get_type(){
@@ -50,7 +53,9 @@ public:
     std::unique_ptr<Expr> left_operand;
     std::unique_ptr<Expr> right_operand;
     BinaryOpType op_type;
-
+    std::string str(){
+        return "Some Binary op";
+    }
 
 protected:
     std::unique_ptr<Type> get_type(){

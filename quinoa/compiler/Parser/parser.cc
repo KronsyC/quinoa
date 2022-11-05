@@ -133,7 +133,8 @@ std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
 */
 #include "./parser.h"
 #include "../AST/type.hh"
-
+#include "../AST/advanced_operators.hh"
+#include "../AST/constant.hh"
 std::unique_ptr<LongName> parse_long_name(std::vector<Token>& toks){
     auto name = std::make_unique<LongName>();
 
@@ -207,9 +208,9 @@ std::unique_ptr<Type> parse_type(std::vector<Token>& toks){
         ret = Primitive::get(internal_type);
     }
     else if( toks[0].is(TT_identifier) ){
-        
+        except(E_INTERNAL, "Reference Types are currently unsupported");
     }
-    except(E_INTERNAL, "Type parsing is not yet supported");
+    return ret;
 }
 Import parse_import(std::vector<Token> toks){
 
@@ -240,7 +241,7 @@ Import parse_import(std::vector<Token> toks){
 }
 ContainerRef parse_container_ref(std::vector<Token> toks){
     auto ref_name = parse_long_name(toks);
-    except(E_INTERNAL, "Not Implemented");
+    except(E_INTERNAL, "Container Ref Parsing Not Implemented");
 }
 Param parse_param(std::vector<Token> toks){
     auto param_name = pope(toks, TT_identifier);
@@ -254,6 +255,200 @@ Param parse_param(std::vector<Token> toks){
     param.name = param_name.value;
     param.type = std::move(param_type);
     return param;
+}
+
+struct Name_Segment{
+    std::string name;
+    Vec<Type>   type_args;
+};
+Name_Segment parse_name_segment(std::vector<Token>& toks)
+{
+    auto name = pope(toks, TT_identifier);
+    Name_Segment seg;
+    seg.name = name.value;
+
+    Vec<Type> generic_args;
+
+    if(toks[0].is(TT_lesser)) {
+        auto block = read_block(toks, IND_angles);
+        auto cst = parse_cst(block);
+        for(auto typ : cst) {
+            auto type = parse_type(typ);
+            generic_args.push(std::move(type));
+        }
+    }
+    seg.type_args = generic_args;
+    return seg;
+}
+Vec<Name_Segment> parse_segmented_name(std::vector<Token>& toks)
+{
+    Vec<Name_Segment> segs;
+    while(toks.size()) {
+        auto id = parse_name_segment(toks);
+        segs.push(id);
+        if(!toks[0].is(TT_double_colon))break;
+        popf(toks);
+    }
+    return segs;
+}
+std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segment> segments){
+    auto end = segments[segments.len() - 1];
+    Vec<Name_Segment> container_name_segs;
+
+    for(size_t i = 0; i<segments.len() - 1; i++){
+        container_name_segs.push(segments[i]);
+    }
+
+    Vec<Type> container_type_args;
+    LongName  container_name;
+    size_t i = 0;
+    for(auto seg : container_name_segs){
+        container_name.parts.push(Name(seg.name));
+
+        // Take the last segment generics to be the module type params
+        if( i == container_name_segs.len() - 1){
+            container_type_args = seg.type_args;
+        }
+        // No other segment should have type args
+        else if(seg.type_args.len()){
+            except(E_BAD_ARGS, "Cannot pass generic arguments to a non-module/seed");
+        }
+        i++;
+    }
+    auto member_ref = std::make_unique<ContainerMemberRef>();
+    member_ref->member = std::make_unique<Name>(end.name);
+    member_ref->container = std::make_unique<ContainerRef>();
+    member_ref->container->generic_args = container_type_args;
+    member_ref->container->name = std::make_unique<LongName>(container_name);
+    return member_ref;
+}
+std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope* parent = nullptr){
+    if(!toks.size())except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
+    
+    if(toks.size() == 1){
+        auto first = toks[0];
+        switch(popf(toks).type){
+            case TT_literal_int:return Integer::get(std::stoull(first.value));
+            case TT_literal_str:return String::get(first.value);
+            default: except(E_BAD_EXPRESSION, "Failed to generate literal for '"+first.value+"'");
+        }
+    }
+    print_toks(toks);
+
+    auto first = toks[0];
+    // List Literal
+    if(first.is(TT_l_square_bracket)) {
+	    auto content = read_block(toks, IND_square_brackets);
+	    auto entries = parse_cst(content);
+
+        except(E_INTERNAL, "Array literal parser is not implemented");
+    	// for(auto entry : entries) {
+	    //     auto entry_expr = parse_expr(entry, parent);
+	    //     list->push_back(entry_expr);
+	    // }
+	    // return list;
+    }
+
+
+    // Unwrap Nested Expression
+    if(first.is(TT_l_paren)){
+
+        auto before = toks;
+        auto block = read_block(toks, IND_parens);
+
+        if(!toks.size())return parse_expr(block, parent);
+
+        toks = before;
+    }
+
+
+    // Create a function call
+    // Function Calls can come in many forms
+    //
+    // foo::bar();
+    // foo<T>::bar();
+    // foo::bar<T>();
+    // foo<T>::bar<U>();
+    // foo::bar<T>::baz();
+    // foo::bar<T>::baz<U>();
+    // foo::bar::baz<T>();
+    //
+    // Uses a segmenting approach to simplify
+    // the parsing process
+    //
+    if(first.is(TT_identifier)){
+        auto before = toks;
+        auto segments = parse_segmented_name(toks);
+
+        auto generic_args = segments[segments.len() - 1].type_args;
+        auto member_ref   = parse_member_ref_from_segments(segments);
+
+        if(toks[0].is(TT_l_paren)){
+            Vec<Expr> params;
+            auto params_block = read_block(toks, IND_parens);
+            auto params_cst   = parse_cst(params_block);
+            for(auto param_toks : params_cst){
+                auto param = parse_expr(param_toks);
+                params.push(std::move(param));
+            }
+
+            auto call = std::make_unique<MethodCall>();
+            call->args = params;
+            call->name = std::move(member_ref);
+            call->type_args = generic_args;
+            return call;
+
+        }
+
+        print_toks(toks);
+        toks = before;
+    }
+
+    except(E_BAD_EXPRESSION, "Failed to parse expression");
+}
+
+std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope* parent = nullptr){
+    auto scope = std::make_unique<Scope>();
+    scope->scope = parent;
+    while(toks.size()){
+
+        auto current = popf(toks);
+
+        if(current.is(TT_while)){
+            except(E_INTERNAL, "While loop parser is unimplemented");
+        }
+        if(current.is(TT_for)){
+            except(E_INTERNAL, "For loop parser is unimplemented");
+        }
+        if(current.is(TT_if)){
+            except(E_INTERNAL, "Conditional parser is unimplemented");
+        }
+        if(current.is(TT_l_brace)){
+            except(E_INTERNAL, "Nested scope parser is unimplemented");
+        }
+
+        pushf(toks, current);
+        // Interpret single-line statements
+        auto line = read_to(toks, TT_semicolon);
+        popf(toks);
+
+        auto first = popf(line);
+
+        if(first.is(TT_let) || first.is(TT_const)){
+            except(E_INTERNAL, "Declaration parser is unimplemented");
+        }
+        if(first.is(TT_return)){
+            auto ret = std::make_unique<Return>();
+            ret->value = parse_expr(line, scope.get());
+            scope->content.push(std::move(*ret));
+            continue;
+        }
+
+        // Attempt to interpret the statement as an expression (as a last resort)
+        pushf(line, first);
+        scope->content.push(parse_expr(line, scope.get()));
+    }
+    return scope;
 }
 Vec<ContainerMember> parse_container_content(std::vector<Token>& toks, Container* parent){
     Vec<ContainerMember> ret;
@@ -286,6 +481,19 @@ Vec<ContainerMember> parse_container_content(std::vector<Token>& toks, Container
                 auto param = parse_param(set);
                 method->parameters.push(std::move(param));
             }
+
+            // Return Type
+            if(toks[0].is(TT_arrow)){
+                popf(toks);
+                method->return_type = parse_type(toks);
+            }
+            else{
+                method->return_type = Primitive::get(PR_void);
+            }
+
+            // Actual Content
+            auto content_toks = read_block(toks, IND_braces);
+            auto content = parse_scope(content_toks);
         }    
     }
     return ret;

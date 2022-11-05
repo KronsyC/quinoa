@@ -6,8 +6,6 @@ template<typename T>
 class Vec{
 public:
     Vec() = default;
-
-
     T* begin()
     {
         return _items[0];
@@ -23,6 +21,15 @@ public:
         auto alloc = new U(std::move(item));
         
         _items.push_back(alloc);
+    }
+    template<typename U>
+    void push(std::unique_ptr<U> item){
+        static_assert(std::is_base_of<T, U>(), "Not a subtype??");
+
+        // Manage the memory myself
+        auto mem = item.get();
+        item.release();
+        _items.push_back(mem);
     }
 
     T& pop(){

@@ -34,7 +34,7 @@ class Container : public TopLevelEntity
 {
 public:
     std::unique_ptr<Name> name;
-    std::shared_ptr<Name> name_space = std::make_shared<Name>();
+    std::shared_ptr<Name> name_space;
 
     Vec<ContainerMember> members;
     Vec<Generic>         generics;
@@ -47,7 +47,6 @@ public:
         self_ref = std::make_shared<ContainerRef>();
         self_ref->refers_to = this;
     }
-    Container(Container&) = default;
 private:
     std::shared_ptr<ContainerRef> self_ref;
 
