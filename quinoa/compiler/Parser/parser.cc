@@ -198,17 +198,23 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token>& toks){
 std::unique_ptr<Type> parse_type(std::vector<Token>& toks){
     if(!toks.size())except(E_BAD_TYPE, "Failed to parse type");
     std::unique_ptr<Type> ret;
-
+    auto first = popf(toks);
     // string is an alias for 'i8*'
-    if( toks[0].is(TT_string)){
+    if( first.is(TT_string)){
         ret = Ptr::get(Primitive::get(PR_int8));
     }
-    else if( toks[0].isTypeTok() ){
-        auto internal_type = primitive_mappings[popf(toks).type];
+    else if( first.isTypeTok() ){
+        auto internal_type = primitive_mappings[first.type];
         ret = Primitive::get(internal_type);
     }
-    else if( toks[0].is(TT_identifier) ){
+    else if( first.is(TT_identifier) ){
         except(E_INTERNAL, "Reference Types are currently unsupported");
+    }
+    else except(E_BAD_TYPE, "Failed to parse type: " + first.value);
+
+    while(toks.size() && toks[0].is(TT_star)){
+        popf(toks);
+        ret = Ptr::get(std::move(ret));
     }
     return ret;
 }
@@ -240,8 +246,18 @@ Import parse_import(std::vector<Token> toks){
 
 }
 ContainerRef parse_container_ref(std::vector<Token> toks){
-    auto ref_name = parse_long_name(toks);
-    except(E_INTERNAL, "Container Ref Parsing Not Implemented");
+    ContainerRef ref;
+    ref.name = parse_long_name(toks);
+    
+    if(toks[0].is(TT_lesser)){
+        auto gen_block = read_block(toks, IND_angles);
+        auto gen_cst   = parse_cst(gen_block);
+        for(auto gen_toks : gen_cst){
+            ref.generic_args.push(parse_type(gen_toks));
+        }
+    }
+    
+    return ref;
 }
 Param parse_param(std::vector<Token> toks){
     auto param_name = pope(toks, TT_identifier);
@@ -333,7 +349,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope* parent = nullpt
             default: except(E_BAD_EXPRESSION, "Failed to generate literal for '"+first.value+"'");
         }
     }
-    print_toks(toks);
 
     auto first = toks[0];
     // List Literal
@@ -396,6 +411,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope* parent = nullpt
             call->args = params;
             call->name = std::move(member_ref);
             call->type_args = generic_args;
+            call->scope = parent;
             return call;
 
         }
@@ -508,12 +524,12 @@ std::unique_ptr<Container> parse_container(std::vector<Token>& toks){
     // Seed Compositors
     if( toks[0].is(TT_is) ){
         popf(toks);
-        auto sep = parse_cst(toks);
+        auto compositor_toks = read_to(toks, TT_l_brace);
+        auto sep = parse_cst(compositor_toks);
         for(auto entry : sep){
             auto ref = parse_container_ref(entry);
         }
     }
-
     auto content = read_block(toks, IND_braces);
     auto parsed_content = parse_container_content(content, cont.get());
     cont->members = std::move(parsed_content);
