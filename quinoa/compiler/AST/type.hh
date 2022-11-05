@@ -6,7 +6,7 @@
 #include "../llvm_globals.h"
 enum PrimitiveType { PRIMITIVES_ENUM_MEMBERS };
 static std::map<PrimitiveType, std::string> primitive_names { PRIMITIVES_ENUM_NAMES };
-
+static std::map<TokenType, PrimitiveType> primitive_mappings {PRIMITIVES_ENUM_MAPPINGS};
 class Type: public ANode{
 public:
     virtual llvm::Type* llvm_type() = 0;

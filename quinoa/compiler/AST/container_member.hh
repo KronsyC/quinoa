@@ -20,8 +20,18 @@ class Property : public ContainerMember{
 
 };
 
+
+class Param : public ANode{
+public:
+    Name name;
+    std::unique_ptr<Type> type;
+    
+    // TODO: default value, var_args
+};
+
 class Method : public ContainerMember{
 public:
     std::unique_ptr<Scope> content;
     Vec<Generic>           generic_params;
+    Vec<Param>             parameters;
 };

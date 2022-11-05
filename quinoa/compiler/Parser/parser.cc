@@ -132,6 +132,7 @@ std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
  * 
 */
 #include "./parser.h"
+#include "../AST/type.hh"
 
 std::unique_ptr<LongName> parse_long_name(std::vector<Token>& toks){
     auto name = std::make_unique<LongName>();
@@ -193,7 +194,23 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token>& toks){
     retVal.push_back(temp);
     return retVal;
 }
+std::unique_ptr<Type> parse_type(std::vector<Token>& toks){
+    if(!toks.size())except(E_BAD_TYPE, "Failed to parse type");
+    std::unique_ptr<Type> ret;
 
+    // string is an alias for 'i8*'
+    if( toks[0].is(TT_string)){
+        ret = Ptr::get(Primitive::get(PR_int8));
+    }
+    else if( toks[0].isTypeTok() ){
+        auto internal_type = primitive_mappings[popf(toks).type];
+        ret = Primitive::get(internal_type);
+    }
+    else if( toks[0].is(TT_identifier) ){
+        
+    }
+    except(E_INTERNAL, "Type parsing is not yet supported");
+}
 Import parse_import(std::vector<Token> toks){
 
     Import imp;
@@ -225,7 +242,19 @@ ContainerRef parse_container_ref(std::vector<Token> toks){
     auto ref_name = parse_long_name(toks);
     except(E_INTERNAL, "Not Implemented");
 }
-
+Param parse_param(std::vector<Token> toks){
+    auto param_name = pope(toks, TT_identifier);
+    pope(toks, TT_colon);
+    auto param_type = parse_type(toks);
+    if(toks.size()){
+        print_toks(toks);
+        except(E_BAD_PARAMETER, "Unexpected Additional Tokens");
+    }
+    Param param;
+    param.name = param_name.value;
+    param.type = std::move(param_type);
+    return param;
+}
 Vec<ContainerMember> parse_container_content(std::vector<Token>& toks, Container* parent){
     Vec<ContainerMember> ret;
 
@@ -254,7 +283,8 @@ Vec<ContainerMember> parse_container_content(std::vector<Token>& toks, Container
             auto params_block = read_block(toks, IND_parens);
             auto params_sets  = parse_cst(params_block);
             for(auto set : params_sets){
-                except(E_INTERNAL, "Parameters are unimplemented");
+                auto param = parse_param(set);
+                method->parameters.push(std::move(param));
             }
         }    
     }

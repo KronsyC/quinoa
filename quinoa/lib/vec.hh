@@ -20,7 +20,7 @@ public:
     template<typename U>
     void push(U item){
         static_assert(std::is_base_of<T, U>(), "Not a subtype??");
-        auto alloc = new U(item);
+        auto alloc = new U(std::move(item));
         
         _items.push_back(alloc);
     }
