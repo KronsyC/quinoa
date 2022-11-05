@@ -7,6 +7,8 @@
 
 #define ContextType std::shared_ptr<Context>
 
+
+
 //
 // Contexts are strongly tied to scopes
 //
@@ -31,6 +33,7 @@ public:
 class Statement : public ANode{
 public:
     virtual void generate() = 0;
+    virtual std::string str() = 0;
 };
 
 /**
@@ -68,9 +71,6 @@ public:
         // This is common for use-cases such as calls (where the function has side-effects)
         llvm_value();
     }
-    void set_parent(Expr* parent){
-        this->parent_expr.reset(parent);
-    }
     Expr& get_parent(){
         return *this->parent_expr;
     }
@@ -87,8 +87,8 @@ protected:
         recalculate_type = true;
         if(parent_expr)parent_expr->changed_dep();
     }
+    Expr* parent_expr = nullptr;
 private:
-    std::unique_ptr<Expr> parent_expr = std::make_unique<Expr>(nullptr);
     bool recalculate_type = true;
     std::unique_ptr<Type> cached_type;
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include "./AST_old/ast.hh"
+#include "./AST/compilation_unit.hh"
 #include "llvm/IR/Module.h"
 #include <string>
 CompilationUnit* makeAst(std::string source, std::string path, bool process = true);

@@ -4,8 +4,7 @@
 
 class ANode{
 public:
-    virtual std::string str() = 0;
-
+    virtual ~ANode() = default;
 };
 
 

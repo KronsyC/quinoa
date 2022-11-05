@@ -1,19 +1,19 @@
 #include "./compiler.h"
 #include "../lib/logger.h"
-#include "./Codegen/codegen.hh"
+// #include "./Codegen/codegen.hh"
 #include "./Lexer/lexer.h"
 #include "./Parser/parser.h"
-#include "./Processor/processor.h"
+// #include "./Processor/processor.h"
 #include <fstream>
 
-CompilationUnit* makeAst(std::string sourceCode, std::string path, bool process)
-{
-    auto toks = Lexer::lexify(sourceCode, path);
-    auto ast = Parser::makeAst(toks);
-    if(process)
-	Processor::process(ast, false);
-    return ast;
-}
+// CompilationUnit* makeAst(std::string sourceCode, std::string path, bool process)
+// {
+//     auto toks = Lexer::lexify(sourceCode, path);
+//     auto ast = Parser::make_ast(toks);
+//     // if(process)
+// 	// Processor::process(&*ast, false);
+//     return &*ast;
+// }
 std::string readFile(std::string path)
 {
     // Read the file into a string
@@ -28,25 +28,23 @@ std::string readFile(std::string path)
     return fileContent;
 }
 
-llvm::Module* createModule(std::string sourceCode, std::string path, bool log)
-{
-    // Lex the file into a token vector
-    auto ast = makeAst(sourceCode, path, false);
-    Logger::debug("Parsed");
-    Processor::process(ast, true);
-    if(log)
-	Logger::log("Generated the AST");
-    auto mod = Codegen::codegen(*ast);
-    if(log)
-	Logger::log("Generated LLVM IR Code");
-    return mod;
-}
+// llvm::Module* createModule(std::string sourceCode, std::string path, bool log)
+// {
+//     // Lex the file into a token vector
+//     auto ast = makeAst(sourceCode, path, false);
+//     Logger::debug("Parsed");
+//     // Processor::process(ast, true);
+//     // if(log)
+// 	// Logger::log("Generated the AST");
+//     // auto mod = Codegen::codegen(*ast);
+//     // if(log)
+// 	// Logger::log("Generated LLVM IR Code");
+//     // return mod;
+//     return nullptr;
+// }
 std::string compile(std::string sourceCode, std::string path)
 {
-    auto mod = createModule(sourceCode, path, true);
-    std::string output;
-    llvm::raw_string_ostream rso(output);
-    mod->print(rso, nullptr);
-    return output;
-    // return sourceCode;
+    auto toks = Lexer::lexify(sourceCode, path);
+    auto ast = Parser::make_ast(toks);
+    return "NOT APPLICABLE";
 }

@@ -10,18 +10,20 @@ static std::map<PrimitiveType, std::string> primitive_names { PRIMITIVES_ENUM_NA
 class Type: public ANode{
 public:
     virtual llvm::Type* llvm_type() = 0;
-    virtual Type& pointee() = 0;
+    virtual Type* pointee(){
+        return nullptr;
+    }
+    virtual std::string str() = 0;
 };
 
 
 class Primitive: public Type{
-private:
+
+public:
+    PrimitiveType kind;
     Primitive(PrimitiveType kind){
         this->kind = kind;
     }
-public:
-    PrimitiveType kind;
-
     std::string str(){
         return primitive_names[kind];
     }
@@ -57,12 +59,11 @@ public:
 };
 
 class Ptr: public Type{
-private:
+public:
     Ptr(std::unique_ptr<Type> type){
         this->of = std::move(type);
         
     }
-public:
     std::unique_ptr<Type> of;
 
     
@@ -73,10 +74,17 @@ public:
     llvm::Type* llvm_type(){
         return of->llvm_type()->getPointerTo();
     }
-    Type& pointee(){
-        return *of;
+    Type* pointee(){
+        return of.get();
     }
     static std::unique_ptr<Ptr> get(std::unique_ptr<Type> to){
-        return std::make_unique<Ptr>(to);
+        return std::make_unique<Ptr>(std::move(to));
     }
+};
+class TypeRef : public Type{
+public:
+    
+};
+class Generic : public TypeRef{
+
 };

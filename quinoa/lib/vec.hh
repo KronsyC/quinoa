@@ -1,35 +1,42 @@
 #pragma once
+#include<vector>
+#include<memory>
+#include "./error.h"
 template<typename T>
 class Vec{
 public:
     Vec() = default;
-    Vec(const Vec&) = delete;
 
-    Vec(const Vec&& donor){
-        delete_members = false;
+
+    T* begin()
+    {
+        return _items[0];
     }
-    ~Vec(){
-        if(!delete_members)return;
-        for(auto item: _items){
-            delete item;
-        }
+    T* end()
+    {
+        return _items[_items.size() - 1];
     }
-    std::size_t len(){
-        return _items->size();
-    }
+
     template<typename U>
     void push(U item){
+        static_assert(std::is_base_of<T, U>(), "Not a subtype??");
         auto alloc = new U(item);
+        
         _items.push_back(alloc);
     }
 
     T& pop(){
-        T* last = _items[_items.size() - 1];
+        auto last = _items[_items.size() - 1];
         _items.pop_back();
         return *last;
     }
-    
-
+    std::size_t len(){
+        return _items.size();
+    }
+    T& operator[](size_t idx){
+        if( idx > len()-1 )except(E_INTERNAL, "IndexError: Bad Vec Access Index");
+        return *_items[idx];
+    }
 private:
     std::vector<T*> _items;
     bool delete_members = true;

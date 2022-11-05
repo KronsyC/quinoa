@@ -1,13 +1,8 @@
 import @io;
 
 
-seed Pet{
-    
-}
-
-module Main is Entry{
-    pub func main(argc: int, argv:c_str*) -> int{
-        return 0;
+module Hello{
+    func main(argc: int) -> int{
+        reutrn 0;
     }
-
 }

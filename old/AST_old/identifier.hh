@@ -96,6 +96,7 @@ public:
 	return id;
     }
 };
+
 class CompoundIdentifier : public Ident, public Block<Ident>
 {
 public:
