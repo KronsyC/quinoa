@@ -27,6 +27,9 @@ public:
         auto pt = std::make_unique<U>(value);
         return pt;
     }
+    std::vector<Statement*> flatten(){
+        return {this};
+    }
 };
 
 class Integer : public Constant<unsigned long long, Integer>

@@ -16,7 +16,10 @@ void process_required(CompilationUnit* unit){
     // bool resolvedTypes = false;
     // bool resolvedCalls = false;
     // bool resolvedInstances = false;
-    Logger::enqueueMode(true);
+    // Logger::enqueueMode(true);
+    // Temp
+    qualify_calls(*unit);
+
     // int run = 2;
     // while (run)
     // {

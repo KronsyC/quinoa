@@ -102,12 +102,12 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 	// // Inject the args as variables
 	for (unsigned int i = 0; i < fn->arg_size(); i++)
 	{
-		// auto& param = method->parameters[i];
+		auto& param = method->parameters[i];
 		auto arg = fn->getArg(i);
 		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
 
 		builder()->CreateStore(arg, alloc);
-		// vars[arg->getName().str()] = new Variable(param.type, alloc);
+		vars[arg->getName().str()] = Variable(param.type.get(), alloc);
 	}
 
 	// Inject the var-args as a known-length list
@@ -167,8 +167,9 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 	return vars;
 }
 
-std::unique_ptr<llvm::Module> generate_module(Module &mod, std::vector<TopLevelEntity *> injectedDefinitions, CompilationUnit &ast)
+std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &ast)
 {
+	if(mod.type != CT_MODULE)except(E_INTERNAL, "cannot generate non-module container");
 	auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
 
 	// Write hoisted definitions
@@ -215,9 +216,10 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 
 	// Generate all of the modules, and link them into the root module
 	for(auto container : ast.get_containers()){
-		if(auto mod = dynamic_cast<Module*>(container)){
+		if(auto mod = dynamic_cast<Container*>(container)){
+			if(mod->type != CT_MODULE)continue;
 			Logger::debug("Generate Module: " + mod->full_name().str());
-			auto generated_mod = generate_module(*mod, {}, ast);
+			auto generated_mod = generate_module(*mod, ast);
 			llvm::Linker::linkModules(*rootmod, std::move(generated_mod));
 		}
 	}

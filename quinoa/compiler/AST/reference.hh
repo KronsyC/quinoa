@@ -74,6 +74,10 @@ public:
         except(E_INTERNAL, "get_type not implemented for SourceVariable");
     }
 
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        return ret;
+    }
 };
 
 class Container;
@@ -95,9 +99,9 @@ public:
     std::unique_ptr<Name> member;
     bool trunc = false;
     std::string str(){
-        auto con_name = container->str();
         auto mem_name = member->str();
-        if(trunc)return mem_name;
+        if(trunc || !container)return mem_name;
+        auto con_name = container->str();
         return con_name + "::" + mem_name;
     }
 };

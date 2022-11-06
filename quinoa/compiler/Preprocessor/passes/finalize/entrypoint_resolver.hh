@@ -3,20 +3,17 @@
 
 void gen_entrypoint(CompilationUnit &unit)
 {
-  std::vector<Module *> entryPointCandidates;
+  std::vector<Container*> entryPointCandidates;
   for (auto member : unit.get_containers())
   {
-    if (auto mod = dynamic_cast<Module*>(member))
-    {
-      if (mod->has_compositor("Entry"))
-        entryPointCandidates.push_back(mod);
-    }
+    if (member->type == CT_MODULE && member->has_compositor("Entry"))
+        entryPointCandidates.push_back(member);
+    
   }
   if (entryPointCandidates.size() == 0)except(E_NO_ENTRYPOINT, "Failed to locate a suitable entrypoint");
   else if (entryPointCandidates.size() > 1)
   {
-    Logger::warn(
-        "Multiple Entry-Points were found, this may lead to Undefined Behavior");
+    Logger::warn("Multiple Entry-Points were found, this may lead to Undefined Behavior");
   }
   auto entry = entryPointCandidates[0];
   for (auto method : entry->get_methods())

@@ -1,11 +1,10 @@
 
 module Hello is Entry{
     func main(argc: int) -> int{
-        let age  : int;
-        age = 16;
-        if(age == 16){
-            age = 17;
-        }
-        return age;
+        return test();
+    }
+
+    func test() -> int{
+        return 69;
     }
 }

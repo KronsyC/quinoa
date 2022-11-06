@@ -386,10 +386,12 @@ std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segm
     }
     auto member_ref = std::make_unique<ContainerMemberRef>();
     member_ref->member = std::make_unique<Name>(end.name);
-    member_ref->container = std::make_unique<ContainerRef>();
-    member_ref->container->generic_args = container_type_args;
-    member_ref->container->name = std::make_unique<LongName>(container_name);
-    return member_ref;
+    if(container_name.parts.len()){
+        member_ref->container = std::make_unique<ContainerRef>();
+        member_ref->container->generic_args = container_type_args;
+        member_ref->container->name = std::make_unique<LongName>(container_name);
+    }
+    return member_ref;  
 }
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullptr)
 {
@@ -717,6 +719,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
 }
 Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container *parent)
 {
+
     Vec<ContainerMember> ret;
 
     // bool is_public = false;
@@ -736,10 +739,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             method->name = std::make_unique<ContainerMemberRef>();
 
             method->name->member = std::make_unique<Name>(nameTok.value);
-            method->name->container = std::make_unique<ContainerRef>();
             method->name->container = parent->get_ref();
-
-
             // Generic Parameters
             if (toks[0].is(TT_lesser))
             {
@@ -780,6 +780,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
         }
     }
+
     return ret;
 }
 
@@ -804,6 +805,8 @@ std::unique_ptr<Container> parse_container(std::vector<Token> &toks)
     }
     auto content = read_block(toks, IND_braces);
     auto parsed_content = parse_container_content(content, cont.get());
+    // auto mod = (Module*)&parsed_content[0];
+    // Logger::debug("mod:" + mod->name->str());
     cont->members = std::move(parsed_content);
 
     // If there are leftover tokens in the content, something went wrong
@@ -835,10 +838,12 @@ std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)
             break;
         }
         case TT_module:
+        case TT_seed:
         {
-            std::unique_ptr<Container> container = parse_container(toks);
-            Module mod(std::move(*container));
-            unit->members.push(std::move(mod));
+            auto container = parse_container(toks);
+            container->type = current.is(TT_module) ? CT_MODULE : current.is(TT_seed) ? CT_SEED : CT_NOTYPE;
+            
+            unit->members.push(std::move(container));
             break;
         }
         default:

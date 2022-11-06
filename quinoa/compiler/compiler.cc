@@ -45,6 +45,8 @@ std::string compile(std::string sourceCode, std::string path)
 {
     auto toks = Lexer::lexify(sourceCode, path);
     auto ast = Parser::make_ast(toks);
+    Logger::log("Parsed");
+
     Preprocessor::process_ast(*ast, true);
     auto ll_mod = Codegen::codegen(*ast);
     std::string Str;

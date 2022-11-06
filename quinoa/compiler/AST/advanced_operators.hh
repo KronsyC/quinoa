@@ -47,6 +47,11 @@ public:
     {
         except(E_INTERNAL, "llvm_value not implemented for MethodCall");
     }
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto a : args)for(auto m : a->flatten())ret.push_back(m);
+        return ret;
+    }
 
 protected:
     std::unique_ptr<Type> get_type()
@@ -70,6 +75,11 @@ public:
         auto return_value  = value->llvm_value(vars, expected_type);
         builder()->CreateRet(return_value);
     }
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : value->flatten())ret.push_back(m);
+        return ret;
+    }
 };
 
 class InitializeVar : public Statement
@@ -79,7 +89,12 @@ public:
     Name var_name;
     std::unique_ptr<Expr> initializer;
     bool is_constant = false;
-    
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : initializer->flatten())ret.push_back(m);
+        return ret;
+    }
 
     std::string str(){
         std::string ret = is_constant ? "const " : "let ";
@@ -109,7 +124,11 @@ public:
         this->target = std::move(tgt);
         this->index  = std::move(idx);
     }
-
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : index->flatten())ret.push_back(m);
+        return ret;
+    }
     std::string str(){
         return target->str() + "[" + index->str() + "]";
     }

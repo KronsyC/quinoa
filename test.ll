@@ -12,13 +12,16 @@ entry_block:
   br i1 %2, label %if_true, label %if_false
 
 if_true:                                          ; preds = %entry_block
-  store i32 17, i32* %0, align 4
+  %3 = load i32, i32* %0, align 4
+  %4 = load i32, i32* %"param argc", align 4
+  %5 = add i32 %3, %4
+  store i32 %5, i32* %0, align 4
   br label %if_cont
 
 if_false:                                         ; preds = %entry_block
   br label %if_cont
 
 if_cont:                                          ; preds = %if_false, %if_true
-  %3 = load i32, i32* %0, align 4
-  ret i32 %3
+  %6 = load i32, i32* %0, align 4
+  ret i32 %6
 }

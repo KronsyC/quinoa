@@ -12,6 +12,7 @@ class Statement : public ANode{
 public:
     virtual void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) = 0;
     virtual std::string str() = 0;
+    virtual std::vector<Statement*> flatten() = 0;
     Scope* scope = nullptr;
 };
 
@@ -97,4 +98,10 @@ public:
             child->generate(func, vars, CFI);
         }
     }
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto c: content)for(auto m : c->flatten())ret.push_back(m);
+        return ret;
+    }
+    
 };

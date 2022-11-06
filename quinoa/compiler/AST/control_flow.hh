@@ -10,6 +10,14 @@ public:
     std::unique_ptr<Scope> if_true;
     std::unique_ptr<Scope> if_false;
 
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : condition->flatten())ret.push_back(m);
+        for(auto m : if_true->flatten())ret.push_back(m);
+        if(if_false)for(auto m : if_false->flatten())ret.push_back(m);
+        return ret;
+    }
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
 
         auto eval_if = condition->llvm_value(vars, builder()->getInt1Ty());
@@ -49,6 +57,7 @@ public:
 
 
     }
+
 };
 
 class While : public Statement{

@@ -36,7 +36,11 @@ public:
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
         except(E_INTERNAL, "llvm_value not implemented for UnaryOperation");
     }
-
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : operand->flatten())ret.push_back(m);
+        return ret;
+    }
 protected:
     std::unique_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented");
@@ -97,6 +101,13 @@ public:
         auto right_val = right_operand->llvm_value(vars);
         auto op = get_op(left_val, right_val);
         return cast(op, expected_type);
+    }
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : left_operand->flatten())ret.push_back(m);
+        for(auto m : right_operand->flatten())ret.push_back(m);
+        return ret;
     }
 private:
     llvm::Value* get_op(llvm::Value* l, llvm::Value* r){

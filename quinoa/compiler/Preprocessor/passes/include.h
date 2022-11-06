@@ -6,5 +6,7 @@
 
 #include "../../AST/ast.hh"
 #include "../../AST/reference.hh"
+#include "../../AST/advanced_operators.hh"
 #include "../../AST/container.hh"
 #include "../../AST/container_member.hh"
+#include "../../AST/compilation_unit.hh"

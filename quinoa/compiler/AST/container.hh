@@ -32,29 +32,37 @@ public:
     Import() = default;
 };
 
+enum ContainerType{
+    CT_NOTYPE,
+    CT_MODULE,
+    CT_SEED,
+    CT_STRUCT
+};
+
 class Container : public TopLevelEntity
 {
 public:
-    std::unique_ptr<Name> name;
+    std::unique_ptr<Name> name = std::make_unique<Name>("unknown");
     std::shared_ptr<Name> name_space;
 
     Vec<ContainerMember> members;
     Vec<Generic>         generics;
     Vec<ContainerRef>    compositors;
-
+    ContainerType        type = CT_NOTYPE;
     std::shared_ptr<ContainerRef> get_ref(){
+        if(!self_ref)self_ref = std::make_shared<ContainerRef>();
+        self_ref->refers_to = this;
         self_ref->name = std::make_unique<LongName>(this->full_name());
-
         return self_ref;
     }
-    Container(){
-        self_ref = std::make_shared<ContainerRef>();
+    void update_ref(){
         self_ref->refers_to = this;
     }
 
     LongName full_name() const{
         LongName ret;
         if(name_space)ret.parts.push(*name_space);
+        if(!name)except(E_INTERNAL, "container has no name?");
         ret.parts.push(*name);
         return ret;
     }
@@ -81,20 +89,5 @@ public:
     }
 private:
     std::shared_ptr<ContainerRef> self_ref;
-
-};
-
-class Seed : public TopLevelEntity{
-
-};
-
-
-
-class Module : public Container{
-public:
-    Module(Container&& p) : Container( std::move(p) ) {}  // move
-};
-
-class Struct : public Container{
 
 };
