@@ -17,7 +17,8 @@ public:
 
 
 class Property : public ContainerMember{
-
+public:
+    std::unique_ptr<Expr> initializer;
 };
 
 
@@ -39,4 +40,6 @@ public:
     Vec<Generic>           generic_params;
     Vec<Param>             parameters;
     std::unique_ptr<Type>  return_type;
+
+    
 };

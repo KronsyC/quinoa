@@ -16,6 +16,14 @@ public:
         }
         return ret;
     }
+    std::vector<std::unique_ptr<TopLevelEntity>> transfer(){
+        std::vector<std::unique_ptr<TopLevelEntity>> ret;
+        for(auto m : members){
+            std::unique_ptr<TopLevelEntity> ptr(m);
+            ret.push_back(std::move(ptr));
+        }
+        return ret;
+    }
 
     std::vector<Method*> get_methods(){
         std::vector<Method*> ret;
@@ -26,4 +34,10 @@ public:
         }
         return ret;
     }
+    std::vector<ContainerMember*> get_hoists(){
+        std::vector<ContainerMember*> ret;
+        for(auto m : get_methods())ret.push_back(m);
+        return ret;
+    }
+
 };

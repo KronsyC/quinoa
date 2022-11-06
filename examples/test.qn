@@ -1,9 +1,11 @@
-import @io;
 
-
-module Hello{
+module Hello is Entry{
     func main(argc: int) -> int{
-        io::println("Hello, World!");
-        return 0;
+        let age  : int;
+        age = 16;
+        if(age == 16){
+            age = 17;
+        }
+        return age;
     }
 }

@@ -4,35 +4,13 @@
 #include "llvm/IR/Value.h"
 #include "./type.hh"
 #include <map>
-
-#define ContextType std::shared_ptr<Context>
-
-
-
-//
-// Contexts are strongly tied to scopes
-//
-class Context{
-public:
-    //
-    // Keep track of the types accessible by members of the context
-    //
-    std::map<std::string, std::unique_ptr<Type>> type_table;
-    ContextType parent;
-
-
-    Type& get_type(std::string var_name){
-        auto my_type = type_table[var_name].get();
-        if(my_type)return *my_type;
-        else if(parent)return parent->get_type(var_name);
-        else except(E_UNRESOLVED_TYPE, "Failed to read the type of '" + var_name +"'");
-    }
-};
+#include "../llvm_globals.h"
 
 class Scope;
+
 class Statement : public ANode{
 public:
-    virtual void generate() = 0;
+    virtual void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) = 0;
     virtual std::string str() = 0;
     Scope* scope = nullptr;
 };
@@ -67,15 +45,15 @@ public:
         if(!cached_type)except(E_INTERNAL, "Type is already calculated, yet the cache is empty");
         return *cached_type;
     }
-    void generate(){
+    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         // Generate the expression as a statement
         // This is common for use-cases such as calls (where the function has side-effects)
-        llvm_value();
+        llvm_value(vars);
     }
     Expr& get_parent(){
         return *this->parent_expr;
     }
-    virtual llvm::Value* llvm_value() = 0;
+    virtual llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr) = 0;
     
 protected:
     virtual std::unique_ptr<Type> get_type() = 0;
@@ -114,9 +92,9 @@ public:
         return output + "\n}";
     }
 
-    void generate(){
+    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         for(auto& child : content){
-            child->generate();
+            child->generate(func, vars, CFI);
         }
     }
 };

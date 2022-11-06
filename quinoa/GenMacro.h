@@ -95,7 +95,7 @@
 	new TokenDefinition(TT_equals, "__equals", {"=="}, "", false, false, 10, false, false, ""),\
 	new TokenDefinition(TT_not_equals, "__not_equals", {"!="}, "", false, false, 10, false, false, ""),\
 	new TokenDefinition(TT_bitwise_and, "__bitwise_and", {"&"}, "", false, false, 11, false, false, ""),\
-	new TokenDefinition(TT_bitiwse_or, "__bitiwse_or", {"|"}, "", false, false, 13, false, false, ""),\
+	new TokenDefinition(TT_bitwise_or, "__bitwise_or", {"|"}, "", false, false, 13, false, false, ""),\
 	new TokenDefinition(TT_bitwise_xor, "__bitwise_xor", {"^"}, "", false, false, 13, false, false, ""),\
 	new TokenDefinition(TT_bitwise_shl, "__bitwise_shl", {"<<"}, "", false, false, 7, false, false, ""),\
 	new TokenDefinition(TT_bitwise_shr, "__bitwise_shr", {">>"}, "", false, false, 7, false, false, ""),\
@@ -187,7 +187,7 @@
 	TT_equals,\
 	TT_not_equals,\
 	TT_bitwise_and,\
-	TT_bitiwse_or,\
+	TT_bitwise_or,\
 	TT_bitwise_xor,\
 	TT_bitwise_shl,\
 	TT_bitwise_shr,\
@@ -244,7 +244,7 @@
 	BIN_equals, \
 	BIN_not_equals, \
 	BIN_bitwise_and, \
-	BIN_bitiwse_or, \
+	BIN_bitwise_or, \
 	BIN_bitwise_xor, \
 	BIN_bitwise_shl, \
 	BIN_bitwise_shr, \
@@ -267,7 +267,7 @@
 	{ TT_equals, BIN_equals}, \
 	{ TT_not_equals, BIN_not_equals}, \
 	{ TT_bitwise_and, BIN_bitwise_and}, \
-	{ TT_bitiwse_or, BIN_bitiwse_or}, \
+	{ TT_bitwise_or, BIN_bitwise_or}, \
 	{ TT_bitwise_xor, BIN_bitwise_xor}, \
 	{ TT_bitwise_shl, BIN_bitwise_shl}, \
 	{ TT_bitwise_shr, BIN_bitwise_shr}, \

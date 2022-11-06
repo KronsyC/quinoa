@@ -43,7 +43,7 @@ public:
         ret += ")";
         return ret;
     }
-    llvm::Value *llvm_value()
+    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr)
     {
         except(E_INTERNAL, "llvm_value not implemented for MethodCall");
     }
@@ -64,9 +64,11 @@ public:
     {
         return "return " + value->str();
     }
-    void generate()
+    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI)
     {
-        except(E_INTERNAL, "generate not implemented for return node");
+        auto expected_type = func->getReturnType();
+        auto return_value  = value->llvm_value(vars, expected_type);
+        builder()->CreateRet(return_value);
     }
 };
 
@@ -90,8 +92,11 @@ public:
         }
         return ret;
     }
-    void generate(){
-        except(E_INTERNAL, "generate() not implemented for initializers");
+    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+        auto ll_type = type->llvm_type();
+        auto alloca  = builder()->CreateAlloca(ll_type);
+        auto name    = var_name.str();
+        vars[name] = Variable(type.get(), alloca, is_constant);
     }
 };
 
@@ -108,7 +113,7 @@ public:
     std::string str(){
         return target->str() + "[" + index->str() + "]";
     }
-    llvm::Value* llvm_value(){
+    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
         except(E_INTERNAL, "llvm_value not implemented for Subscript");
     }
     std::unique_ptr<Type> get_type(){

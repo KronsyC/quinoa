@@ -104,12 +104,11 @@ void deAliasify(CompilationUnit &unit, LongName& alias,
 }
 void merge_units(CompilationUnit *tgt, CompilationUnit donor)
 {
-  for (auto e : donor.members)
-  {
-    e->is_imported = true;
-    e->parent = tgt;
-    if(tgt->members.includes(e))continue;
-    tgt->members.push(*e);
+  auto transferred = donor.transfer();
+  for(size_t i = 0; i < transferred.size(); i++){
+    auto member = std::move(transferred[i]);
+    member->is_imported = true;
+    tgt->members.push(std::move(member));
   }
 }
 

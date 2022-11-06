@@ -5,22 +5,39 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 struct Type;
+
+
 class Variable
 {
 public:
     Type* type;
     llvm::AllocaInst* value;
     bool constant = false;
-
+    Variable() = default;
     Variable(Type* type, llvm::AllocaInst* value, bool _const = true)
     {
-	this->type = type;
-	this->value = value;
-	this->constant = _const;
+        this->type = type;
+        this->value = value;
+        this->constant = _const;
     }
 };
 
-#define TVars std::map<std::string, Variable*>
+#define VariableTable std::map<std::string, Variable>
+
+struct ControlFlowInfo
+{
+    // The block to jump to after the `break` action is invoked
+    llvm::BasicBlock *breakTo;
+
+    // The block to jump to after the `continue` action is invoked
+    llvm::BasicBlock *continueTo;
+
+    // The block to jump to after the `fallthrough` action is invoked
+    llvm::BasicBlock *fallthroughTo;
+
+    // The block to break to after the inner scope is executed
+    llvm::BasicBlock *exitBlock;
+};
 
 llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();

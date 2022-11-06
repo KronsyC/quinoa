@@ -65,8 +65,10 @@ public:
     std::string str(){
         return name->str();
     }
-    llvm::Value* llvm_value(){
-        except(E_INTERNAL, "llvm_value not implemented for SourceVariable");
+    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+        auto& var = vars[name->str()];
+        auto value = builder()->CreateLoad(var.value->getType()->getPointerElementType(), var.value);
+        return value;
     }
     std::unique_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented for SourceVariable");
@@ -77,7 +79,7 @@ public:
 class Container;
 class ContainerRef : public Reference{
 public:
-    Container* refers_to;
+    Container* refers_to = nullptr;
     std::unique_ptr<LongName> name;
     Vec<Type> generic_args;
     
@@ -89,10 +91,13 @@ public:
 
 class ContainerMemberRef : public Reference{
 public:
-    std::unique_ptr<ContainerRef> container;
+    std::shared_ptr<ContainerRef> container;
     std::unique_ptr<Name> member;
-
+    bool trunc = false;
     std::string str(){
-        return  container->str() + "::" + member->str();
+        auto con_name = container->str();
+        auto mem_name = member->str();
+        if(trunc)return mem_name;
+        return con_name + "::" + mem_name;
     }
 };

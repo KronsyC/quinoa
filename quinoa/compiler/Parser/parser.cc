@@ -139,6 +139,7 @@ std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
 #include "../AST/symbol_operators.hh"
 #include "../AST/advanced_operators.hh"
 #include "../AST/constant.hh"
+#include "../AST/control_flow.hh"
 std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
 {
     auto name = std::make_unique<LongName>();
@@ -632,8 +633,8 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
 
             auto eval_expr = parse_expr(eval_toks, scope.get());
             auto exec_scope = parse_scope(exec_toks, scope.get());
-            continue;
             except(E_INTERNAL, "While loop parser is unimplemented");
+            continue;
         }
         if (current.is(TT_for))
         {
@@ -641,6 +642,25 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         }
         if (current.is(TT_if))
         {
+            auto eval_toks = read_block(toks, IND_parens);
+            auto exec_toks = read_block(toks, IND_braces);
+
+            auto eval_expr = parse_expr(eval_toks, scope.get());
+            auto exec_scope = parse_scope(exec_toks, scope.get());
+
+            auto cond = std::make_unique<Conditional>();
+            cond->condition = std::move(eval_expr);
+            cond->if_true = std::move(exec_scope);
+            
+            if(toks[0].is(TT_else)){
+                popf(toks);
+                auto else_toks = read_block(toks, IND_braces);
+                auto else_scope = parse_scope(else_toks, scope.get());
+                cond->if_false = std::move(else_scope);
+            }
+
+            scope->content.push(std::move(*cond));
+            continue;
             except(E_INTERNAL, "Conditional parser is unimplemented");
         }
         if (current.is(TT_l_brace))
@@ -713,6 +733,12 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
             auto method = std::make_unique<Method>();
             method->parent = parent;
+            method->name = std::make_unique<ContainerMemberRef>();
+
+            method->name->member = std::make_unique<Name>(nameTok.value);
+            method->name->container = std::make_unique<ContainerRef>();
+            method->name->container = parent->get_ref();
+
 
             // Generic Parameters
             if (toks[0].is(TT_lesser))
@@ -746,8 +772,11 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             if(!toks[0].is(TT_semicolon)){
                 auto content_toks = read_block(toks, IND_braces);
                 auto content = parse_scope(content_toks);
+                method->content = std::move(content);
             }
             else popf(toks);
+
+            ret.push(std::move(method));
 
         }
     }
@@ -807,8 +836,9 @@ std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)
         }
         case TT_module:
         {
-            auto container = parse_container(toks);
-            unit->members.push(std::move(container));
+            std::unique_ptr<Container> container = parse_container(toks);
+            Module mod(std::move(*container));
+            unit->members.push(std::move(mod));
             break;
         }
         default:

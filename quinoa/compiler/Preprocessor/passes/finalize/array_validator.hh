@@ -9,34 +9,34 @@
 
 void validate_array_literals(CompilationUnit &unit)
 {
-    for (auto method : unit.getAllMethods())
-    {
-        auto flat = method->flatten();
+    // for (auto method : unit.getAllMethods())
+    // {
+    //     auto flat = method->flatten();
 
-        for (auto stm : flat)
-        {
-            if (instanceof <InitializeVar>(stm))
-            {
-                auto init = (InitializeVar *)stm;
-                if (!init->initializer)
-                    continue;
-                if (auto type = init->type->list())
-                {
-                    if (! instanceof <List>(init->initializer))
-                        continue;
-                    auto list = (List *)init->initializer;
-                    list->setElementsType(type->elements);
+    //     for (auto stm : flat)
+    //     {
+    //         if (instanceof <InitializeVar>(stm))
+    //         {
+    //             auto init = (InitializeVar *)stm;
+    //             if (!init->initializer)
+    //                 continue;
+    //             if (auto type = init->type->list())
+    //             {
+    //                 if (! instanceof <List>(init->initializer))
+    //                     continue;
+    //                 auto list = (List *)init->initializer;
+    //                 list->setElementsType(type->elements);
 
-                    // Make sure the list length <= Variable Length
-                    if (type->isStatic())
-                    {
-                        auto varsize = ((Integer *)type->size)->value;
-                        auto litsize = list->size();
-                        if (litsize > varsize)
-                            error("Array literal larger than container (" + init->str() + ")");
-                    }
-                }
-            }
-        }
-    }
+    //                 // Make sure the list length <= Variable Length
+    //                 if (type->isStatic())
+    //                 {
+    //                     auto varsize = ((Integer *)type->size)->value;
+    //                     auto litsize = list->size();
+    //                     if (litsize > varsize)
+    //                         error("Array literal larger than container (" + init->str() + ")");
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 }

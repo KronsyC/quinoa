@@ -43,6 +43,8 @@ public:
     Vec<ContainerRef>    compositors;
 
     std::shared_ptr<ContainerRef> get_ref(){
+        self_ref->name = std::make_unique<LongName>(this->full_name());
+
         return self_ref;
     }
     Container(){
@@ -90,8 +92,7 @@ class Seed : public TopLevelEntity{
 
 class Module : public Container{
 public:
-    Module(Module&) = default;
-
+    Module(Container&& p) : Container( std::move(p) ) {}  // move
 };
 
 class Struct : public Container{

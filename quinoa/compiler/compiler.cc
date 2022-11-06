@@ -3,13 +3,14 @@
 #include "./Lexer/lexer.h"
 #include "./Parser/parser.h"
 #include "./Preprocessor/preprocessor.hh"
+#include "./Codegen/codegen.hh"
 #include <fstream>
 
 std::unique_ptr<CompilationUnit> make_ast(std::string sourceCode, std::string path, bool process)
 {
     auto toks = Lexer::lexify(sourceCode, path);
     auto ast = Parser::make_ast(toks);
-    if(process)Preprocessor::process_ast(*ast);
+    if(process)Preprocessor::process_ast(*ast, false);
     return ast;
 }
 std::string readFile(std::string path)
@@ -44,6 +45,10 @@ std::string compile(std::string sourceCode, std::string path)
 {
     auto toks = Lexer::lexify(sourceCode, path);
     auto ast = Parser::make_ast(toks);
-    Preprocessor::process_ast(*ast);
-    return "NOT APPLICABLE";
+    Preprocessor::process_ast(*ast, true);
+    auto ll_mod = Codegen::codegen(*ast);
+    std::string Str;
+    llvm::raw_string_ostream OS(Str);
+    ll_mod->print(OS, nullptr);
+    return Str;
 }

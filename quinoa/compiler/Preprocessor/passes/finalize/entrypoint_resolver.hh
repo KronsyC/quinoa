@@ -4,38 +4,28 @@
 void gen_entrypoint(CompilationUnit &unit)
 {
   std::vector<Module *> entryPointCandidates;
-  for (auto member : unit)
+  for (auto member : unit.get_containers())
   {
-    if (instanceof <Module>(member))
+    if (auto mod = dynamic_cast<Module*>(member))
     {
-      auto mod = (Module *)member;
-      if (mod->comp("Entry"))
+      if (mod->has_compositor("Entry"))
         entryPointCandidates.push_back(mod);
     }
   }
-  if (entryPointCandidates.size() == 0)
-    error("Failed to locate a suitable entrypoint");
+  if (entryPointCandidates.size() == 0)except(E_NO_ENTRYPOINT, "Failed to locate a suitable entrypoint");
   else if (entryPointCandidates.size() > 1)
   {
     Logger::warn(
-        "Multiple Entry-Points were found, this may cause Unexpected Behavior");
+        "Multiple Entry-Points were found, this may lead to Undefined Behavior");
   }
   auto entry = entryPointCandidates[0];
-  std::string entryName = entry->name->str() + ".main";
-  for (auto item : *entry)
+  for (auto method : entry->get_methods())
   {
-    Logger::debug("it");
-    if (instanceof <Method>(item))
-    {
-      auto m = (Method *)item;
-      if (m->sig->name->str() == entryName)
-      {
-        if (!m->public_access)
-          error("The main() method must be public");
-        unit.push_back(new Entrypoint(m->sig));
+      if(method->name->member->str() == "main"){
+        method->name->trunc = true;
         return;
+
       }
-    }
   }
   except(E_NO_ENTRYPOINT, "The Entrypoint '" + entry->name->str() +
                               "' does not contain a main method");

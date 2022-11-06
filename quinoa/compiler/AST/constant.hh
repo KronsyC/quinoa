@@ -37,7 +37,7 @@ public:
     {
         return std::to_string(value);
     }
-    llvm::Constant *llvm_value()
+    llvm::Constant *llvm_value(VariableTable& vars, llvm::Type* expected)
     {
         return builder()->getInt32(value);
     }
@@ -76,7 +76,7 @@ public:
     std::string str(){
         return "\""+value+"\"";
     }
-    llvm::Constant* llvm_value(){
+    llvm::Constant* llvm_value(VariableTable& vars, llvm::Type* expected){
         return builder()->CreateGlobalStringPtr(value);
     }
     std::unique_ptr<Type> get_type(){
