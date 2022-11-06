@@ -6,13 +6,13 @@ template<typename T>
 class Vec{
 public:
     Vec() = default;
-    T* begin()
+    T** begin()
     {
-        return _items[0];
+        return &_items[0];
     }
-    T* end()
+    T** end()
     {
-        return _items[_items.size() - 1];
+        return &_items[_items.size()];
     }
 
     template<typename U>
@@ -31,6 +31,12 @@ public:
         item.release();
         _items.push_back(mem);
     }
+    bool includes(T* check){
+        for(auto item : _items){
+            if( item == check )return true;
+        }
+        return false;
+    }
 
     T& pop(){
         auto last = _items[_items.size() - 1];
@@ -39,6 +45,10 @@ public:
     }
     std::size_t len(){
         return _items.size();
+    }
+    void remove(size_t idx){
+        delete _items[idx];
+        _items.erase(_items.begin() + idx);
     }
     T& operator[](size_t idx){
         if( idx > len()-1 )except(E_INTERNAL, "IndexError: Bad Vec Access Index");

@@ -11,9 +11,7 @@ static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAP
 class Type: public ANode{
 public:
     virtual llvm::Type* llvm_type() = 0;
-    virtual Type* pointee(){
-        return nullptr;
-    }
+    virtual Type* pointee() = 0;
     virtual std::string str() = 0;
 };
 
@@ -34,7 +32,9 @@ public:
         auto ret = std::make_unique<Primitive>(type);
         return ret;
     }
-
+    Type* pointee(){
+        return nullptr;
+    }
     llvm::Type* llvm_type(){
         #define T(name) return builder()->get##name##Ty();
         switch(kind){
@@ -81,6 +81,26 @@ public:
     }
     static std::unique_ptr<Ptr> get(std::unique_ptr<Type> to){
         return std::make_unique<Ptr>(std::move(to));
+    }
+};
+
+class ListType: public Type{
+public:
+    std::unique_ptr<Type> of;
+    ListType(std::unique_ptr<Type> type){
+        this->of = std::move(type);
+    }
+    Type* pointee(){
+        return of.get();
+    }
+    llvm::Type* llvm_type(){
+        return of->llvm_type()->getPointerTo();
+    }
+    std::string str(){
+        return of->str() + "[]";
+    }
+    static std::unique_ptr<ListType> get(std::unique_ptr<Type> of){
+        return std::make_unique<ListType>(std::move(of));
     }
 };
 class TypeRef : public Type{

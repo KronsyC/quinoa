@@ -9,7 +9,7 @@
 #include "./reference.hh"
 class Container;
 
-class ContainerMember{
+class ContainerMember : public ANode{
 public:
     std::unique_ptr<ContainerMemberRef> name;
     Container* parent;
@@ -25,8 +25,12 @@ class Param : public ANode{
 public:
     Name name;
     std::unique_ptr<Type> type;
-    
-    // TODO: default value, var_args
+    bool is_variadic = false;
+    Param(Name pname, std::unique_ptr<Type> type)
+    : name(pname)
+    {
+        this->type = std::move(type);
+    }
 };
 
 class Method : public ContainerMember{

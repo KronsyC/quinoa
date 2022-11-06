@@ -1,4 +1,5 @@
 cmake/
 build/
 **/*.ll
-.vscode
+.vscode/
+.idea/

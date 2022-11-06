@@ -14,37 +14,30 @@ static std::vector<std::string> NATIVE_MODULES = {
     "CompilerImplemented"
 };
 
-void resolve_compositor_refs(Module* mod, CompilationUnit unit){
-    for(auto comp:mod->compositors){
+void resolve_compositor_refs(Container* mod, CompilationUnit unit){
+    for(auto& comp:mod->compositors){
         auto name = comp->name->str();
         if(includes(NATIVE_MODULES, name))continue;
         Logger::debug("Resolving Compositor " + name);
 
-        for(auto mod:unit.getAllModules()){
-            CompoundIdentifier* fullname = new CompoundIdentifier();
-            if(mod->nspace)fullname->push_back(mod->nspace);
-            fullname->push_back(mod->name);
+        for(auto mod:unit.get_containers()){
+            auto fullname = std::make_unique<LongName>();
+            if(mod->name_space)fullname->parts.push(*mod->name_space);
+            fullname->parts.push(*mod->name);
             if(name == fullname->str()){
-                comp->refersTo = mod;
+                comp->refers_to = mod;
                 break;
             }
         }
-        if(!comp->refersTo){
+        if(!comp->refers_to){
             error("Failed to resolve compositor for " + comp->name->str());
         }
     }
 }
 
-void impl_compostors(Module* mod, CompilationUnit unit){
-    for(auto c:mod->compositors){
-        if(!c->refersTo)continue;
-        // auto copy_me = c->refersTo;
-    }
-}
 
 void resolve_compositors(CompilationUnit& unit){
-    for(auto mod:unit.getAllModules()){
+    for(auto mod:unit.get_containers()){
         resolve_compositor_refs(mod, unit);
-        impl_compostors(mod, unit);
     }
 }

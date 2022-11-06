@@ -105,8 +105,8 @@ public:
 
     std::string str(){
         std::string output = "{\n";
-        for(auto& item : content){
-            auto str = item.str();
+        for(auto item : content){
+            auto str = item->str();
             str = std::regex_replace(str, std::regex("\n"), "\n\t");
             output += str;
             output+="\n";
@@ -116,7 +116,7 @@ public:
 
     void generate(){
         for(auto& child : content){
-            child.generate();
+            child->generate();
         }
     }
 };
