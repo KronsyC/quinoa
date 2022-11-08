@@ -61,6 +61,8 @@
 	new TokenDefinition(TT_quote, "__quote", {"'"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_l_paren, "__l_paren", {"("}, "", true, false, 0, false, false, ""),\
 	new TokenDefinition(TT_r_paren, "__r_paren", {")"}, "", false, true, 0, false, false, ""),\
+	new TokenDefinition(TT_l_generic, "__l_generic", {"(<"}, "", true, false, 0, false, false, ""),\
+	new TokenDefinition(TT_r_generic, "__r_generic", {">)"}, "", false, true, 0, false, false, ""),\
 	new TokenDefinition(TT_l_brace, "__l_brace", {"{"}, "", true, false, 0, false, false, ""),\
 	new TokenDefinition(TT_r_brace, "__r_brace", {"}"}, "", false, true, 0, false, false, ""),\
 	new TokenDefinition(TT_l_square_bracket, "__l_square_bracket", {"["}, "", true, false, 0, false, false, ""),\
@@ -153,6 +155,8 @@
 	TT_quote,\
 	TT_l_paren,\
 	TT_r_paren,\
+	TT_l_generic,\
+	TT_r_generic,\
 	TT_l_brace,\
 	TT_r_brace,\
 	TT_l_square_bracket,\
@@ -217,12 +221,14 @@
 
 #define INDENTATION_TYPES \
 	IND_parens,\
+	 IND_generics,\
 	 IND_braces,\
 	 IND_square_brackets,\
 	 
 
 #define INDENTATION_MAPPINGS \
 	{IND_parens, {TT_l_paren, TT_r_paren}},\
+	{IND_generics, {TT_l_generic, TT_r_generic}},\
 	{IND_braces, {TT_l_brace, TT_r_brace}},\
 	{IND_square_brackets, {TT_l_square_bracket, TT_r_square_bracket}},\
 	

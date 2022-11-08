@@ -26,6 +26,7 @@ public:
         auto false_block = llvm::BasicBlock::Create(*llctx(), "if_false", func);
         auto cont_block  = llvm::BasicBlock::Create(*llctx(), "if_cont", func);
 
+
         builder()->CreateCondBr(eval_if, true_block, false_block);
 
 
@@ -66,7 +67,39 @@ public:
     std::unique_ptr<Scope> execute;
 
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
-        except(E_INTERNAL, "generate() not implemented for 'While' node");
+
+
+        auto eval_block  = llvm::BasicBlock::Create(*llctx(), "while_eval", func);
+        auto exec_block = llvm::BasicBlock::Create(*llctx(), "while_exec", func);
+        auto cont_block  = llvm::BasicBlock::Create(*llctx(), "while_cont", func);
+
+        CFI.breakTo = cont_block;
+        CFI.continueTo = eval_block;
+        CFI.exitBlock = cont_block;
+
+        builder()->CreateBr(eval_block);
+
+        builder()->SetInsertPoint(eval_block);
+        auto br_if = condition->llvm_value(vars, builder()->getInt1Ty());
+        builder()->CreateCondBr(br_if, exec_block, cont_block);
+
+        builder()->SetInsertPoint(exec_block);
+        execute->generate(func, vars, CFI);
+        builder()->CreateBr(eval_block);
+
+        builder()->SetInsertPoint(cont_block);
+
+
+    }
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : condition->flatten())ret.push_back(m);
+        for(auto m : execute->flatten())ret.push_back(m);
+        return ret;
+    }
+    std::string str(){
+        return "while( " + condition->str() + ")"+execute->str();
     }
 
 };

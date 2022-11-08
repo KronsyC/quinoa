@@ -1,11 +1,14 @@
 
 module Hello is Entry{
     func main(argc: int) -> int{
-        return nice(11);
+
+        let i : int = 0;
+        i = 0;
+        while( i < 10 ){
+            i = i + 1;
+        }
+        return i;
     }
 
-    func nice(offset:int) -> int{
-        return 69 + offset;
-    }
 
 }

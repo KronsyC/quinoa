@@ -119,7 +119,7 @@ Type* parse_type(vector<Token>& toks, SourceBlock* ctx)
     if(toks.size() && toks[0].is(TT_lesser)) {
 	if(!ret->custom())
 	    except(E_INTERNAL, "You can only pass type-parameters to a named type-reference");
-	auto argsBlock = readBlock(toks, IND_angles);
+	auto argsBlock = readBlock(toks, IND_generics);
 	auto csv = parse_cst(argsBlock);
 	Block<Type> args;
 	for(auto gp : csv) {
@@ -146,7 +146,7 @@ Identifier_Segment parse_ident_segment(vector<Token>& toks, SourceBlock* ctx)
     Block<Type> generic_args;
 
     if(toks[0].is(TT_lesser)) {
-	auto block = readBlock(toks, IND_angles);
+	auto block = readBlock(toks, IND_generics);
 	auto cst = parse_cst(block);
 	for(auto typ : cst) {
 	    auto type = parse_type(typ, ctx);
@@ -480,7 +480,7 @@ Block<ModuleMember> parse_tlc_members(vector<Token>& toks, TLContainer* parent)
 	    method->memberOf = parent;
 	    Block<Generic> generic_args;
 	    if(toks[0].is(TT_lesser)) {
-		auto genericTokens = readBlock(toks, IND_angles);
+		auto genericTokens = readBlock(toks, IND_generics);
 		auto csv = parse_cst(genericTokens);
 		for(auto gen : csv) {
 		    auto arg = parse_generic(gen, method);
@@ -729,7 +729,7 @@ CompilationUnit* Parser::makeAst(vector<Token>& toks)
 	    auto name = popf(toks);
 	    Block<Generic> generic_parameters;
 	    if(toks[0].is(TT_lesser)) {
-		auto block = readBlock(toks, IND_angles);
+		auto block = readBlock(toks, IND_generics);
 		auto generic_params = parse_cst(block);
 		for(auto gp : generic_params) {
 		    auto generic = parse_generic(gp, nullptr);

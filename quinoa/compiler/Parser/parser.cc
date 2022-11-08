@@ -97,19 +97,17 @@ std::vector<Token> read_to(std::vector<Token> &toks, TokenType type)
 
 enum IndType
 {
-    IND_angles,
     INDENTATION_TYPES
 };
 
-std::map<IndType, std::pair<TokenType, TokenType>> mappings{{IND_angles, {TT_lesser, TT_greater}}, INDENTATION_MAPPINGS};
+std::map<IndType, std::pair<TokenType, TokenType>> mappings{INDENTATION_MAPPINGS};
 
 std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
 {
     auto p = mappings[typ];
     auto i = p.first;
     auto u = p.second;
-    auto first_tok = popf(toks);
-    expects(first_tok, i);
+    auto first_tok = pope(toks, i);
 
     int ind = 1;
     std::vector<Token> ret;
@@ -286,7 +284,7 @@ ContainerRef parse_container_ref(std::vector<Token> toks)
 
     if (toks[0].is(TT_lesser))
     {
-        auto gen_block = read_block(toks, IND_angles);
+        auto gen_block = read_block(toks, IND_generics);
         auto gen_cst = parse_cst(gen_block);
         for (auto gen_toks : gen_cst)
         {
@@ -331,7 +329,7 @@ Name_Segment parse_name_segment(std::vector<Token> &toks)
 
     if (toks[0].is(TT_lesser))
     {
-        auto block = read_block(toks, IND_angles);
+        auto block = read_block(toks, IND_generics);
         auto cst = parse_cst(block);
         for (auto typ : cst)
         {
@@ -462,6 +460,11 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
     if (first.is(TT_identifier))
     {
         auto before = toks;
+
+        if(toks.size() > 1 && !toks[1].is(TT_l_generic) && !toks[1].is(TT_double_colon) && !toks[1].is(TT_l_paren)){
+
+        }
+        else{
         auto segments = parse_segmented_name(toks);
 
         auto generic_args = segments[segments.len() - 1].type_args;
@@ -485,6 +488,8 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
             call->scope = parent;
             return call;
         }
+        }
+
 
         toks = before;
     }
@@ -635,7 +640,11 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
 
             auto eval_expr = parse_expr(eval_toks, scope.get());
             auto exec_scope = parse_scope(exec_toks, scope.get());
-            except(E_INTERNAL, "While loop parser is unimplemented");
+
+            auto loop = std::make_unique<While>();
+            loop->execute = std::move(exec_scope);
+            loop->condition = std::move(eval_expr);
+            scope->content.push(std::move(loop));
             continue;
         }
         if (current.is(TT_for))
@@ -661,7 +670,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
                 cond->if_false = std::move(else_scope);
             }
 
-            scope->content.push(std::move(*cond));
+            scope->content.push(std::move(cond));
             continue;
             except(E_INTERNAL, "Conditional parser is unimplemented");
         }
@@ -743,7 +752,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             // Generic Parameters
             if (toks[0].is(TT_lesser))
             {
-                auto gp_block = read_block(toks, IND_angles);
+                auto gp_block = read_block(toks, IND_generics);
                 except(E_INTERNAL, "Method Generic Parameters are unimplemented");
             }
 

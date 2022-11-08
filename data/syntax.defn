@@ -124,6 +124,14 @@ l_paren
 @dind
 r_paren
 
+@alias (<
+@ind
+l_generic
+
+@alias >)
+@dind
+r_generic
+
 @alias {
 @ind
 l_brace

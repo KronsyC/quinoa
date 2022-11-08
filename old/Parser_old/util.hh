@@ -41,9 +41,9 @@ void expects(Token tok, TokenType expected)
     }
 }
 
-enum IndType { IND_angles, INDENTATION_TYPES };
+enum IndType { IND_generics, INDENTATION_TYPES };
 
-map<IndType, pair<TokenType, TokenType>> mappings { { IND_angles, { TT_lesser, TT_greater } }, INDENTATION_MAPPINGS };
+map<IndType, pair<TokenType, TokenType>> mappings { { IND_generics, { TT_lesser, TT_greater } }, INDENTATION_MAPPINGS };
 
 vector<Token> readBlock(vector<Token>& toks, IndType typ)
 {
