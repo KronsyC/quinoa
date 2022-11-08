@@ -56,4 +56,13 @@ public:
         else if(is_variadic())return &parameters[parameters.len()-1];
         else return nullptr;
     }
+
+    std::string source_name(){
+        if(this->name->trunc)return this->name->str();
+        auto name = this->name->str();
+        for(auto p : parameters){
+            name += "." + p->type->str();
+        }
+        return name;
+    }
 };

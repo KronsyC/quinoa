@@ -24,7 +24,7 @@ llvm::Function *make_fn(
 	bool mangle = true)
 {
 	auto ret = f.return_type->llvm_type();
-	auto name = f.name->str();
+	auto name = f.source_name();
 	std::vector<llvm::Type *> args;
 	for (auto a : f.parameters)
 	{
@@ -184,7 +184,7 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 	{
 		if (auto method = dynamic_cast<Method *>(child))
 		{
-			auto fname = method->name->str();
+			auto fname = method->source_name();
 			auto fn = llmod->getFunction(fname);
 			if (fn == nullptr)
 			{

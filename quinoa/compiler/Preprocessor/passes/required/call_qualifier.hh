@@ -73,7 +73,6 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
 
   if(method->name->container->name->str() != call->name->container->name->str())return MatchRanking();
   if(method->name->member->str() != call->name->member->str())return MatchRanking();
-
   // Compare parameter counts (if applicable)
   if(!method->is_variadic()){
     if(method->parameters.len() != call->args.len())return MatchRanking();
@@ -85,6 +84,7 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
     ranking.vararg_count = call->args.len() - (method->parameters.len() - 1);
 
   }
+
 
   if(method->generic_params.len()){
     // TODO: reimplement generics under the new system
@@ -100,10 +100,8 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
     // Compare the types of the arg and param
 
     auto score = get_type_distance_from(param_t, arg_t);
-
     if(score == -1){
       ranking.possible = false;
-      ranking.general_compat = -1;
       break;
     }
 
@@ -120,8 +118,7 @@ enum SelectionStage{
   RATING
 };
 Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionStage stage = SelectionStage::INITIAL){
-  
-  if(!ranks.size())except(E_INTERNAL, "attempting to select best ranked method from list, yet no ranks were provided");
+  Logger::debug(std::to_string(ranks.size()) + " possible matches");
 
   switch(stage){
     case SelectionStage::INITIAL:{
@@ -165,9 +162,10 @@ Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionSta
       }
       std::vector<MatchRanking> suitors;
       for(auto r : ranks){
+
         if(r.generic_count <= best_rating)suitors.push_back(r);
       }
-      if(suitors.size() == 0)except(E_INTERNAL, "no suitors? something has gone horribly wrong");
+      if(suitors.size() == 0)return nullptr;
   
       // if there are more than one suitor, the call is ambiguous
       auto call_name = suitors[0].against->name->str();
@@ -221,10 +219,17 @@ std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
   bool success = true;
   for (auto item : code.content->flatten()) {
     if (auto call = dynamic_cast<MethodCall*>(item)){
-      Logger::debug("Qualify call: " + call->name->str());
+      if(call->target)continue;
+
       auto best_fn = get_best_target(call, unit);
-      Logger::debug("calls " + best_fn->name->str());
-      call->target = best_fn;
+      if(best_fn){
+        call->target = best_fn;
+        resolvedCount++;
+      }
+      else{
+        Logger::error("Failed to resolve call to " + call->name->str());
+        success = false;
+      }
     }
   }
   return {success, resolvedCount};

@@ -46,7 +46,23 @@ public:
     }
     llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr)
     {
-        except(E_INTERNAL, "llvm_value not implemented for MethodCall");
+        auto mod = builder()->GetInsertBlock()->getModule();
+        auto fn = mod->getFunction(target->source_name());
+
+        if(!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->name->str());
+
+        std::vector<llvm::Value*> args;
+        for(size_t i = 0; i < this->args.len(); i++){
+            auto& arg   = this->args[i];
+            auto param = target->get_parameter(i);
+
+            auto expected_type = param->type->llvm_type();
+            auto arg_val = arg.llvm_value(vars, expected_type);
+            args.push_back(arg_val);
+        }
+
+        auto call = builder()->CreateCall(fn, args);
+        return cast(call, expected_type);
     }
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};
