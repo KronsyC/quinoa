@@ -8,16 +8,35 @@
 enum PrimitiveType { PRIMITIVES_ENUM_MEMBERS };
 static std::map<PrimitiveType, std::string> primitive_names{ PRIMITIVES_ENUM_NAMES };
 static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAPPINGS};
+
+class Primitive;
+class Ptr;
+class ListType;
+class TypeRef;
+
 class Type: public ANode{
 public:
     virtual llvm::Type* llvm_type() = 0;
     virtual Type* pointee() = 0;
     virtual std::string str() = 0;
+
+    template<class T>
+    T* get(){
+        static_assert(std::is_base_of<Type, T>(), "You can only convert a type to a subtype");
+        return dynamic_cast<T*>(drill());
+    }
+
+protected:
+    virtual Type* drill() = 0;
+
 };
 
 
 class Primitive: public Type{
-
+protected:
+    Type* drill(){
+        return this;
+    }
 public:
     PrimitiveType kind;
     Primitive(PrimitiveType kind){
@@ -61,7 +80,12 @@ public:
 };
 
 class Ptr: public Type{
+protected:
+    Type* drill(){
+        return this;
+    }
 public:
+
     Ptr(std::unique_ptr<Type> type){
         this->of = std::move(type);
         
@@ -85,7 +109,12 @@ public:
 };
 
 class ListType: public Type{
+protected:
+    Type* drill(){
+        return this;
+    }
 public:
+
     std::unique_ptr<Type> of;
     ListType(std::unique_ptr<Type> type){
         this->of = std::move(type);

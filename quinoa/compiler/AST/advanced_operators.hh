@@ -15,6 +15,7 @@ public:
     std::unique_ptr<ContainerMemberRef> name;
     Vec<Expr> args;
     Vec<Type> type_args;
+    Method*   target;
 
     std::string str()
     {

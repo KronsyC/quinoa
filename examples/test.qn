@@ -1,10 +1,10 @@
 
 module Hello is Entry{
     func main(argc: int) -> int{
-        return test();
+        return inc(68);
     }
 
-    func test() -> int{
-        return 69;
+    func inc(val : int) -> int{
+        return val + 1;
     }
 }

@@ -6,30 +6,177 @@
 
 struct MatchRanking{
 public:
+
+  Method* against = nullptr;
+
+  /**
+   * Different ranking metrics
+   * (organized by evaluation order)
+  */
+
   bool possible = true;
 
-  // general compatibility (Type Matching)
-  int general_compat = 0;
+  // Number of arguments which are matched as varargs (lower is better)
+  bool vararg_count = 0;
 
   // number of generic-reliant parameters (lower is better, overrides general compatibility (when applicable))
   int generic_count = 0;
 
-  // wether the match is variadic, only pick this as a last resort
-  bool is_variadic = false;
-
+  // general compatibility (Type Matching)
+  int general_compat = 0;
 
   MatchRanking(bool possible = false){
     possible = possible;
   }
 };
+
+std::map<PrimitiveType, std::string> primitive_group_mappings{
+  PRIMITIVES_ENUM_GROUPS
+};
+
+int get_type_distance_from(Type& target, Type& type){
+
+    // if they perfectly match, +0
+    // if they match upon implicit casting (primitive) return 1
+    // if they match upon implicit casting (inherited) return distance
+    // if they do not match, return -1
+
+  if(target.get<Ptr>() && type.get<Ptr>()){
+    auto ptr1 = target.pointee();
+    auto ptr2 = type.pointee();
+    if(!ptr1 || !ptr2)return -1;
+    return get_type_distance_from(*ptr1, *ptr2);
+  }
+
+  if(target.get<Primitive>() && type.get<Primitive>()){
+    auto p1 = target.get<Primitive>();
+    auto p2 = type.get<Primitive>();
+
+    if(p1->kind == p2->kind)return 0;
+
+    auto g1 = primitive_group_mappings[p1->kind];
+    auto g2 = primitive_group_mappings[p2->kind];
+
+    if( g1 == g2 )return 1;
+    else{
+      Logger::error("Cannot implicitly cast " + type.str() + " to " + target.str());
+      return -1;
+    }
+  }
+  except(E_INTERNAL, "Failed to get distance from " + type.str() + " to " + target.str());
+}
+
 MatchRanking rank_method_against_call(Method* method, MethodCall* call){
   // Sanity Checks
+  MatchRanking ranking(true);
+  ranking.against = method;
 
-  if(method->name->container->name->str() != call->name->container->name->str())MatchRanking();
-  if(method->name->member->str() != call->name->member->str())MatchRanking();
+  if(method->name->container->name->str() != call->name->container->name->str())return MatchRanking();
+  if(method->name->member->str() != call->name->member->str())return MatchRanking();
 
-  return MatchRanking(true);
+  // Compare parameter counts (if applicable)
+  if(!method->is_variadic()){
+    if(method->parameters.len() != call->args.len())return MatchRanking();
+  }
+  else{
+    // Call must have at least `len(parameters) - 1` arguments 
+    if(call->args.len() < method->parameters.len() - 1)return MatchRanking();
+
+    ranking.vararg_count = call->args.len() - (method->parameters.len() - 1);
+
+  }
+
+  if(method->generic_params.len()){
+    // TODO: reimplement generics under the new system
+    // this is a huge undertaking as the old implementation
+    // used highly unsafe/sketchy tactics
+    except(E_INTERNAL, "Generic methods are not yet supported");
+  }
+  for(size_t i = 0; i < call->args.len(); i++){
+
+    auto&  arg_t  = call->args[i].type();
+    auto& param_t = *method->get_parameter(i)->type;
+
+    // Compare the types of the arg and param
+
+    auto score = get_type_distance_from(param_t, arg_t);
+
+    if(score == -1){
+      ranking.possible = false;
+      ranking.general_compat = -1;
+      break;
+    }
+
+    ranking.general_compat += score;
+  }
+
+  return ranking;
 }
+
+enum SelectionStage{
+  INITIAL,
+  VARAGS,
+  GENERICS,
+  RATING
+};
+Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionStage stage = SelectionStage::INITIAL){
+  
+  if(!ranks.size())except(E_INTERNAL, "attempting to select best ranked method from list, yet no ranks were provided");
+
+  switch(stage){
+    case SelectionStage::INITIAL:{
+      std::vector<MatchRanking> suitors;
+      for(auto r : ranks){
+        if(!r.possible)continue;
+        suitors.push_back(r);
+      }
+      return select_best_ranked_method(suitors, SelectionStage::VARAGS);
+
+    }
+    case SelectionStage::VARAGS:{
+      int smallest_vararg_count = -1;
+      for(auto r : ranks){
+        if(smallest_vararg_count == -1)smallest_vararg_count = r.vararg_count;
+        else if(r.vararg_count < smallest_vararg_count)smallest_vararg_count = r.vararg_count;
+      }
+      std::vector<MatchRanking> suitors;
+      for(auto r : ranks){
+        if(r.vararg_count <= smallest_vararg_count)suitors.push_back(r);
+      }
+      return select_best_ranked_method(suitors, SelectionStage::GENERICS);
+    }
+    case SelectionStage::GENERICS:{
+      int smallest_generic_count = -1;
+      for(auto r : ranks){
+        if(smallest_generic_count == -1)smallest_generic_count = r.generic_count;
+        else if(r.generic_count < smallest_generic_count)smallest_generic_count = r.generic_count;
+      }
+      std::vector<MatchRanking> suitors;
+      for(auto r : ranks){
+        if(r.generic_count <= smallest_generic_count)suitors.push_back(r);
+      }
+      return select_best_ranked_method(suitors, SelectionStage::RATING);
+    }
+  case SelectionStage::RATING:{
+      int best_rating = -1;
+      for(auto r : ranks){
+        if(best_rating == -1)best_rating = r.general_compat;
+        else if(r.general_compat < best_rating)best_rating = r.general_compat;
+      }
+      std::vector<MatchRanking> suitors;
+      for(auto r : ranks){
+        if(r.generic_count <= best_rating)suitors.push_back(r);
+      }
+      if(suitors.size() == 0)except(E_INTERNAL, "no suitors? something has gone horribly wrong");
+  
+      // if there are more than one suitor, the call is ambiguous
+      auto call_name = suitors[0].against->name->str();
+      if(suitors.size() > 1)except(E_BAD_CALL, "Call to " + call_name + " is ambiguous");
+      return suitors[0].against;
+  }
+  default: except(E_INTERNAL, "bad selection stage");
+  }
+} 
 
 Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   // Find the module that the call targets
@@ -49,10 +196,11 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   std::vector<Method*> methods;
 
   auto call_method_name = call->name->member->str();
+  
   for(auto method : target->get_methods()){
-    if(call_method_name == method->name->member->str()){
-      methods.push_back(method);
-    }
+    if(call_method_name != method->name->member->str())continue;
+    methods.push_back(method);
+
   }
 
   if(methods.size() == 0)except(E_BAD_CALL, "No methods of '"+call_mod_name+"' have the name '" + call_method_name + "'");
@@ -60,10 +208,12 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   std::vector<MatchRanking> ranks;
   for(auto method : methods){
     auto rank = rank_method_against_call(method, call);
+    
     ranks.push_back(rank);
   }
-  Logger::debug("call member of " + target->name->str());
-  except(E_INTERNAL, "get_best_target not implemented");
+
+  auto best_method = select_best_ranked_method(ranks);
+  return best_method;
 }
 
 std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
@@ -74,19 +224,7 @@ std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
       Logger::debug("Qualify call: " + call->name->str());
       auto best_fn = get_best_target(call, unit);
       Logger::debug("calls " + best_fn->name->str());
-      // Logger::debug("Qualified");
-      // if(sig ){
-      //   call->target = sig;
-      //   auto method = call->target->belongsTo;
-      //   if(!method->public_access){
-      //     auto method_mod = method->memberOf;
-      //     auto my_mod = code.memberOf;
-      //     if(method_mod != my_mod)
-      //     error("Cannot call private method " + method->sig->name->str() + " from " + code.sig->name->str());
-      //   }
-      //   resolvedCount++;
-      // }
-      // else success = false;
+      call->target = best_fn;
     }
   }
   return {success, resolvedCount};

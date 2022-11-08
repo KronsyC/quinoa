@@ -41,5 +41,19 @@ public:
     Vec<Param>             parameters;
     std::unique_ptr<Type>  return_type;
 
-    
+    bool is_variadic(){
+        // Check if the last parameter is a var-arg
+        if(!parameters.len())return false;
+        auto& last = parameters[parameters.len()-1];
+        return last.is_variadic;
+    }
+
+    // Get the parameter at a specific index
+    // this method is smart and accounts for varargs
+    // returns `nullptr` if there is no parameter at the given index
+    Param* get_parameter(size_t idx){
+        if(idx < parameters.len())return &parameters[idx];
+        else if(is_variadic())return &parameters[parameters.len()-1];
+        else return nullptr;
+    }
 };
