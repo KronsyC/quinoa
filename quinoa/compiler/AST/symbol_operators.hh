@@ -17,9 +17,9 @@ enum BinaryOpType{
     INFIX_ENUM_MEMBERS
 };
 
-std::map<TokenType, UnaryOpType> prefix_op_mappings { PREFIX_ENUM_MAPPINGS };
-std::map<TokenType, UnaryOpType> postfix_op_mappings { POSTFIX_ENUM_MAPPINGS };
-std::map<TokenType, BinaryOpType> binary_op_mappings { INFIX_ENUM_MAPPINGS };
+static std::map<TokenType, UnaryOpType> prefix_op_mappings { PREFIX_ENUM_MAPPINGS };
+static std::map<TokenType, UnaryOpType> postfix_op_mappings { POSTFIX_ENUM_MAPPINGS };
+static std::map<TokenType, BinaryOpType> binary_op_mappings { INFIX_ENUM_MAPPINGS };
 
 class UnaryOperation: public Expr{
 public:

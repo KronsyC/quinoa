@@ -570,7 +570,9 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
             auto op = popf(toks);
             auto expr = parse_expr(toks, parent);
             auto pfxop = prefix_op_mappings[op.type];
-            return std::make_unique<UnaryOperation>(std::move(expr), pfxop);
+            auto uo = std::make_unique<UnaryOperation>(std::move(expr), pfxop);
+            uo->scope = parent;
+            return uo;
         }
         else if (includes(postfix_ops, toks[toks.size() - 1].type))
         {
@@ -578,7 +580,9 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
             toks.pop_back();
             auto postop = postfix_op_mappings[op.type];
             auto expr = parse_expr(toks, parent);
-            return std::make_unique<UnaryOperation>(std::move(expr), postop);
+            auto uo = std::make_unique<UnaryOperation>(std::move(expr), postop);
+            uo->scope = parent;
+            return uo;
         }
 
         auto f = toks[0];
@@ -596,6 +600,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
                     auto var = std::make_unique<SourceVariable>(*name);
                     auto index_expr = parse_expr(index_block, parent);
                     auto subs = std::make_unique<Subscript>(std::move(var), std::move(index_expr));
+                    subs->scope = parent;
                     return subs;
                 }
             }
@@ -613,14 +618,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
     auto optype = binary_op_mappings[op.type];
 
     auto binop = std::make_unique<BinaryOperation>(std::move(leftAST), std::move(rightAST), optype);
-    // if (optype == BIN_dot)
-    // {
-    //     if (auto call = dynamic_cast<MethodCall *>(rightAST))
-    //     {
-    //         call->inst = true;
-    //     }
-    // }
-    // binop->ctx = ctx;
+    binop->scope = parent;
     return binop;
     except(E_INTERNAL, "bad expression");
 }
@@ -644,6 +642,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
             auto loop = std::make_unique<While>();
             loop->execute = std::move(exec_scope);
             loop->condition = std::move(eval_expr);
+            loop->scope = scope.get();
             scope->content.push(std::move(loop));
             continue;
         }
@@ -662,6 +661,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
             auto cond = std::make_unique<Conditional>();
             cond->condition = std::move(eval_expr);
             cond->if_true = std::move(exec_scope);
+            cond->scope = scope.get();
             
             if(toks[0].is(TT_else)){
                 popf(toks);
@@ -690,7 +690,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         if (current.is(TT_let) || current.is(TT_const))
         {
             auto init = std::make_unique<InitializeVar>();
-
+            init->scope = scope.get();
             init->var_name = pope(line, TT_identifier).value;
             if (current.is(TT_const))
                 init->is_constant = true;
@@ -716,6 +716,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         if (current.is(TT_return))
         {
             auto ret = std::make_unique<Return>();
+            ret->scope = scope.get();
             ret->value = parse_expr(line, scope.get());
             scope->content.push(std::move(*ret));
             continue;

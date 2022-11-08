@@ -31,11 +31,31 @@ public:
         item.release();
         _items.push_back(mem);
     }
+
+    template<typename U>
+    void pushf(U& item){
+        static_assert(std::is_base_of<T, U>(), "Not a subtype??");
+
+        // Manage the memory myself
+        auto mem = &item;
+        _items.insert(_items.begin(), mem);
+    }
+
     bool includes(T* check){
         for(auto item : _items){
             if( item == check )return true;
         }
         return false;
+    }
+
+    size_t indexof(T* item){
+        size_t i = 0;
+        for(auto it : _items){
+            if(it == item)break;
+            i++;
+        }
+        if(i == _items.size())return -1;
+        return i;
     }
 
     T& pop(){
@@ -53,6 +73,11 @@ public:
     T& operator[](size_t idx){
         if( idx > len()-1 )except(E_INTERNAL, "IndexError: Bad Vec Access Index");
         return *_items[idx];
+    }
+
+
+    void set(size_t idx, T& item){
+        _items[idx] = &item;
     }
 private:
     std::vector<T*> _items;
