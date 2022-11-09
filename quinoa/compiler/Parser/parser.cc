@@ -7,9 +7,6 @@
 #include <map>
 #include <string>
 
-
-
-
 /**
  *
  * Define Various Helper Functions, very useful
@@ -142,14 +139,13 @@ std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
 #include "../AST/constant.hh"
 #include "../AST/control_flow.hh"
 
-
-template<typename T, typename U = Statement>
-inline std::unique_ptr<U> stm(std::unique_ptr<T> mem){
+template <typename T, typename U = Statement>
+inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
+{
     static_assert(std::is_base_of<U, T>(), "Cannot cast non-statement derivative to statement");
-    auto& casted = *(std::unique_ptr<U>*)&mem;
+    auto &casted = *(std::unique_ptr<U> *)&mem;
     return std::move(casted);
 }
-
 
 #define st(arg) stm(std::move(arg))
 std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
@@ -256,7 +252,8 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
         popf(toks);
         ret = Ptr::get(ret);
     }
-    if(toks[0].is(TT_l_square_bracket)){
+    if (toks[0].is(TT_l_square_bracket))
+    {
         popf(toks);
         pope(toks, TT_r_square_bracket);
         // TODO: possible explicit list length
@@ -311,7 +308,8 @@ ContainerRef parse_container_ref(std::vector<Token> toks)
 Param parse_param(std::vector<Token> toks)
 {
     bool is_variadic = false;
-    if(toks[0].is(TT_ellipsis)){
+    if (toks[0].is(TT_ellipsis))
+    {
         is_variadic = true;
         popf(toks);
     }
@@ -341,7 +339,7 @@ Name_Segment parse_name_segment(std::vector<Token> &toks)
 
     Vec<Type> generic_args;
 
-    if (toks[0].is(TT_lesser))
+    if (toks[0].is(TT_l_generic))
     {
         auto block = read_block(toks, IND_generics);
         auto cst = parse_cst(block);
@@ -398,14 +396,15 @@ std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segm
     }
     auto member_ref = std::make_unique<ContainerMemberRef>();
     member_ref->member = std::make_unique<Name>(end.name);
-    if(container_name.parts.len()){
+    if (container_name.parts.len())
+    {
         member_ref->container = std::make_unique<ContainerRef>();
         member_ref->container->generic_args = container_type_args;
         member_ref->container->name = std::make_unique<LongName>(container_name);
     }
-    return member_ref;  
+    return member_ref;
 }
-std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullptr)
+std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent )
 {
     if (!toks.size())
         except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
@@ -419,7 +418,8 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
             return Integer::get(std::stoull(first.value));
         case TT_literal_str:
             return String::get(first.value);
-        case TT_identifier:{
+        case TT_identifier:
+        {
             auto id = std::make_unique<SourceVariable>(first.value);
             id->scope = parent;
             return id;
@@ -477,36 +477,34 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
     if (first.is(TT_identifier))
     {
         auto before = toks;
-
-        if(toks.size() > 1 && !toks[1].is(TT_l_generic) && !toks[1].is(TT_double_colon) && !toks[1].is(TT_l_paren)){
-
-        }
-        else{
-        auto segments = parse_segmented_name(toks);
-
-        auto generic_args = segments[segments.len() - 1].type_args;
-        auto member_ref = parse_member_ref_from_segments(segments);
-
-        if (toks[0].is(TT_l_paren))
+        if (toks.size() > 1 && !(toks[1].is(TT_l_generic) || toks[1].is(TT_double_colon) || toks[1].is(TT_l_paren)))
         {
-            Vec<Expr> params;
-            auto params_block = read_block(toks, IND_parens);
-            auto params_cst = parse_cst(params_block);
-            for (auto param_toks : params_cst)
+        }
+        else
+        {
+            auto segments = parse_segmented_name(toks);
+
+            auto generic_args = segments[segments.len() - 1].type_args;
+            auto member_ref = parse_member_ref_from_segments(segments);
+            if (toks[0].is(TT_l_paren))
             {
-                auto param = parse_expr(param_toks);
-                params.push(std::move(param));
+                Vec<Expr> params;
+                auto params_block = read_block(toks, IND_parens);
+                auto params_cst = parse_cst(params_block);
+                for (auto param_toks : params_cst)
+                {
+                    auto param = parse_expr(param_toks, parent);
+                    params.push(std::move(param));
+                }
+
+                auto call = std::make_unique<MethodCall>();
+                call->args = params;
+                call->name = std::move(member_ref);
+                call->type_args = generic_args;
+                call->scope = parent;
+                return call;
             }
-
-            auto call = std::make_unique<MethodCall>();
-            call->args = params;
-            call->name = std::move(member_ref);
-            call->type_args = generic_args;
-            call->scope = parent;
-            return call;
         }
-        }
-
 
         toks = before;
     }
@@ -560,7 +558,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
             splitWeight = weight;
         }
     }
-
 
     //
     // It is a unary operation if there is either:
@@ -679,8 +676,9 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
             cond->condition = std::move(eval_expr);
             cond->if_true = std::move(exec_scope);
             cond->scope = scope.get();
-            
-            if(toks[0].is(TT_else)){
+
+            if (toks[0].is(TT_else))
+            {
                 popf(toks);
                 auto else_toks = read_block(toks, IND_braces);
                 auto else_scope = parse_scope(else_toks, scope.get());
@@ -734,7 +732,8 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         {
             auto ret = std::make_unique<Return>();
             ret->scope = scope.get();
-            if(line.size()){
+            if (line.size())
+            {
                 ret->value = parse_expr(line, scope.get());
             }
             scope->content.push(std::move(*ret));
@@ -798,15 +797,16 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             }
 
             // Actual Content
-            if(!toks[0].is(TT_semicolon)){
+            if (!toks[0].is(TT_semicolon))
+            {
                 auto content_toks = read_block(toks, IND_braces);
                 auto content = parse_scope(content_toks);
                 method->content = std::move(content);
             }
-            else popf(toks);
+            else
+                popf(toks);
 
             ret.push(stm<Method, ContainerMember>(std::move(method)));
-
         }
     }
 
@@ -870,8 +870,9 @@ std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)
         case TT_seed:
         {
             auto container = parse_container(toks);
-            container->type = current.is(TT_module) ? CT_MODULE : current.is(TT_seed) ? CT_SEED : CT_NOTYPE;
-            
+            container->type = current.is(TT_module) ? CT_MODULE : current.is(TT_seed) ? CT_SEED
+                                                                                      : CT_NOTYPE;
+
             unit->members.push(stm<Container, TopLevelEntity>(std::move(container)));
             break;
         }

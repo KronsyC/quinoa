@@ -29,6 +29,7 @@ void validate_usage(Scope& scope, std::vector<std::string> declared_vars){
 
 void validate_variable_usage(CompilationUnit& unit){
     for(auto method : unit.get_methods()){
+        if(!method->content)continue;
         std::vector<std::string> declarations;
         for(auto& p : method->parameters){
             declarations.push_back(p->name.str());

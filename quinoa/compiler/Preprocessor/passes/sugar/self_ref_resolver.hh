@@ -20,6 +20,8 @@ void resolve_self_refs(CompilationUnit &unit)
 {
   for (auto fn : unit.get_methods())
   {
-    resolve_self_refs(fn->content.get(), fn->parent);
+    if(fn->content){
+      resolve_self_refs(fn->content.get(), fn->parent);
+    }
   }
 }

@@ -63,6 +63,16 @@ void prefixify_children(CompilationUnit &unit, std::string prefix)
 void deAliasify(CompilationUnit &unit, LongName& alias,
                 LongName& fullname)
 {
+  for(auto method: unit.get_methods()){
+    if(!method->content)continue;
+    for(auto code : method->content->flatten()){
+      if(auto call = dynamic_cast<MethodCall*>(code)){
+        if(call->name->container->name->str() == alias.str()){
+          call->name->container->name = std::make_unique<LongName>(fullname);
+        }
+      }
+    }
+  }
   // for (auto method : unit.get_methods())
   // {
   //   auto content = method->flatten();

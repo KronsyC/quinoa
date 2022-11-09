@@ -14,16 +14,14 @@ module IO is Exported{
         }
         return i;
     }
-    pub func read(str:c_str, len:i64)->i64{
-        return syscall::read(0, cast<i64>(str), len);
-    }
+
     pub func putc(ch:char){
-        syscall::write(stdout, cast<i64>(&ch), 1);
+        syscall::write(stdout, cast(<i64>)(&ch), 1);
     }
     pub func print(message:c_str)->i64{
         let len = syscall::write(
             stdout, 
-            cast<i64>(message), 
+            cast(<i64>)(message), 
             CStr::len(message)
         );
         return len;

@@ -1,11 +1,13 @@
+import @io;
 
-module Hello is Entry{
+module Hello is Entry
+{
+    
     func main(argc: int) -> int{
         const i : i64 = 11 + argc;
 
         i = 13;
         return i;
     }
-
 
 }

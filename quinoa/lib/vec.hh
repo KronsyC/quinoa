@@ -110,6 +110,13 @@ public:
             return *ptr;
         }
     };
+
+    void clear(){
+        for(auto i : _items){
+            if(i.owned)delete i;
+        }
+        _items.clear();
+    }
 private:
     std::vector<VecItem> _items;
     bool delete_members = true;

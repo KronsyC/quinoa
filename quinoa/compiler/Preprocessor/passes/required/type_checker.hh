@@ -42,6 +42,7 @@ void check_types(CompilationUnit &unit)
 
     for (auto m : unit.get_methods())
     {
+        if(!m->content)continue;
         validate_returns(*m);
     }
 }

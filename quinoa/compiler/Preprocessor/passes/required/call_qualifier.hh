@@ -76,8 +76,7 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
   MatchRanking ranking(true);
   ranking.against = method;
 
-  if(method->name->container->name->str() != call->name->container->name->str())return MatchRanking();
-  if(method->name->member->str() != call->name->member->str())return MatchRanking();
+
   // Compare parameter counts (if applicable)
   if(!method->is_variadic()){
     if(method->parameters.len() != call->args.len())return MatchRanking();
@@ -98,7 +97,7 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
     except(E_INTERNAL, "Generic methods are not yet supported");
   }
   for(size_t i = 0; i < call->args.len(); i++){
-
+    Logger::debug("arg: " + call->args[0].str());
     auto&  arg_t  = *call->args[i].type();
     auto& param_t = *method->get_parameter(i)->type;
 
@@ -187,11 +186,10 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   auto call_mod_name = call->name->container->name->str();
   for(auto cont : unit.get_containers()){
     if(cont->type != CT_MODULE)continue;
-    if(call_mod_name == cont->name->str()){
+    if(call_mod_name == cont->full_name().str()){
       target = cont;
       break;
     }
-    Logger::debug("check against: " + cont->name->str()); 
   }
   if(!target)except(E_BAD_CALL, "Failed to locate module '" + call_mod_name + "' for call");
 
@@ -211,7 +209,6 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   std::vector<MatchRanking> ranks;
   for(auto method : methods){
     auto rank = rank_method_against_call(method, call);
-    
     ranks.push_back(rank);
   }
 
@@ -225,7 +222,6 @@ std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
   for (auto item : code.content->flatten()) {
     if (auto call = dynamic_cast<MethodCall*>(item)){
       if(call->target)continue;
-
       auto best_fn = get_best_target(call, unit);
       if(best_fn){
         call->target = best_fn;
@@ -246,6 +242,11 @@ std::pair<bool, int> qualify_calls(CompilationUnit &unit) {
   bool success = true;
   // Attempt to Qualify all Calls
   for (auto method : unit.get_methods()){
+
+      // skip out on signatures
+      if(!method->content)continue;
+
+
       auto result = qualify_calls(*method, unit);
       if(!result.first)success=false;
       count+=result.second;
