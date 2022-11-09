@@ -10,7 +10,7 @@ public:
     std::vector<Container*> get_containers(){
         std::vector<Container*> ret;
         for(auto m:members){
-            if(auto mod = dynamic_cast<Container*>(m)){
+            if(auto mod = dynamic_cast<Container*>(m.ptr)){
                 ret.push_back(mod);
             }            
         }
@@ -19,7 +19,7 @@ public:
     std::vector<std::unique_ptr<TopLevelEntity>> transfer(){
         std::vector<std::unique_ptr<TopLevelEntity>> ret;
         for(auto m : members){
-            std::unique_ptr<TopLevelEntity> ptr(m);
+            std::unique_ptr<TopLevelEntity> ptr(m.ptr);
             ret.push_back(std::move(ptr));
         }
         return ret;

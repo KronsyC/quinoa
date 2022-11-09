@@ -182,7 +182,7 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 
 	for (auto child : mod.members)
 	{
-		if (auto method = dynamic_cast<Method *>(child))
+		if (auto method = dynamic_cast<Method *>(child.ptr))
 		{
 			auto fname = method->source_name();
 			auto fn = llmod->getFunction(fname);

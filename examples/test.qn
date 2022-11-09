@@ -1,13 +1,15 @@
 
 module Hello is Entry{
     func main(argc: int) -> int{
-
-        let i : int = 0;
-        while( i < 10 ){
-            i = i + 1;
-        }
-        return i;
+        return Util::nice();
     }
 
 
+}
+
+
+module Util{
+    func nice()->int{
+        return 69;
+    }
 }

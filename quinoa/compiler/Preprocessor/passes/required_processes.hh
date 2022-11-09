@@ -7,7 +7,7 @@
 #include "./required/call_qualifier.hh"
 #include "./required/importer.hh"
 #include "./required/type_resolver.hh"
-// #include "./required/property_resolver.hh"
+#include "./required/type_checker.hh"
 #include "./required/instance_call_resolver.hh"
 void process_required(CompilationUnit* unit){
     resolve_imports(unit);
@@ -41,6 +41,7 @@ void process_required(CompilationUnit* unit){
         error("Type-Call Resolution Failed with " + std::to_string(res.second) + " resolved calls and " + std::to_string(typeres.second) + " resolved types");
       }
     }
+    check_types(*unit);
     Logger::clearQueue();
     Logger::enqueueMode(false);
 }

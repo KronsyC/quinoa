@@ -36,6 +36,8 @@ std::map<ErrorType, std::string> error_names = { ERR_TYPES };
     if(err == E_INTERNAL && DEBUG_MODE)
 	print_trace();
     auto errname = error_names[err];
+    Logger::printQueue();
+    Logger::enqueueMode(false);
     Logger::error(errname + " - " + message);
     exit(100 + (int)err);
 }

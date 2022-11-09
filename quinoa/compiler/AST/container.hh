@@ -81,7 +81,7 @@ public:
     std::vector<Method*> get_methods(){
         std::vector<Method*> ret;
         for(auto& member : members){
-            if(auto method = dynamic_cast<Method*>(member)){
+            if(auto method = dynamic_cast<Method*>(member.ptr)){
                 ret.push_back(method);
             }
         }

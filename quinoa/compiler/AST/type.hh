@@ -5,6 +5,7 @@
 #include "../../GenMacro.h"
 #include "../llvm_globals.h"
 #include "../token/token.h"
+#include "../../lib/list.h"
 enum PrimitiveType { PRIMITIVES_ENUM_MEMBERS };
 static std::map<PrimitiveType, std::string> primitive_names{ PRIMITIVES_ENUM_NAMES };
 static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAPPINGS};
@@ -19,14 +20,44 @@ public:
     virtual llvm::Type* llvm_type() = 0;
     virtual Type* pointee() = 0;
     virtual std::string str() = 0;
-
     template<class T>
     T* get(){
         static_assert(std::is_base_of<Type, T>(), "You can only convert a type to a subtype");
-        return dynamic_cast<T*>(drill());
+        return dynamic_cast<T*>(this->drill());
     }
 
+    virtual bool operator==(const Type& compare){
+        except(E_INTERNAL, "Equality operator not implemented for type");
+    }
 protected:
+
+    /**
+     * Helper method to instantiate a type onto the heap
+     * types take heavy inspiration from llvm's type system
+     * in that they are 'singletons' and can be directly
+     * compared for equality
+     * 
+     * achieves this singleton behavior by maintaining an
+     * internal cache of objects to their heap equivalent
+    */
+    template<class T>
+    static std::shared_ptr<T> create_heaped(T obj){
+
+        // O(n) cache mechanism
+        // so we do not have to impl a
+        // custom hashing fn for each type
+        // TODO: optimize
+        static std::vector<T> keys;
+        static std::vector<std::shared_ptr<T>> values;
+        auto idx = indexof(keys, obj);
+        if(idx == -1){
+            auto alloc = std::make_shared<T>(obj);
+            keys.push_back(obj);
+            values.push_back(alloc);
+            return alloc;
+        }
+        return values[idx];
+    }
     virtual Type* drill() = 0;
 
 };
@@ -47,36 +78,42 @@ public:
     }
 
 
-    static std::unique_ptr<Primitive> get(PrimitiveType type){
-        auto ret = std::make_unique<Primitive>(type);
-        return ret;
+    static std::shared_ptr<Primitive> get(PrimitiveType type){
+        return create_heaped(Primitive(type));
     }
     Type* pointee(){
         return nullptr;
     }
     llvm::Type* llvm_type(){
-        #define T(name) return builder()->get##name##Ty();
+        #define T(sw, name)case PR_##sw: return builder()->get##name##Ty();
         switch(kind){
-            case PR_int8: T(Int8)
-            case PR_int16: T(Int16)
-            case PR_int32: T(Int32)
-            case PR_int64: T(Int64)
+            T(int8, Int8)
+            T(int16, Int16)
+            T(int32, Int32)
+            T(int64, Int64)
 
-            case PR_uint8: T(Int8)
-            case PR_uint16: T(Int16)
-            case PR_uint32: T(Int32)
-            case PR_uint64: T(Int64)
+            T(uint8, Int8)
+            T(uint16, Int16)
+            T(uint32, Int32) 
+            T(uint64, Int64)
 
-            case PR_float16: T(Half)
-            case PR_float32: T(Float)
-            case PR_float64: T(Double)
+            T(float16, Half)
+            T(float32, Float)
+            T(float64, Double)
 
-            case PR_boolean: T(Int1)
-            case PR_void: T(Void)
-            case PR_string: T(Int8Ptr)
+            T(boolean, Int1)
+            T(void, Void)
+            T(string, Int8Ptr)
             default: except(E_INTERNAL, "Failed to generate primitive type");
         }
     }
+    bool operator==(Type& against){
+        if(auto k = against.get<Primitive>()){
+            return k->kind == kind;
+        }
+        return false;
+    }
+
 };
 
 class Ptr: public Type{
@@ -86,11 +123,11 @@ protected:
     }
 public:
 
-    Ptr(std::unique_ptr<Type> type){
-        this->of = std::move(type);
+    Ptr(std::shared_ptr<Type> type){
+        this->of = type;
         
     }
-    std::unique_ptr<Type> of;
+    std::shared_ptr<Type> of;
 
     
     std::string str(){
@@ -103,8 +140,15 @@ public:
     Type* pointee(){
         return of.get();
     }
-    static std::unique_ptr<Ptr> get(std::unique_ptr<Type> to){
-        return std::make_unique<Ptr>(std::move(to));
+    static std::shared_ptr<Ptr> get(std::shared_ptr<Type> to){
+        return create_heaped(Ptr(to));
+    }
+
+    bool operator==(Type& against){
+        if(auto k = against.get<Ptr>()){
+            return k->of == of;
+        }
+        return false;
     }
 };
 
@@ -115,8 +159,8 @@ protected:
     }
 public:
 
-    std::unique_ptr<Type> of;
-    ListType(std::unique_ptr<Type> type){
+    std::shared_ptr<Type> of;
+    ListType(std::shared_ptr<Type> type){
         this->of = std::move(type);
     }
     Type* pointee(){
@@ -128,8 +172,14 @@ public:
     std::string str(){
         return of->str() + "[]";
     }
-    static std::unique_ptr<ListType> get(std::unique_ptr<Type> of){
-        return std::make_unique<ListType>(std::move(of));
+    static std::shared_ptr<ListType> get(std::shared_ptr<Type> of){
+        return create_heaped(ListType(of));
+    }
+    bool operator==(Type& against){
+        if(auto k = against.get<ListType>()){
+            return k->of == of;
+        }
+        return false;
     }
 };
 class TypeRef : public Type{

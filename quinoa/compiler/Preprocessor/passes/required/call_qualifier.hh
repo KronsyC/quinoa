@@ -63,7 +63,12 @@ int get_type_distance_from(Type& target, Type& type){
       return -1;
     }
   }
-  except(E_INTERNAL, "Failed to get distance from " + type.str() + " to " + target.str());
+  #if DEBUG_MODE
+    Logger::enqueueMode(false);
+    Logger::warn("Failed to get distance from " + type.str() + " to " + target.str());
+    Logger::enqueueMode(true);
+  #endif
+  return -1;
 }
 
 MatchRanking rank_method_against_call(Method* method, MethodCall* call){

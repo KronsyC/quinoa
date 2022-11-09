@@ -42,7 +42,7 @@ public:
         return ret;
     }
 protected:
-    std::unique_ptr<Type> get_type(){
+    std::shared_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented");
         // auto bool_t    = Primitive::get(PR_boolean);
         // auto same_t    = std::make_unique<Type>(operand->type());
@@ -135,7 +135,7 @@ private:
         }
     }
 protected:
-    std::unique_ptr<Type> get_type(){
+    std::shared_ptr<Type> get_type(){
         except(E_INTERNAL, "cannot get_type for BinaryOperation");
         // switch(op_type){
         //     	case BIN_plus:

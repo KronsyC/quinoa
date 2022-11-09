@@ -46,7 +46,7 @@ public:
     }
 
 protected:
-    std::unique_ptr<Type> get_type()
+    std::shared_ptr<Type> get_type()
     {
         if (value <= maxVal(8))
             return Primitive::get(PR_int8);
@@ -82,7 +82,7 @@ public:
     llvm::Constant* llvm_value(VariableTable& vars, llvm::Type* expected){
         return builder()->CreateGlobalStringPtr(value);
     }
-    std::unique_ptr<Type> get_type(){
+    std::shared_ptr<Type> get_type(){
         return Ptr::get(Primitive::get(PR_int8));
     }
 };

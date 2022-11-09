@@ -25,9 +25,9 @@ public:
 class Param : public ANode{
 public:
     Name name;
-    std::unique_ptr<Type> type;
+    std::shared_ptr<Type> type;
     bool is_variadic = false;
-    Param(Name pname, std::unique_ptr<Type> type)
+    Param(Name pname, std::shared_ptr<Type> type)
     : name(pname)
     {
         this->type = std::move(type);
@@ -39,7 +39,7 @@ public:
     std::unique_ptr<Scope> content;
     Vec<Generic>           generic_params;
     Vec<Param>             parameters;
-    std::unique_ptr<Type>  return_type;
+    std::shared_ptr<Type>  return_type;
 
     bool is_variadic(){
         // Check if the last parameter is a var-arg

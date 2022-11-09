@@ -57,7 +57,7 @@ public:
     virtual llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr) = 0;
     
 protected:
-    virtual std::unique_ptr<Type> get_type() = 0;
+    virtual std::shared_ptr<Type> get_type() = 0;
 
     /**
      * Signify to the expression that a dependency has been changed,
@@ -70,7 +70,7 @@ protected:
     Expr* parent_expr = nullptr;
 private:
     bool recalculate_type = true;
-    std::unique_ptr<Type> cached_type;
+    std::shared_ptr<Type> cached_type;
 };
 
 

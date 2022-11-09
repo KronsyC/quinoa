@@ -71,8 +71,9 @@ public:
     }
 
 protected:
-    std::unique_ptr<Type> get_type()
+    std::shared_ptr<Type> get_type()
     {
+        return target->return_type;
         except(E_INTERNAL, "get_type not implemented for MethodCall");
     }
 };
@@ -89,12 +90,18 @@ public:
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI)
     {
         auto expected_type = func->getReturnType();
-        auto return_value  = value->llvm_value(vars, expected_type);
-        builder()->CreateRet(return_value);
+
+        if(value){
+            auto return_value  = value->llvm_value(vars, expected_type);
+            builder()->CreateRet(return_value);
+        }
+        else{
+            builder()->CreateRetVoid();
+        }
     }
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};
-        for(auto m : value->flatten())ret.push_back(m);
+        if(value)for(auto m : value->flatten())ret.push_back(m);
         return ret;
     }
 };
@@ -102,7 +109,7 @@ public:
 class InitializeVar : public Statement
 {
 public:
-    std::unique_ptr<Type> type;
+    std::shared_ptr<Type> type;
     Name var_name;
     std::unique_ptr<Expr> initializer;
     bool is_constant = false;
@@ -152,7 +159,7 @@ public:
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
         except(E_INTERNAL, "llvm_value not implemented for Subscript");
     }
-    std::unique_ptr<Type> get_type(){
+    std::shared_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented for Subscript");
     }
 };

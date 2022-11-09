@@ -7,6 +7,9 @@
 #include <map>
 #include <string>
 
+
+
+
 /**
  *
  * Define Various Helper Functions, very useful
@@ -138,6 +141,17 @@ std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
 #include "../AST/advanced_operators.hh"
 #include "../AST/constant.hh"
 #include "../AST/control_flow.hh"
+
+
+template<typename T, typename U = Statement>
+inline std::unique_ptr<U> stm(std::unique_ptr<T> mem){
+    static_assert(std::is_base_of<U, T>(), "Cannot cast non-statement derivative to statement");
+    auto& casted = *(std::unique_ptr<U>*)&mem;
+    return std::move(casted);
+}
+
+
+#define st(arg) stm(std::move(arg))
 std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
 {
     auto name = std::make_unique<LongName>();
@@ -214,11 +228,11 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
     retVal.push_back(temp);
     return retVal;
 }
-std::unique_ptr<Type> parse_type(std::vector<Token> &toks)
+std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
 {
     if (!toks.size())
         except(E_BAD_TYPE, "Failed to parse type");
-    std::unique_ptr<Type> ret;
+    std::shared_ptr<Type> ret;
     auto first = popf(toks);
     // string is an alias for 'i8*'
     if (first.is(TT_string))
@@ -240,14 +254,14 @@ std::unique_ptr<Type> parse_type(std::vector<Token> &toks)
     while (toks.size() && toks[0].is(TT_star))
     {
         popf(toks);
-        ret = Ptr::get(std::move(ret));
+        ret = Ptr::get(ret);
     }
     if(toks[0].is(TT_l_square_bracket)){
         popf(toks);
         pope(toks, TT_r_square_bracket);
         // TODO: possible explicit list length
 
-        ret = ListType::get(std::move(ret));
+        ret = ListType::get(ret);
     }
     return ret;
 }
@@ -643,7 +657,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
             loop->execute = std::move(exec_scope);
             loop->condition = std::move(eval_expr);
             loop->scope = scope.get();
-            scope->content.push(std::move(loop));
+            scope->content.push(st(loop));
             continue;
         }
         if (current.is(TT_for))
@@ -670,7 +684,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
                 cond->if_false = std::move(else_scope);
             }
 
-            scope->content.push(std::move(cond));
+            scope->content.push(st(cond));
             continue;
             except(E_INTERNAL, "Conditional parser is unimplemented");
         }
@@ -717,13 +731,15 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         {
             auto ret = std::make_unique<Return>();
             ret->scope = scope.get();
-            ret->value = parse_expr(line, scope.get());
+            if(line.size()){
+                ret->value = parse_expr(line, scope.get());
+            }
             scope->content.push(std::move(*ret));
             continue;
         }
         pushf(line, current);
         // Attempt to interpret the statement as an expression (as a last resort)
-        scope->content.push(parse_expr(line, scope.get()));
+        scope->content.push(st(parse_expr(line, scope.get())));
     }
     return scope;
 }
@@ -786,7 +802,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             }
             else popf(toks);
 
-            ret.push(std::move(method));
+            ret.push(stm<Method, ContainerMember>(std::move(method)));
 
         }
     }
@@ -853,7 +869,7 @@ std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)
             auto container = parse_container(toks);
             container->type = current.is(TT_module) ? CT_MODULE : current.is(TT_seed) ? CT_SEED : CT_NOTYPE;
             
-            unit->members.push(std::move(container));
+            unit->members.push(stm<Container, TopLevelEntity>(std::move(container)));
             break;
         }
         default:

@@ -70,7 +70,7 @@ public:
         auto value = builder()->CreateLoad(var.value->getType()->getPointerElementType(), var.value);
         return value;
     }
-    std::unique_ptr<Type> get_type(){
+    std::shared_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented for SourceVariable");
     }
 

@@ -22,7 +22,7 @@ template <typename T> T popf(std::vector<T>& vec)
     vec.erase(vec.begin());
     return first;
 }
-template <typename T> size_t indexof(std::vector<T> items, T item)
+template <typename T> long long indexof(std::vector<T> items, T item)
 {
     int idx = 0;
     for(auto i : items) {
