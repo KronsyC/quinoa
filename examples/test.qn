@@ -1,15 +1,11 @@
 
 module Hello is Entry{
     func main(argc: int) -> int{
-        return Util::nice();
+        const i : i64 = 11 + argc;
+
+        i = 13;
+        return i;
     }
 
 
-}
-
-
-module Util{
-    func nice()->int{
-        return 69;
-    }
 }

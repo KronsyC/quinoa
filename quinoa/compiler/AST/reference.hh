@@ -68,10 +68,16 @@ public:
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
         auto& var = vars[name->str()];
         auto value = builder()->CreateLoad(var.value->getType()->getPointerElementType(), var.value);
-        return value;
+        return cast(value, expected_type);
+    }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        auto& var = vars[name->str()];
+
+
+        return var.value;
     }
     std::shared_ptr<Type> get_type(){
-        except(E_INTERNAL, "get_type not implemented for SourceVariable");
+        return scope->get_type(name->str());
     }
 
     std::vector<Statement*> flatten(){

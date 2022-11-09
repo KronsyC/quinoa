@@ -99,7 +99,7 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
   }
   for(size_t i = 0; i < call->args.len(); i++){
 
-    auto&  arg_t  = call->args[i].type();
+    auto&  arg_t  = *call->args[i].type();
     auto& param_t = *method->get_parameter(i)->type;
 
     // Compare the types of the arg and param

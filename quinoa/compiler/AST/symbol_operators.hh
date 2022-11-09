@@ -41,6 +41,15 @@ public:
         for(auto m : operand->flatten())ret.push_back(m);
         return ret;
     }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        switch(op_type){
+            case PRE_star:
+                return operand->llvm_value(vars);
+            default:
+                except(E_BAD_ASSIGNMENT, "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type));
+        }
+        except(E_INTERNAL, "assign_ptr not implemented for Subscript");
+    }
 protected:
     std::shared_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented");
@@ -69,6 +78,10 @@ public:
     std::unique_ptr<Expr> right_operand;
     BinaryOpType op_type;
 
+    // The name of the variable that this expression
+    // is responsible for initializing (if any)
+    bool initializes;
+
     BinaryOperation(std::unique_ptr<Expr> left, std::unique_ptr<Expr> right, BinaryOpType op_type){
         left_operand = std::move(left);
         right_operand = std::move(right);
@@ -77,28 +90,45 @@ public:
     std::string str(){
         return "Some Binary op";
     }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
+    }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
         
         if(op_type == BIN_assignment){
-            if(!dynamic_cast<SourceVariable*>(left_operand.get()))except(E_BAD_ASSIGNMENT, "Cannot assign to non-identifier");
-            auto var = (SourceVariable*)left_operand.get();
-            auto var_name = var->name->str();
-            auto var_entry = vars[var_name];
-            if(var_entry.value == nullptr)except(E_BAD_ASSIGNMENT, "Failed to get variable: " + var_name);
-            if(var_entry.constant)except(E_BAD_ASSIGNMENT, "Cannot assign value to constant variable: " + var_name);
-            
-            auto var_ptr  = var_entry.value;
-            auto var_type = var_entry.type->llvm_type();
+            auto assignee = left_operand->assign_ptr(vars);
+            auto value    = right_operand->llvm_value(vars, assignee->getType()->getPointerElementType());
 
-            auto ass_val = right_operand->llvm_value(vars, var_type);
 
-            builder()->CreateStore(ass_val, var_ptr);
 
-            return cast(ass_val, expected_type);
+            // constant assignment check
+            if(auto var = dynamic_cast<SourceVariable*>(left_operand.get())){
+                auto& va = vars[var->name->str()];
+                if(this->initializes && !va.is_initialized){
+                    va.is_initialized = true;
+                }
+                else{
+                    if(va.is_initialized && va.constant)except(E_BAD_ASSIGNMENT, "Cannot reassign a constant variable: " + var->name->str());
+                }
+
+            }
+
+            builder()->CreateStore(value, assignee);
+
+
+            return cast(value, expected_type);
         }
 
-        auto left_val = left_operand->llvm_value(vars);
-        auto right_val = right_operand->llvm_value(vars);
+
+
+        auto left_t  = left_operand->type();
+        auto right_t = right_operand->type();
+
+        auto common_t = TypeUtils::get_common_type(left_t, right_t);
+
+        auto left_val = left_operand->llvm_value(vars, common_t->llvm_type());
+        auto right_val = right_operand->llvm_value(vars, common_t->llvm_type());
+
         auto op = get_op(left_val, right_val);
         return cast(op, expected_type);
     }

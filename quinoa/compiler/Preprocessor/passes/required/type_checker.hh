@@ -30,9 +30,9 @@ void validate_returns(Method &method)
             auto &ret_value = *ret->value;
 
             // Ensure the return value and return type are compatible
-            auto distance = get_type_distance_from(return_type, ret_value.type());
+            auto distance = get_type_distance_from(return_type, *ret_value.type());
             if (distance < 0)
-                except(E_BAD_RETURN, "Method " + method.name->str() + " has a return type of '" + return_type.str() + "', but a return statement was found to return '" + ret_value.type().str() + "', which is incompatible with the signature");
+                except(E_BAD_RETURN, "Method " + method.name->str() + " has a return type of '" + return_type.str() + "', but a return statement was found to return '" + ret_value.type()->str() + "', which is incompatible with the signature");
         }
     }
 }

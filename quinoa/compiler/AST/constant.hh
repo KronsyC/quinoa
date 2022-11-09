@@ -30,6 +30,9 @@ public:
     std::vector<Statement*> flatten(){
         return {this};
     }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        except(E_BAD_ASSIGNMENT, "Constant values are not assignable");
+    }
 };
 
 class Integer : public Constant<unsigned long long, Integer>
@@ -40,9 +43,9 @@ public:
     {
         return std::to_string(value);
     }
-    llvm::Constant *llvm_value(VariableTable& vars, llvm::Type* expected)
+    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected)
     {
-        return builder()->getInt32(value);
+        return cast(builder()->getInt64(value), expected);
     }
 
 protected:

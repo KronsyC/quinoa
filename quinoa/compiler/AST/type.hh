@@ -18,7 +18,7 @@ class TypeRef;
 class Type: public ANode{
 public:
     virtual llvm::Type* llvm_type() = 0;
-    virtual Type* pointee() = 0;
+    virtual std::shared_ptr<Type> pointee() = 0;
     virtual std::string str() = 0;
     template<class T>
     T* get(){
@@ -26,12 +26,13 @@ public:
         return dynamic_cast<T*>(this->drill());
     }
 
-    virtual bool operator==(const Type& compare){
-        except(E_INTERNAL, "Equality operator not implemented for type");
-    }
-protected:
+    virtual bool operator==(Type& compare) = 0;
 
-    /**
+
+
+    virtual Type* drill() = 0;
+protected:
+        /**
      * Helper method to instantiate a type onto the heap
      * types take heavy inspiration from llvm's type system
      * in that they are 'singletons' and can be directly
@@ -42,7 +43,7 @@ protected:
     */
     template<class T>
     static std::shared_ptr<T> create_heaped(T obj){
-
+        static_assert(std::is_base_of<Type, T>(), "You may only create a heap allocation of a type derivative");
         // O(n) cache mechanism
         // so we do not have to impl a
         // custom hashing fn for each type
@@ -58,8 +59,6 @@ protected:
         }
         return values[idx];
     }
-    virtual Type* drill() = 0;
-
 };
 
 
@@ -76,13 +75,17 @@ public:
     std::string str(){
         return primitive_names[kind];
     }
+    bool is(PrimitiveType kind){
+        return this->kind == kind;
+    }
 
 
     static std::shared_ptr<Primitive> get(PrimitiveType type){
         return create_heaped(Primitive(type));
     }
-    Type* pointee(){
-        return nullptr;
+    std::shared_ptr<Type> pointee(){
+        std::shared_ptr<Type> ret(nullptr);
+        return ret;
     }
     llvm::Type* llvm_type(){
         #define T(sw, name)case PR_##sw: return builder()->get##name##Ty();
@@ -137,8 +140,8 @@ public:
     llvm::Type* llvm_type(){
         return of->llvm_type()->getPointerTo();
     }
-    Type* pointee(){
-        return of.get();
+    std::shared_ptr<Type> pointee(){
+        return of;
     }
     static std::shared_ptr<Ptr> get(std::shared_ptr<Type> to){
         return create_heaped(Ptr(to));
@@ -163,8 +166,8 @@ public:
     ListType(std::shared_ptr<Type> type){
         this->of = std::move(type);
     }
-    Type* pointee(){
-        return of.get();
+    std::shared_ptr<Type> pointee(){
+        return of;
     }
     llvm::Type* llvm_type(){
         return of->llvm_type()->getPointerTo();

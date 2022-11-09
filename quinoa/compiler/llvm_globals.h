@@ -5,7 +5,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 struct Type;
-
+class BinaryOperation;
 
 class Variable
 {
@@ -13,6 +13,10 @@ public:
     Type* type;
     llvm::AllocaInst* value;
     bool constant = false;
+    bool is_initialized = false;
+    BinaryOperation* initializer_node = nullptr;
+
+
     Variable() = default;
     Variable(Type* type, llvm::AllocaInst* value, bool _const = true)
     {

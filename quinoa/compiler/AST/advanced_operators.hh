@@ -69,6 +69,9 @@ public:
         for(auto a : args)for(auto m : a->flatten())ret.push_back(m);
         return ret;
     }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        except(E_INTERNAL, "assign_ptr not implemented for MethodCall");
+    }
 
 protected:
     std::shared_ptr<Type> get_type()
@@ -158,6 +161,9 @@ public:
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
         except(E_INTERNAL, "llvm_value not implemented for Subscript");
+    }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        except(E_INTERNAL, "assign_ptr not implemented for Subscript");
     }
     std::shared_ptr<Type> get_type(){
         except(E_INTERNAL, "get_type not implemented for Subscript");

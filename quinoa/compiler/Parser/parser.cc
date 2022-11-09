@@ -419,8 +419,11 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent = nullpt
             return Integer::get(std::stoull(first.value));
         case TT_literal_str:
             return String::get(first.value);
-        case TT_identifier:
-            return std::make_unique<SourceVariable>(first.value);
+        case TT_identifier:{
+            auto id = std::make_unique<SourceVariable>(first.value);
+            id->scope = parent;
+            return id;
+        }
         default:
             except(E_BAD_EXPRESSION, "Failed to generate literal for '" + first.value + "'");
         }
