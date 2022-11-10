@@ -164,10 +164,11 @@ Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionSta
         if(best_rating == -1)best_rating = r.general_compat;
         else if(r.general_compat < best_rating)best_rating = r.general_compat;
       }
+
       std::vector<MatchRanking> suitors;
       for(auto r : ranks){
 
-        if(r.generic_count <= best_rating)suitors.push_back(r);
+        if(r.general_compat <= best_rating)suitors.push_back(r);
       }
       if(suitors.size() == 0)return nullptr;
   

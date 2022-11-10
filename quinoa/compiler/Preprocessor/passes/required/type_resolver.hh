@@ -13,5 +13,16 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 	bool isGood = true;
 	int resolveCount = 0;
 
+	for(auto method : unit.get_methods()){
+		for(auto node : method->content->content){
+			if(auto assign = dynamic_cast<InitializeVar*>(node.ptr)){
+				if(assign->type){
+					assign->scope->set_type(assign->var_name.str(), assign->type);
+				}	
+			}
+			
+		}
+	}
+
 	return {isGood, resolveCount};
 }

@@ -166,31 +166,30 @@ private:
     }
 protected:
     std::shared_ptr<Type> get_type(){
-        except(E_INTERNAL, "cannot get_type for BinaryOperation");
-        // switch(op_type){
-        //     	case BIN_plus:
-        //         case BIN_minus:
-        //         case BIN_star:
-        //         case BIN_slash:
-        //         case BIN_percent:
-        //         case BIN_bitiwse_or:
-        //         case BIN_bitwise_and:
-        //         case BIN_bitwise_shl:
-        //         case BIN_bitwise_shr:
-        //         case BIN_bitwise_xor:
-        //         case BIN_bool_and:
-        //         case BIN_bool_or:
-        //         case BIN_greater:
-        //         case BIN_greater_eq:
-        //         case BIN_equals:
-        //         case BIN_not_equals:
-        //         case BIN_lesser:
-        //         case BIN_lesser_eq:
-        //             return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
-        //         case BIN_assignment:
-        //             return std::make_unique<Type>(right_operand->type());
-        //         default: except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
-        // }
+        switch(op_type){
+            	case BIN_plus:
+                case BIN_minus:
+                case BIN_star:
+                case BIN_slash:
+                case BIN_percent:
+                case BIN_bitwise_or:
+                case BIN_bitwise_and:
+                case BIN_bitwise_shl:
+                case BIN_bitwise_shr:
+                case BIN_bitwise_xor:
+                case BIN_bool_and:
+                case BIN_bool_or:
+                case BIN_greater:
+                case BIN_greater_eq:
+                case BIN_equals:
+                case BIN_not_equals:
+                case BIN_lesser:
+                case BIN_lesser_eq:
+                    return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
+                case BIN_assignment:
+                    return right_operand->type();
+                default: except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
+        }
     }
 };
 
