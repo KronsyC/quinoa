@@ -330,6 +330,9 @@ module
 @alias seed
 seed
 
+@alias struct
+struct
+
 @alias func
 func
 
@@ -348,11 +351,9 @@ let
 @alias const
 const
 
-@alias pub
-public_access
+@alias pvt
+private
 
-@alias inst
-instance_access
 
 # Builtin Functions
 

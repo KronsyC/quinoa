@@ -6,6 +6,9 @@
 #include "../llvm_globals.h"
 #include "../token/token.h"
 #include "../../lib/list.h"
+
+
+#include "./reference.hh"
 enum PrimitiveType { PRIMITIVES_ENUM_MEMBERS };
 static std::map<PrimitiveType, std::string> primitive_names{ PRIMITIVES_ENUM_NAMES };
 static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAPPINGS};
@@ -28,7 +31,7 @@ public:
 
     virtual bool operator==(Type& compare) = 0;
 
-
+    virtual int distance_from(Type& target) = 0;
 
     virtual Type* drill() = 0;
 protected:
@@ -78,7 +81,14 @@ public:
     bool is(PrimitiveType kind){
         return this->kind == kind;
     }
+    int distance_from(Type& target){
+        if(!target.get<Primitive>())return -1;
+        auto& prim = *(Primitive*)&target;
+        if(prim.kind == this->kind)return 0;
 
+        if(primitive_group_mappings[prim.kind] == primitive_group_mappings[kind])return 1;
+        return -1;
+    }
 
     static std::shared_ptr<Primitive> get(PrimitiveType type){
         return create_heaped(Primitive(type));
@@ -116,7 +126,10 @@ public:
         }
         return false;
     }
-
+    private:
+    static inline std::map<PrimitiveType, std::string> primitive_group_mappings{
+        PRIMITIVES_ENUM_GROUPS
+    };
 };
 
 class Ptr: public Type{
@@ -153,6 +166,13 @@ public:
         }
         return false;
     }
+
+    int distance_from(Type& target){
+        auto pt = target.get<Ptr>();
+        if(!pt)return -1;
+        return this->of->distance_from(*pt->of);
+    }
+
 };
 
 class ListType: public Type{
@@ -169,14 +189,15 @@ public:
     std::shared_ptr<Type> pointee(){
         return of;
     }
-    llvm::Type* llvm_type(){
-        return of->llvm_type()->getPointerTo();
-    }
+
     std::string str(){
         return of->str() + "[]";
     }
     static std::shared_ptr<ListType> get(std::shared_ptr<Type> of){
         return create_heaped(ListType(of));
+    }
+    llvm::Type* llvm_type(){
+        return of->llvm_type()->getPointerTo();
     }
     bool operator==(Type& against){
         if(auto k = against.get<ListType>()){
@@ -184,10 +205,59 @@ public:
         }
         return false;
     }
+
+    int distance_from(Type& target){
+        auto lt = target.get<ListType>();
+        if(!lt)return -1;
+        return this->of->distance_from(*lt->of);
+    }
+
 };
+
+class StructType: public Type{
+
+};
+
 class TypeRef : public Type{
 public:
-    
+    std::unique_ptr<LongName> name;
+    std::shared_ptr<Type> resolves_to;
+
+
+    Type* drill(){
+        if(resolves_to)return resolves_to->drill();
+        return this;
+    }
+
+    std::string str(){
+        if(resolves_to)return resolves_to->str();
+        else return "unresolved_t:"+name->str();
+    }
+    std::shared_ptr<Type> pointee(){
+        return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
+    }
+
+    static std::shared_ptr<TypeRef> create(std::unique_ptr<LongName> name){
+        // do not cache TypeRefs, as multiple refs may share the same name
+        // but refer to an entirely different type depending on context
+
+        auto pt = std::make_shared<TypeRef>();
+        pt->name = std::move(name);
+        return pt;
+    }
+    llvm::Type* llvm_type(){
+        if(resolves_to)return resolves_to->llvm_type();
+        except(E_UNRESOLVED_TYPE, "Cannot generate llvm value for unresolved type reference: " + name->str());
+    }
+    bool operator==(Type& against){
+        if(!resolves_to)return false;
+        return *resolves_to == against;
+    }
+
+    int distance_from(Type& target){
+        if(!resolves_to)return -1;
+        return resolves_to->distance_from(target);
+    }
 };
 class Generic : public TypeRef{
 

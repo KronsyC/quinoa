@@ -16,7 +16,7 @@ void warn_unreachable_code(Scope& scope){
         if(code->returns() == ReturnChance::DEFINITE)returned_node_idx = i;
         i++;
     }
-    
+
     for(auto code : scope.flatten()){
         if(!code->scope){
             continue;
@@ -43,6 +43,7 @@ void warn_unreachable_code(Scope& scope){
 
 void warn_unreachable_code(CompilationUnit& unit){
     for(auto method : unit.get_methods()){
+        if(!method->content)continue;
         warn_unreachable_code(*method->content);
     }
 }

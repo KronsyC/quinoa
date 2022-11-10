@@ -2,7 +2,6 @@
 #include "./ast.hh"
 #include "./include.hh"
 #include "llvm/IR/Value.h"
-#include "./type.hh"
 #include <map>
 #include "../llvm_globals.h"
 

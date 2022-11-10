@@ -32,6 +32,30 @@ void resolve_compositor_refs(Container* mod, CompilationUnit unit){
         if(!comp->refers_to){
             error("Failed to resolve compositor for " + comp->name->str());
         }
+        if(comp->refers_to->type != ContainerType::CT_SEED){
+            except(E_BAD_COMPOSITOR, "Container '" + mod->name->str() + "' cannot inherit from non-seed '" + comp->str()+"'");
+        }
+
+
+        for(auto method : comp->refers_to->get_methods()){
+            Logger::debug("method: " + method->name->str());
+
+            // if there is no implementation, ensure the derived
+            // module implements the method
+            if(!method->content){
+                auto derives = mod->implements_compatible_method(method);
+                if(!derives)except(E_BAD_COMPOSITOR, "Container " + mod->name->str() + " does not fully implement the compositor: " + comp->name->str()
+                + "\n\t missing implementation for method: " + method->name->member->str());
+            }
+            else{
+                auto derives = mod->implements_compatible_method(method);
+                if(derives)continue;
+                else{
+                    mod->inherited_members.push((ContainerMember*)method);
+                }
+            }
+
+        }
     }
 }
 

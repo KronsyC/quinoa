@@ -47,8 +47,8 @@ public:
 
         builder()->SetInsertPoint(cont_block);
 
+        // dangling continue block, can safely remove
         if(returns() == ReturnChance::DEFINITE){
-            Logger::debug("dangling continue block");
             cont_block->removeFromParent();
             delete cont_block;
         }

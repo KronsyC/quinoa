@@ -113,14 +113,14 @@
 	new TokenDefinition(TT_import, "__import", {"import"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_module, "__module", {"module"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_seed, "__seed", {"seed"}, "", false, false, 0, false, false, ""),\
+	new TokenDefinition(TT_struct, "__struct", {"struct"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_func, "__func", {"func"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_is, "__is", {"is"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_as, "__as", {"as"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_return, "__return", {"return"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_let, "__let", {"let"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_const, "__const", {"const"}, "", false, false, 0, false, false, ""),\
-	new TokenDefinition(TT_public_access, "__public_access", {"pub"}, "", false, false, 0, false, false, ""),\
-	new TokenDefinition(TT_instance_access, "__instance_access", {"inst"}, "", false, false, 0, false, false, ""),\
+	new TokenDefinition(TT_private, "__private", {"pvt"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_cast, "__cast", {}, "", false, false, 0, false, false, {"cast"}),\
 	new TokenDefinition(TT_length, "__length", {}, "", false, false, 0, false, false, {"len"}),\
 	
@@ -207,14 +207,14 @@
 	TT_import,\
 	TT_module,\
 	TT_seed,\
+	TT_struct,\
 	TT_func,\
 	TT_is,\
 	TT_as,\
 	TT_return,\
 	TT_let,\
 	TT_const,\
-	TT_public_access,\
-	TT_instance_access,\
+	TT_private,\
 	TT_cast,\
 	TT_length,\
 	

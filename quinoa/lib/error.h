@@ -14,6 +14,7 @@ void error(std::string reason, bool trace = false);
     X(INTERNAL)            \
     X(BAD_ARGS)            \
     X(BAD_CONTROL_FLOW)    \
+    X(BAD_COMPOSITOR)      \
     X(BAD_VAR)             \
     X(BAD_RETURN)          \
     X(UNDECLARED_VAR)      \

@@ -30,46 +30,8 @@ public:
   }
 };
 
-std::map<PrimitiveType, std::string> primitive_group_mappings{
-  PRIMITIVES_ENUM_GROUPS
-};
 
-int get_type_distance_from(Type& target, Type& type){
 
-    // if they perfectly match, +0
-    // if they match upon implicit casting (primitive) return 1
-    // if they match upon implicit casting (inherited) return distance
-    // if they do not match, return -1
-
-  if(target.get<Ptr>() && type.get<Ptr>()){
-    auto ptr1 = target.pointee();
-    auto ptr2 = type.pointee();
-    if(!ptr1 || !ptr2)return -1;
-    return get_type_distance_from(*ptr1, *ptr2);
-  }
-
-  if(target.get<Primitive>() && type.get<Primitive>()){
-    auto p1 = target.get<Primitive>();
-    auto p2 = type.get<Primitive>();
-
-    if(p1->kind == p2->kind)return 0;
-
-    auto g1 = primitive_group_mappings[p1->kind];
-    auto g2 = primitive_group_mappings[p2->kind];
-
-    if( g1 == g2 )return 1;
-    else{
-      Logger::error("Cannot implicitly cast " + type.str() + " to " + target.str());
-      return -1;
-    }
-  }
-  #if DEBUG_MODE
-    Logger::enqueueMode(false);
-    Logger::warn("Failed to get distance from " + type.str() + " to " + target.str());
-    Logger::enqueueMode(true);
-  #endif
-  return -1;
-}
 
 MatchRanking rank_method_against_call(Method* method, MethodCall* call){
   // Sanity Checks
@@ -103,7 +65,7 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
 
     // Compare the types of the arg and param
 
-    auto score = get_type_distance_from(param_t, arg_t);
+    auto score = arg_t.distance_from(param_t);
     if(score == -1){
       ranking.possible = false;
       break;

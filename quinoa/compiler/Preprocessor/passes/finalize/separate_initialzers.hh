@@ -11,6 +11,7 @@
 void split_initializers(CompilationUnit &unit)
 {
     for(auto method : unit.get_methods()){
+        if(!method->content)continue;
         for(auto code : method->content->flatten()){
             if(auto init = dynamic_cast<InitializeVar*>(code)){
                 if(init->initializer){

@@ -126,7 +126,7 @@ public:
 
     std::vector<Statement*> flatten(){
         std::vector<Statement*> ret = {this};
-        for(auto m : initializer->flatten())ret.push_back(m);
+        if(initializer)for(auto m : initializer->flatten())ret.push_back(m);
         return ret;
     }
 

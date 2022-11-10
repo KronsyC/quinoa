@@ -179,11 +179,7 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 		}
 		else except(E_INTERNAL, "Attempt to hoist unrecognized node");
 	}
-
-	for (auto child : mod.members)
-	{
-		if (auto method = dynamic_cast<Method *>(child.ptr))
-		{
+	for(auto method : mod.get_methods()){
 			auto fname = method->source_name();
 			auto fn = llmod->getFunction(fname);
 			if (fn == nullptr)
@@ -200,10 +196,8 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 			if (fn->getReturnType()->isVoidTy())
 				builder()->CreateRetVoid();
 			continue;
-		}
-		else
-			except(E_INTERNAL, "Failed to generate module member");
 	}
+ 
 	return llmod;
 }
 

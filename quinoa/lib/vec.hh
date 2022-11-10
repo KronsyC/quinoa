@@ -38,7 +38,7 @@ public:
     }
     template<typename U>
     void push(U item){
-        static_assert(std::is_base_of<T, U>(), "Not a subtype??");
+        static_assert(std::is_base_of<T, U>() || std::is_same<T, U>(), "Incompatible Types");
         auto alloc = new U(std::move(item));
         VecItem i;
         i.ptr = alloc;
@@ -91,7 +91,14 @@ public:
         return *_items[idx].ptr;
     }
 
-
+    std::vector<T*> release(){
+        this->delete_members = false;
+        std::vector<T*> ret;
+        for(auto i : _items){
+            ret.push_back(i.ptr);
+        }
+        return ret;
+    }
     void set(size_t idx, T& item){
         _items[idx].ptr = &item;
     }

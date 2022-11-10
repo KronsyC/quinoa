@@ -242,7 +242,10 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
     }
     else if (first.is(TT_identifier))
     {
-        except(E_INTERNAL, "Reference Types are currently unsupported");
+        pushf(toks, first);
+        auto name = parse_long_name(toks);
+        auto rt = TypeRef::create(std::move(name));
+        ret = rt;
     }
     else
         except(E_BAD_TYPE, "Failed to parse type: " + first.value);
@@ -718,7 +721,6 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
             continue;
         }
 
-        
         if (current.is(TT_let) || current.is(TT_const))
         {
             auto init = std::make_unique<InitializeVar>();
@@ -762,17 +764,33 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
     }
     return scope;
 }
-Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container *parent)
+Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container *parent, bool within_struct = false)
 {
 
     Vec<ContainerMember> ret;
 
-    // bool is_public = false;
-    // bool is_inst   = false;
+    bool is_public = true;
 
     while (toks.size())
     {
         auto current = popf(toks);
+        if(current.is(TT_private) && is_public){
+            is_public = false;
+            break;
+        }
+
+        if(current.is(TT_struct)){
+            if(within_struct)except(E_ERR, "Nested structs are unsupported");
+            // the `struct` keyword in this context
+            // denotes a block of instance members
+
+            auto block = read_block(toks, IND_braces);
+            auto content = parse_container_content(toks, parent, true);
+            for(auto member : content.release()){
+                member->instance_only = true;
+                ret.push(std::unique_ptr<ContainerMember>(member));
+            }
+        }
 
         if (current.is(TT_func))
         {
@@ -823,8 +841,35 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             else
                 popf(toks);
 
+            method->local_only = !is_public;
+
+            is_public = true;
+
             ret.push(stm<Method, ContainerMember>(std::move(method)));
+            continue;
         }
+        if(current.is(TT_identifier)){
+            auto prop = std::make_unique<Property>();
+
+            prop->name = std::make_unique<ContainerMemberRef>();
+            prop->name->member = std::make_unique<Name>(current.value);
+            prop->name->container = parent->get_ref();
+
+            auto line = read_to(toks, TT_semicolon);
+
+            expects(popf(line), TT_colon);
+            prop->type = parse_type(line);
+
+            if(line.size()){
+                expects(popf(line), TT_assignment);
+                prop->initializer = parse_expr(line, nullptr);
+            }
+            prop->local_only = !is_public;
+            is_public = true;
+            ret.push(stm<Property, ContainerMember>(std::move(prop)));
+        }
+    
+    
     }
 
     return ret;
@@ -885,10 +930,20 @@ std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)
         }
         case TT_module:
         case TT_seed:
+        case TT_struct:
         {
             auto container = parse_container(toks);
-            container->type = current.is(TT_module) ? CT_MODULE : current.is(TT_seed) ? CT_SEED
-                                                                                      : CT_NOTYPE;
+            container->type = current.is(TT_module) ? CT_MODULE 
+                            : current.is(TT_seed)   ? CT_SEED
+                            : current.is(TT_struct) ? CT_STRUCT
+                            : CT_NOTYPE;
+
+            if(current.is(TT_struct)){
+                // instance all members
+                for(auto mem : container->members){
+                    mem->instance_only = true;
+                }
+            }
 
             unit->members.push(stm<Container, TopLevelEntity>(std::move(container)));
             break;

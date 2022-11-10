@@ -14,6 +14,7 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 	int resolveCount = 0;
 
 	for(auto method : unit.get_methods()){
+		if(method->content)
 		for(auto node : method->content->content){
 			if(auto assign = dynamic_cast<InitializeVar*>(node.ptr)){
 				if(assign->type){

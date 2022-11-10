@@ -13,12 +13,15 @@ class ContainerMember : public ANode{
 public:
     std::unique_ptr<ContainerMemberRef> name;
     Container* parent;
+    bool instance_only = false;
+    bool local_only    = false;
 };
 
 
 class Property : public ContainerMember{
 public:
     std::unique_ptr<Expr> initializer;
+    std::shared_ptr<Type> type;
 };
 
 
@@ -64,5 +67,20 @@ public:
             name += "." + p->type->str();
         }
         return name;
+    }
+
+    bool is_equivalent_to(Method* method){
+
+        // basic checks (extremely strict, possibly lax this in the future)
+        if(name->member->str() != method->name->member->str())return false;
+        if(generic_params.len() != method->generic_params.len())return false;
+        if(parameters.len() != method->parameters.len())return false;
+
+        // type-related checks
+        if(return_type->distance_from(*method->return_type) < 0)return false;
+        for(size_t i = 0; i < parameters.len(); i++){
+            if(parameters[i].type->distance_from(*method->parameters[i].type) < 0)return false; 
+        }
+        return true;
     }
 };

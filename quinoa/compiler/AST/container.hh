@@ -49,6 +49,9 @@ public:
     Vec<Generic>         generics;
     Vec<ContainerRef>    compositors;
     ContainerType        type = CT_NOTYPE;
+
+    Vec<ContainerMember*> inherited_members;
+
     std::shared_ptr<ContainerRef> get_ref(){
         if(!self_ref)self_ref = std::make_shared<ContainerRef>();
         self_ref->refers_to = this;
@@ -85,8 +88,22 @@ public:
                 ret.push_back(method);
             }
         }
+        for(auto member : inherited_members){
+            if(auto method = dynamic_cast<Method*>(*member.ptr)){
+                ret.push_back(method);
+            }
+        }
         return ret;
     }
+
+    bool implements_compatible_method(Method* check_against){
+        for(auto method : this->get_methods()){
+            auto is_equiv = method->is_equivalent_to(check_against);
+            if(is_equiv)return true;
+        }
+        return false;
+    }
+
 private:
     std::shared_ptr<ContainerRef> self_ref;
 

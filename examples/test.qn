@@ -1,15 +1,18 @@
 
+module Person{
+    struct{
+        name : c_str;
+        age  : int;
+        
+    }
+}
+
 module Hello is Entry
 {
 
     func main(argc: int) -> int{
-
-        if(argc == 1){
-            return 100;
-        }        
-        else{
-            return 69;
-        }
+        let me : Person;
+        return 0;
 
     }
 
