@@ -4,16 +4,14 @@ module Hello is Entry
 
     func main(argc: int) -> int{
 
-        const o : i32 = 11;
-        
-        return nice(o);
+        if(argc == 1){
+            return 100;
+        }        
+        else{
+            return 69;
+        }
+
     }
 
-    func nice(offset : i8) -> i32{
-        return 69 + offset;
-    }
-    func nice(offset : i32) -> i32{
-        return 69 + offset;
-    }
 
 }

@@ -9,6 +9,10 @@
 #include "./type.hh"
 #include "./include.hh"
 
+
+
+
+
 class MethodCall : public Expr
 {
 public:
@@ -107,6 +111,9 @@ public:
         if(value)for(auto m : value->flatten())ret.push_back(m);
         return ret;
     }
+    ReturnChance returns(){
+        return ReturnChance::DEFINITE;
+    }
 };
 
 class InitializeVar : public Statement
@@ -139,6 +146,10 @@ public:
         auto alloca  = builder()->CreateAlloca(ll_type);
         auto name    = var_name.str();
         vars[name] = Variable(type.get(), alloca, is_constant);
+    }
+
+    ReturnChance returns(){
+        return ReturnChance::NEVER;
     }
 };
 

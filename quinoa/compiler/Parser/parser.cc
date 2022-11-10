@@ -404,7 +404,7 @@ std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segm
     }
     return member_ref;
 }
-std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent )
+std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
     if (!toks.size())
         except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
@@ -702,6 +702,23 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         auto line = read_to(toks, TT_semicolon);
         popf(toks);
 
+        if (current.is(TT_break))
+        {
+            scope->content.push(stm(std::make_unique<ControlFlowJump>(JumpType::BREAK)));
+            continue;
+        }
+        if (current.is(TT_continue))
+        {
+            scope->content.push(stm(std::make_unique<ControlFlowJump>(JumpType::CONTINUE)));
+            continue;
+        }
+        if (current.is(TT_fallthrough))
+        {
+            scope->content.push(stm(std::make_unique<ControlFlowJump>(JumpType::FALLTHROUGH)));
+            continue;
+        }
+
+        
         if (current.is(TT_let) || current.is(TT_const))
         {
             auto init = std::make_unique<InitializeVar>();

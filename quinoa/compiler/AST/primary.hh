@@ -8,12 +8,20 @@
 
 class Scope;
 
+enum ReturnChance{
+    NEVER,
+    MAYBE,
+    DEFINITE,
+};
+
 class Statement : public ANode{
 public:
     virtual void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) = 0;
     virtual std::string str() = 0;
     virtual std::vector<Statement*> flatten() = 0;
+    virtual ReturnChance returns() = 0;
     Scope* scope = nullptr;
+
 };
 
 /**
@@ -54,6 +62,9 @@ public:
     Expr& get_parent(){
         return *this->parent_expr;
     }
+    ReturnChance returns(){
+        return ReturnChance::NEVER;
+    }
     virtual llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr) = 0;
     virtual llvm::Value* assign_ptr(VariableTable& vars) = 0;
     
@@ -74,6 +85,56 @@ private:
     std::shared_ptr<Type> cached_type;
 };
 
+enum JumpType{
+    BREAK,
+    CONTINUE,
+    FALLTHROUGH,
+};
+
+class ControlFlowJump : public Statement{
+public:
+    JumpType type;
+    ControlFlowJump(JumpType type){
+        this->type = type;
+    }
+    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+        switch(type){
+            case JumpType::BREAK:{
+                if(!CFI.breakTo)except(E_BAD_CONTROL_FLOW, "Cannot break from a non-breakable scope");
+                builder()->CreateBr(CFI.breakTo);
+                break;
+            }
+            case JumpType::CONTINUE:{
+                if(!CFI.continueTo)except(E_BAD_CONTROL_FLOW, "Cannot continue from a non-continuable scope");
+                builder()->CreateBr(CFI.continueTo);
+                break;
+            }
+            case JumpType::FALLTHROUGH:{
+                if(!CFI.fallthroughTo)except(E_BAD_CONTROL_FLOW, "Cannot fallthrough from a non-fallthroughable scope");
+                builder()->CreateBr(CFI.fallthroughTo);
+                break;
+            }
+            default: except(E_INTERNAL, "Bad control flow jump type");
+        }
+    }
+
+    std::string str(){
+        switch(type){
+            case BREAK: return "break";
+            case CONTINUE: return "continue";
+            case FALLTHROUGH: return "fallthrough";
+            default: return "unknown_cfj_op";
+        }
+    }
+
+    std::vector<Statement*> flatten(){
+        return {this};
+    }
+    ReturnChance returns(){
+        return ReturnChance::NEVER;
+    }
+};
+
 
 /**
  * A 'scope' represents the contents of a braced block
@@ -86,12 +147,12 @@ public:
     std::string str(){
         std::string output = "{\n";
         for(auto item : content){
-            auto str = item->str();
-            str = std::regex_replace(str, std::regex("\n"), "\n\t");
-            output += str;
+            auto str = "   " + item->str();
+            str = std::regex_replace(str, std::regex("\n"), "\n   ");
+            output += str + ";";
             output+="\n";
         }
-        return output + "\n}";
+        return output + "}";
     }
 
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
@@ -113,6 +174,21 @@ public:
         if(lookup)return lookup;
         else if(scope)return scope->get_type(var_name);
         else except(E_UNRESOLVED_TYPE, "Failed to get type of '" + var_name + "'");
+    }
+
+    ReturnChance returns(){
+
+
+        for(auto item : content){
+
+
+            if(dynamic_cast<ControlFlowJump*>(item.ptr))return ReturnChance::NEVER;
+
+            if(item->returns() == ReturnChance::MAYBE)return ReturnChance::MAYBE;            
+            if(item->returns() == ReturnChance::DEFINITE)return ReturnChance::DEFINITE;
+        }
+
+        return ReturnChance::NEVER;
     }
 private:
     std::map<std::string, std::shared_ptr<Type>> type_table;
