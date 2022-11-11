@@ -15,7 +15,10 @@ public:
         return _items.end();
     }
 
+    Vec(Vec&) = delete;
 
+
+    Vec& operator=(Vec&& tg) = default;
     void push(std::unique_ptr<T> item){
         // static_assert(std::is_base_of<T, U>(), "Not a subtype??");
 
@@ -92,11 +95,11 @@ public:
     }
 
     std::vector<T*> release(){
-        this->delete_members = false;
         std::vector<T*> ret;
         for(auto i : _items){
             ret.push_back(i.ptr);
         }
+        _items.clear();
         return ret;
     }
     void set(size_t idx, T& item){
@@ -124,9 +127,20 @@ public:
         }
         _items.clear();
     }
+    Vec(Vec&& from){
+        this->_items = from._items;
+        from._items.clear();
+    }
+
+    ~Vec(){
+        for(auto item : _items){
+            if(item.owned)
+                delete item.ptr;
+        }
+        _items.clear();
+    }
 private:
     std::vector<VecItem> _items;
-    bool delete_members = true;
 
 
 

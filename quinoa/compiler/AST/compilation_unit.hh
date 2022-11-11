@@ -34,9 +34,19 @@ public:
         }
         return ret;
     }
+    std::vector<Property*> get_properties(){
+        std::vector<Property*> ret;
+        for(auto* cont : get_containers()){
+            for(auto prop : cont->get_properties()){
+                ret.push_back(prop);
+            }
+        }
+        return ret;
+    }
     std::vector<ContainerMember*> get_hoists(){
         std::vector<ContainerMember*> ret;
         for(auto m : get_methods())ret.push_back(m);
+        for(auto p : get_properties())ret.push_back(p);
         return ret;
     }
 

@@ -12,8 +12,14 @@
 #include "./include.hh"
 #include "./type.hh"
 
+class ConstantValue : public Expr{
+public:
+    virtual llvm::Constant* const_value(llvm::Type* expected) = 0;
+
+};
+
 template <typename T, typename U>
-class Constant : public Expr
+class Constant : public ConstantValue
 {
 public:
     T value;
@@ -33,6 +39,7 @@ public:
     llvm::Value* assign_ptr(VariableTable& vars){
         except(E_BAD_ASSIGNMENT, "Constant values are not assignable");
     }
+
 };
 
 class Integer : public Constant<unsigned long long, Integer>
@@ -45,7 +52,14 @@ public:
     }
     llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected)
     {
-        return cast(builder()->getInt64(value), expected);
+        return const_value(expected);
+    }
+    llvm::Constant* const_value(llvm::Type* expected){
+
+        auto val = builder()->getInt64(value);
+        auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, true);
+        return cast;
+
     }
 
 protected:
@@ -83,9 +97,14 @@ public:
         return "\""+value+"\"";
     }
     llvm::Constant* llvm_value(VariableTable& vars, llvm::Type* expected){
-        return builder()->CreateGlobalStringPtr(value);
+        return const_value(expected);
     }
     std::shared_ptr<Type> get_type(){
         return Ptr::get(Primitive::get(PR_int8));
+    }
+    llvm::Constant* const_value(llvm::Type* expected){
+        auto val = builder()->CreateGlobalStringPtr(value);
+        auto opcode = llvm::CastInst::getCastOpcode(val, true, expected, true);
+        return llvm::ConstantExpr::getCast(opcode, val, expected, false);
     }
 };

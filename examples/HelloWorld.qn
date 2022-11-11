@@ -1,9 +1,12 @@
-import @io as io;
-module HelloWorld is Entry{
+import @io;
 
-    pub func main(argc:int, argv:c_str*) -> int{
+module HelloWorldExample is Entry{
+
+    func main(argc:int, argv:c_str*) -> int{
+
         io::println("Hello, World!");
         return 0;
+        
     } 
 
 }

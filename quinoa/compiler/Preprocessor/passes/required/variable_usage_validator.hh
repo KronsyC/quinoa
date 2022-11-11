@@ -34,6 +34,13 @@ void validate_variable_usage(CompilationUnit& unit){
         for(auto& p : method->parameters){
             declarations.push_back(p->name.str());
         }
+        for(auto prop : unit.get_properties()){
+            declarations.push_back(prop->name->str());
+
+            if(prop->name->container == method->name->container){
+                declarations.push_back(prop->name->member->str());
+            }
+        }
 
         validate_usage(*method->content, declarations);
     }

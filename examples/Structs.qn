@@ -1,0 +1,45 @@
+module Person{
+    struct{
+        name    : c_str;
+        surname : c_str;
+        age     : int;
+        nationality : c_str;
+
+        func age(years : int){
+            (*this).age += years;
+        }
+
+    }
+
+
+    func create(name : c_str, surname: c_str, age : int, nationality: c_str) -> Person{
+        
+        // A struct must be fully initialized within the initializer block
+        // otherwise, the compiler will throw an error
+
+        return Person{
+            .name = name;
+            .surname = surname;
+            .age = age;
+            .nationality = nationality;
+        }
+
+    }
+}
+
+module StructsExample is Entry
+{
+    func main() -> int{
+        
+        // call the `create` function to instantiate a new person
+        let person = Person::create("John", "Doe", 38, "American");
+
+
+        person.age(5);
+        // John Doe is now 43 years old 
+
+        return person.age;
+
+    }
+
+}

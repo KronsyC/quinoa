@@ -96,6 +96,18 @@ public:
         return ret;
     }
 
+    std::vector<Property*> get_properties(){
+        std::vector<Property*> ret;
+
+        for(auto& member : members){
+            if(auto prop = dynamic_cast<Property*>(member.ptr)){
+                ret.push_back(prop);
+            }
+        }
+
+        return ret;
+    }
+
     bool implements_compatible_method(Method* check_against){
         for(auto method : this->get_methods()){
             auto is_equiv = method->is_equivalent_to(check_against);

@@ -59,24 +59,21 @@ llvm::Function *make_fn(
 	return fn;
 }
 
-// llvm::GlobalValue *make_global(Property *prop,
-// 							   llvm::Module *mod,
-// 							   llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage)
-// {
-// 	Logger::debug("Create global " + prop->str());
-// 	auto type = prop->type->getLLType();
-// 	auto initializer = prop->initializer;
-// 	llvm::Constant *const_initializer = nullptr;
-// 	if (initializer)
-// 	{
-// 		auto constant = initializer->constant();
-// 		if (!constant)
-// 			except(E_BAD_OPERAND, "Initialzer to " + prop->name->str() + " must be a constant value");
-// 		const_initializer = constant->getLLConstValue(type);
-// 	}
-// 	auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->str());
-// 	return global;
-// }
+llvm::GlobalValue *make_global(
+	Property *prop,						   
+	llvm::Module *mod,
+	llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage
+	)
+{
+	Logger::debug("Create global " + prop->name->str());
+	auto type = prop->type->llvm_type();
+	llvm::Constant *const_initializer = nullptr;
+	if (prop->initializer) const_initializer = prop->initializer->const_value(type);
+	else const_initializer = prop->type->default_value(type);
+	
+	auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->name->str());
+	return global;
+}
 
 VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, Method *method)
 {
@@ -84,20 +81,22 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 		except(E_INTERNAL, "Cannot varify the args of a null function");
 	VariableTable vars;
 
-	// // Inject the peer properties as non-prefixed variables
-	// for (auto prop : method->memberOf->getAllProperties())
-	// {
-	// 	auto prop_name = prop->name->member;
-	// 	auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->str());
-	// 	vars[prop_name->str()] = new Variable(prop->type, init);
-	// }
-	// // Inject all properties as full variables
-	// for (auto prop : ast.getAllProperties())
-	// {
-	// 	auto prop_name = prop->name;
-	// 	auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->str());
-	// 	vars[prop_name->str()] = new Variable(prop->type, init);
-	// }
+	// Inject the peer properties as non-prefixed variables
+	for (auto prop : method->parent->get_properties())
+	{
+		auto prop_name = prop->name->member->str();
+		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
+		vars[prop_name] = Variable(prop->type.get(), init);
+	}
+	// Inject all properties as full variables
+	for (auto prop : ast.get_properties())
+	{
+		auto prop_name = prop->name->str();
+		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
+		vars[prop_name] = Variable(prop->type.get(), init);
+	}
+
+
 
 	// // Inject the args as variables
 	for (unsigned int i = 0; i < fn->arg_size(); i++)
@@ -177,6 +176,9 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 		if(auto method = dynamic_cast<Method*>(hoist)){
 			make_fn(*method, llmod.get());
 		}
+		else if(auto prop = dynamic_cast<Property*>(hoist)){
+			make_global(prop, llmod.get());
+		}
 		else except(E_INTERNAL, "Attempt to hoist unrecognized node");
 	}
 	for(auto method : mod.get_methods()){
@@ -197,7 +199,7 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 				builder()->CreateRetVoid();
 			continue;
 	}
- 
+
 	return llmod;
 }
 

@@ -185,11 +185,11 @@ void resolve_imports(CompilationUnit *unit)
         auto mod = table["__default__"];
         if(!mod)error("Failed to import Module");
         // Replace all references to the alias with the actual name
-        auto alias = import->alias;
+        auto& alias = import->alias;
         auto full_name = mod->full_name();
         deAliasify(*unit, alias, full_name);
 
-        merge_units(unit, *ast);
+        merge_units(unit, std::move(*ast));
       }
 
       else

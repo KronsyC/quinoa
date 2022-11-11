@@ -276,7 +276,7 @@ Import parse_import(std::vector<Token> toks)
         imp.is_stdlib = true;
     }
 
-    imp.target = *parse_long_name(toks);
+    imp.target = std::move(*parse_long_name(toks));
     if (toks.size())
     {
         expects(popf(toks), TT_as);
@@ -287,7 +287,9 @@ Import parse_import(std::vector<Token> toks)
     else
     {
         // The default name is the import path
-        imp.alias = imp.target;
+        for(auto item : imp.target.parts){
+            imp.alias.parts.push(*item.ptr);
+        }
     }
     return imp;
 }
@@ -352,7 +354,7 @@ Name_Segment parse_name_segment(std::vector<Token> &toks)
             generic_args.push(std::move(type));
         }
     }
-    seg.type_args = generic_args;
+    seg.type_args = std::move(generic_args);
     return seg;
 }
 Vec<Name_Segment> parse_segmented_name(std::vector<Token> &toks)
@@ -361,7 +363,7 @@ Vec<Name_Segment> parse_segmented_name(std::vector<Token> &toks)
     while (toks.size())
     {
         auto id = parse_name_segment(toks);
-        segs.push(id);
+        segs.push(std::move(id));
         if (!toks[0].is(TT_double_colon))
             break;
         popf(toks);
@@ -370,12 +372,12 @@ Vec<Name_Segment> parse_segmented_name(std::vector<Token> &toks)
 }
 std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segment> segments)
 {
-    auto end = segments[segments.len() - 1];
+    auto& end = segments[segments.len() - 1];
     Vec<Name_Segment> container_name_segs;
 
     for (size_t i = 0; i < segments.len() - 1; i++)
     {
-        container_name_segs.push(segments[i]);
+        container_name_segs.push(std::move(segments[i]));
     }
 
     Vec<Type> container_type_args;
@@ -388,7 +390,7 @@ std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segm
         // Take the last segment generics to be the module type params
         if (i == container_name_segs.len() - 1)
         {
-            container_type_args = seg->type_args;
+            container_type_args = std::move(seg->type_args);
         }
         // No other segment should have type args
         else if (seg->type_args.len())
@@ -402,8 +404,8 @@ std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segm
     if (container_name.parts.len())
     {
         member_ref->container = std::make_unique<ContainerRef>();
-        member_ref->container->generic_args = container_type_args;
-        member_ref->container->name = std::make_unique<LongName>(container_name);
+        member_ref->container->generic_args = std::move(container_type_args);
+        member_ref->container->name = std::make_unique<LongName>(std::move(container_name));
     }
     return member_ref;
 }
@@ -433,6 +435,19 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
     }
 
     auto first = toks[0];
+
+    // Long variable name:  Foo::Bar::baz
+    if(first.is(TT_identifier)){
+        auto before = toks;
+        auto name = parse_long_name(toks);
+        if(!toks.size()){
+            auto var = std::make_unique<SourceVariable>(std::move(name));
+            var->scope = parent;
+            return var;
+        }
+        toks = before;
+    }
+
     // List Literal
     if (first.is(TT_l_square_bracket))
     {
@@ -487,8 +502,8 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         {
             auto segments = parse_segmented_name(toks);
 
-            auto generic_args = segments[segments.len() - 1].type_args;
-            auto member_ref = parse_member_ref_from_segments(segments);
+            auto& generic_args = segments[segments.len() - 1].type_args;
+            auto member_ref = parse_member_ref_from_segments(std::move(segments));
             if (toks[0].is(TT_l_paren))
             {
                 Vec<Expr> params;
@@ -501,9 +516,9 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 }
 
                 auto call = std::make_unique<MethodCall>();
-                call->args = params;
+                call->args = std::move(params);
                 call->name = std::move(member_ref);
-                call->type_args = generic_args;
+                call->type_args = std::move(generic_args);
                 call->scope = parent;
                 return call;
             }
@@ -697,7 +712,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
             pushf(toks, current);
             auto nested_toks = read_block(toks, IND_braces);
             auto nested_scope = parse_scope(nested_toks, scope.get());
-            scope->content.push(*nested_scope);
+            scope->content.push(std::move(*nested_scope));
             continue;
         }
 
@@ -771,9 +786,33 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
     bool is_public = true;
 
+    Vec<Attribute> attrs;
+
     while (toks.size())
     {
         auto current = popf(toks);
+
+        if(current.is(TT_hashtag)){
+            auto content = read_block(toks, IND_square_brackets);
+            auto attr_name = pope(content, TT_identifier).value;
+            Vec<ConstantValue> attr_args;
+            while(content.size()){
+                auto tok = popf(content);
+                auto expr = parse_expr({tok}, nullptr);
+
+                if(dynamic_cast<ConstantValue*>(expr.get())){
+                    attr_args.push(std::unique_ptr<ConstantValue>((ConstantValue*)expr.release()));
+                }
+                else except(E_BAD_ARGS, "Arguments to an attribute must be constants");
+            }
+
+            Attribute attr;
+            attr.arguments = std::move(attr_args);
+            attr.name = attr_name;
+            attrs.push(std::move(attr));
+
+        }
+
         if(current.is(TT_private) && is_public){
             is_public = false;
             break;
@@ -842,7 +881,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
                 popf(toks);
 
             method->local_only = !is_public;
-
+            method->attrs = std::move(attrs);
             is_public = true;
 
             ret.push(stm<Method, ContainerMember>(std::move(method)));
@@ -862,7 +901,11 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
             if(line.size()){
                 expects(popf(line), TT_assignment);
-                prop->initializer = parse_expr(line, nullptr);
+                auto init = parse_expr(line, nullptr);
+                if(dynamic_cast<ConstantValue*>(init.get())){
+                    prop->initializer = std::move(*(std::unique_ptr<ConstantValue>*)&init);
+                }
+                else except(E_BAD_ASSIGNMENT, "An Initializer must be a constant value");
             }
             prop->local_only = !is_public;
             is_public = true;

@@ -45,10 +45,19 @@ public:
         return ret;
 
     }
-
     Name& last(){
         return parts[parts.len() - 1];
     }
+
+    LongName(LongName& copy_from){
+        // for(auto p : copy_from.parts){
+        //     parts.push(*p.ptr);
+        // }
+    }
+    LongName(LongName&&) = default;
+    LongName& operator=(LongName&& to) = default;
+    LongName() = default;
+
 };
 
 class SourceVariable : public Name, public Expr{
@@ -56,6 +65,9 @@ public:
     std::unique_ptr<LongName> name;
     SourceVariable(LongName name){
         this->name = std::make_unique<LongName>(name);
+    }
+    SourceVariable(std::unique_ptr<LongName> name){
+        this->name = std::move(name);
     }
     SourceVariable(Name name){
         this->name = std::make_unique<LongName>();

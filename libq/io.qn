@@ -3,9 +3,9 @@ import @util::cstr as CStr;
 
 module IO is Exported{
 
-    let stdin:int = 0;
-    let stdout:int = 1;
-    let stderr:int = 2;
+    stdin  : int = 0;
+    stdout : int = 1;
+    stderr : int = 2;
     
     func strlen(str:c_str)->i64{
         let i:i64 = 0;
@@ -15,10 +15,10 @@ module IO is Exported{
         return i;
     }
 
-    pub func putc(ch:char){
+    func putc(ch:char){
         syscall::write(stdout, cast(<i64>)(&ch), 1);
     }
-    pub func print(message:c_str)->i64{
+    func print(message:c_str)->i64{
         let len = syscall::write(
             stdout, 
             cast(<i64>)(message), 
@@ -26,7 +26,7 @@ module IO is Exported{
         );
         return len;
     }
-    pub func println(message:c_str) -> i64{
+    func println(message:c_str) -> i64{
         let len = IO::print(message);
         IO::putc(10);
         return len+1;

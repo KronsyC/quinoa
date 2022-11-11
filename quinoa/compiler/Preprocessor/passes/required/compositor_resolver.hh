@@ -14,7 +14,7 @@ static std::vector<std::string> NATIVE_MODULES = {
     "CompilerImplemented"
 };
 
-void resolve_compositor_refs(Container* mod, CompilationUnit unit){
+void resolve_compositor_refs(Container* mod, CompilationUnit& unit){
     for(auto& comp:mod->compositors){
         auto name = comp->name->str();
         if(includes(NATIVE_MODULES, name))continue;

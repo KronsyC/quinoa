@@ -7,12 +7,20 @@
 
 #pragma once
 #include "./reference.hh"
+#include "./constant.hh"
 class Container;
+
+class Attribute{
+public:
+    std::string name;
+    Vec<ConstantValue> arguments;
+};
 
 class ContainerMember : public ANode{
 public:
     std::unique_ptr<ContainerMemberRef> name;
     Container* parent;
+    Vec<Attribute> attrs;
     bool instance_only = false;
     bool local_only    = false;
 };
@@ -20,7 +28,7 @@ public:
 
 class Property : public ContainerMember{
 public:
-    std::unique_ptr<Expr> initializer;
+    std::unique_ptr<ConstantValue> initializer;
     std::shared_ptr<Type> type;
 };
 
