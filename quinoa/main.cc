@@ -11,6 +11,9 @@
 #include <signal.h>
 #include <string>
 #include <vector>
+#include "sys/stat.h"
+
+#define TMP_DIR (std::string(QUINOA_DIR) + "/tmp")
 
 using namespace std;
 
@@ -29,6 +32,17 @@ void abort(int sig)
 }
 
 
+void assert_create_dirs(std::initializer_list<std::string> paths){
+    struct stat st = {0};
+
+    for(auto path : paths){
+        if (stat(path.c_str(), &st) == -1) {
+            mkdir(TMP_DIR.c_str(), 0700);
+        }
+    }
+
+}
+
 int main(int argc, char** argv)
 {
     // initialize random numbers
@@ -39,13 +53,16 @@ int main(int argc, char** argv)
     signal(SIGILL, ill);
     signal(SIGABRT, abort);
 
+    assert_create_dirs({
+        TMP_DIR
+    });
+
     ClargParser parser;
-    parser.add_clarg<std::string>("o", "Output File", "q_app");
+
+    parser.add_clarg<std::string>("o", "Output File", "quinoa_app");
     
     parser.parse_clargs(argc, argv);
 
-    auto output_path = parser.get_clarg<std::string>("o");
-    Logger::debug("output: " + output_path);
 
     if(argc < 2){
 	    except(E_BAD_ARGS, "The compiler expects at least ONE argument. Use the 'help' command for usage information");

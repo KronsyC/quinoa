@@ -21,7 +21,7 @@ link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 add_compile_options(-O1)
 
 
-add_definitions(-DLIBQ_DIR="/home/casey/quinoa/libq" -DDEBUG_MODE=1 -freport-bug)
+add_definitions(-DQUINOA_DIR="/home/casey/quinoa" -DDEBUG_MODE=1 -freport-bug)
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 # include(FetchContent)
 # FetchContent_Declare(toml11                              # name of the content
@@ -30,6 +30,6 @@ file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 # )
 # FetchContent_MakeAvailable(toml11)
 add_executable(quinoa ${sources})
-target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -g)
+target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -Wno-missing-field-initializers -g)
 
 # target_link_libraries(quinoa PRIVATE toml11)

@@ -123,7 +123,7 @@ void resolve_imports(CompilationUnit *unit)
 {
   // TODO: Load this from the project config files, this wont work on any other
   // pc
-  string libq_dir = LIBQ_DIR;
+  string libq_dir = std::string(QUINOA_DIR) + "/libq";
 
   /**
    * - Pulls in the relevant Modules
