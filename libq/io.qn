@@ -7,27 +7,20 @@ module IO is Exported{
     stdout : int = 1;
     stderr : int = 2;
     
-    func strlen(str:c_str)->i64{
-        let i:i64 = 0;
-        while(str[i] != 0){
-            i++;
-        }
-        return i;
-    }
 
     func putc(ch:char){
-        syscall::write(stdout, cast(<i64>)(&ch), 1);
+        syscall::write(stdout, &ch as i64, stdout);
     }
     func print(message:c_str)->i64{
-        let len = syscall::write(
+        let len : i64 = syscall::write(
             stdout, 
-            cast(<i64>)(message), 
+            message as i64, 
             CStr::len(message)
         );
         return len;
     }
     func println(message:c_str) -> i64{
-        let len = IO::print(message);
+        let len : i64 = IO::print(message);
         IO::putc(10);
         return len+1;
     }

@@ -123,7 +123,7 @@ public:
 
     void clear(){
         for(auto i : _items){
-            if(i.owned)delete i;
+            if(i.owned)delete i.ptr;
         }
         _items.clear();
     }
@@ -133,10 +133,10 @@ public:
     }
 
     ~Vec(){
-        for(auto item : _items){
-            if(item.owned)
-                delete item.ptr;
-        }
+        // for(auto item : _items){
+        //     if(item.owned)
+        //         delete item.ptr;
+        // }
         _items.clear();
     }
 private:

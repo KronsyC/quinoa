@@ -83,6 +83,7 @@ inline Token pope(std::vector<Token> &toks, TokenType typ)
 }
 std::vector<Token> read_to(std::vector<Token> &toks, TokenType type)
 {
+    auto initial = toks;
     std::vector<Token> ret;
     while (toks.size())
     {
@@ -92,8 +93,38 @@ std::vector<Token> read_to(std::vector<Token> &toks, TokenType type)
         }
         ret.push_back(popf(toks));
     }
+    if(toks.size() == 0){
+        toks = initial;
+        ret = {};
+    }
     return ret;
 }
+
+std::vector<Token> read_to_reverse(std::vector<Token> &toks, TokenType type){
+    auto initial = toks;
+    std::vector<Token> ret;
+    int ind = 0;
+    while (toks.size())
+    {
+        auto end = toks[toks.size()-1];
+
+        if (end.is(type) && ind == 0)
+        {
+            break;
+        }
+        pushf(ret, end);
+
+        if(end.isDeIndentationTok())ind++;
+        else if(end.isIndentationTok())ind--;
+        toks.pop_back();
+    }
+    if(toks.size() == 0){
+        toks = initial;
+        ret = {};
+    }
+    return ret;
+}
+
 
 enum IndType
 {
@@ -436,6 +467,24 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
     auto first = toks[0];
 
+    // Casts `expr as type`
+    {
+        auto initial = toks;
+        auto type_toks = read_to_reverse(toks, TT_as);
+        if(type_toks.size()){
+            auto cast_to = parse_type(type_toks);
+            toks.pop_back();
+            auto castee = parse_expr(toks, parent);
+
+            auto cast = std::make_unique<ExplicitCast>();
+            cast->cast_to = cast_to;
+            cast->value = std::move(castee);
+            return cast;
+        }
+        toks = initial;
+
+    }
+
     // Long variable name:  Foo::Bar::baz
     if(first.is(TT_identifier)){
         auto before = toks;
@@ -630,6 +679,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 if (toks.size() == 0)
                 {
                     auto var = std::make_unique<SourceVariable>(*name);
+                    var->scope = parent;
                     auto index_expr = parse_expr(index_block, parent);
                     auto subs = std::make_unique<Subscript>(std::move(var), std::move(index_expr));
                     subs->scope = parent;

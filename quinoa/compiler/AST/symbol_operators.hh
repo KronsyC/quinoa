@@ -1,6 +1,6 @@
 /**
  * Symbol (Simple) operators, i.e builtin Binary and Unary operations
-*/
+ */
 
 #pragma once
 #include "./primary.hh"
@@ -8,71 +8,135 @@
 #include "../../GenMacro.h"
 #include "./type_utils.h"
 
-
-enum UnaryOpType{
+enum UnaryOpType
+{
     UNARY_ENUM_MEMBERS
 };
 
-enum BinaryOpType{
+enum BinaryOpType
+{
     INFIX_ENUM_MEMBERS
 };
 
-static std::map<TokenType, UnaryOpType> prefix_op_mappings { PREFIX_ENUM_MAPPINGS };
-static std::map<TokenType, UnaryOpType> postfix_op_mappings { POSTFIX_ENUM_MAPPINGS };
-static std::map<TokenType, BinaryOpType> binary_op_mappings { INFIX_ENUM_MAPPINGS };
+static std::map<TokenType, UnaryOpType> prefix_op_mappings{PREFIX_ENUM_MAPPINGS};
+static std::map<TokenType, UnaryOpType> postfix_op_mappings{POSTFIX_ENUM_MAPPINGS};
+static std::map<TokenType, BinaryOpType> binary_op_mappings{INFIX_ENUM_MAPPINGS};
 
-class UnaryOperation: public Expr{
+class UnaryOperation : public Expr
+{
 public:
     std::unique_ptr<Expr> operand;
     UnaryOpType op_type;
-    std::string str(){
+    std::string str()
+    {
         return "Some Unary op";
     }
 
-    UnaryOperation(std::unique_ptr<Expr> operand, UnaryOpType kind){
+    UnaryOperation(std::unique_ptr<Expr> operand, UnaryOpType kind)
+    {
         this->operand = std::move(operand);
         this->op_type = kind;
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        except(E_INTERNAL, "llvm_value not implemented for UnaryOperation");
-    }
-    std::vector<Statement*> flatten(){
-        std::vector<Statement*> ret = {this};
-        for(auto m : operand->flatten())ret.push_back(m);
+    std::vector<Statement *> flatten()
+    {
+        std::vector<Statement *> ret = {this};
+        for (auto m : operand->flatten())
+            ret.push_back(m);
         return ret;
     }
-    llvm::Value* assign_ptr(VariableTable& vars){
-        switch(op_type){
-            case PRE_star:
-                return operand->llvm_value(vars);
-            default:
-                except(E_BAD_ASSIGNMENT, "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type));
+    llvm::Value *assign_ptr(VariableTable &vars)
+    {
+        switch (op_type)
+        {
+        case PRE_star:
+            return operand->llvm_value(vars);
+        default:
+            except(E_BAD_ASSIGNMENT, "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type));
         }
         except(E_INTERNAL, "assign_ptr not implemented for Subscript");
     }
+    llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected)
+    {
+        auto _bool = Primitive::get(PR_boolean)->llvm_type();
+
+        #define bld (*builder())
+        #define val(expected) operand->llvm_value(vars, expected)
+        
+        #define ret(LL_INST, cast_to) return cast(bld.Create##LL_INST(val(cast_to)), expected);
+        switch (op_type)
+        {
+        case PRE_amperand:
+        {
+            auto ptr = operand->assign_ptr(vars);
+            return cast(ptr, expected);
+        }
+        case PRE_bang: ret(Not, _bool);
+        case PRE_minus:ret(Neg, nullptr);
+        case PRE_bitwise_not:ret(Not, nullptr);
+        case PRE_star:
+        {
+            if(!operand->type()->get<Ptr>())except(E_BAD_OPERAND, "Cannot dereference non-ptr operand");
+            auto value = operand->llvm_value(vars);
+            return builder()->CreateLoad(value->getType()->getPointerElementType(), value);
+        }
+        case PRE_increment:
+        case PRE_decrement:
+        case POST_increment:
+        case POST_decrement:
+        {
+            auto ptr = operand->assign_ptr(vars);
+
+            auto val = operand->llvm_value(vars);
+            auto one = cast(bld.getInt32(1), val->getType());
+            auto changed = op_type == POST_increment || op_type == POST_decrement ? bld.CreateAdd(val, one) : bld.CreateSub(val, one);
+
+            llvm::Value* return_val = op_type == POST_increment || op_type == POST_decrement ? operand->llvm_value(vars, expected) 
+                                    : changed;
+            
+            bld.CreateStore(changed, ptr);
+            return return_val;
+        }
+        
+        default:except(E_INTERNAL, "Failed to generate llvalue for unary operation: " + std::to_string(op_type));
+        }
+        
+    }
+
 protected:
-    std::shared_ptr<Type> get_type(){
-        except(E_INTERNAL, "get_type not implemented");
-        // auto bool_t    = Primitive::get(PR_boolean);
-        // auto same_t    = std::make_unique<Type>(operand->type());
-        // auto same_ptr  = Ptr::get(std::make_unique<Type>(operand->type()));
-        // auto pointee_t = std::make_unique<Type>(same_t->pointee());
-        // switch(op_type){
-        //     case PRE_amperand:    return same_ptr;
-        //     case PRE_bang:        return bool_t;
-        //     case PRE_star:        return pointee_t;
-        //     case PRE_minus:       return same_t;
-        //     case PRE_bitwise_not: return same_t;
-        //     case PRE_increment:   return same_t;
-        //     case PRE_decrement:   return same_t;
-        //     case POST_increment:  return same_t;
-        //     case POST_decrement:  return same_t;
-        //     default: except(E_INTERNAL, "Failed to get return type of unary operation: " + std::to_string(op_type));
-        // }
+    std::shared_ptr<Type> get_type()
+    {
+        auto bool_t = Primitive::get(PR_boolean);
+        auto same_t = operand->type();
+        auto same_ptr = Ptr::get(operand->type());
+        auto pointee_t = same_t->pointee();
+        switch (op_type)
+        {
+        case PRE_amperand:
+            return same_ptr;
+        case PRE_bang:
+            return bool_t;
+        case PRE_star:
+            return pointee_t;
+        case PRE_minus:
+            return same_t;
+        case PRE_bitwise_not:
+            return same_t;
+        case PRE_increment:
+            return same_t;
+        case PRE_decrement:
+            return same_t;
+        case POST_increment:
+            return same_t;
+        case POST_decrement:
+            return same_t;
+        default:
+            except(E_INTERNAL, "Failed to get return type of unary operation: " + std::to_string(op_type));
+        }
     }
 };
 
-class BinaryOperation: public Expr{
+class BinaryOperation : public Expr
+{
 public:
     std::unique_ptr<Expr> left_operand;
     std::unique_ptr<Expr> right_operand;
@@ -82,46 +146,49 @@ public:
     // is responsible for initializing (if any)
     bool initializes;
 
-    BinaryOperation(std::unique_ptr<Expr> left, std::unique_ptr<Expr> right, BinaryOpType op_type){
+    BinaryOperation(std::unique_ptr<Expr> left, std::unique_ptr<Expr> right, BinaryOpType op_type)
+    {
         left_operand = std::move(left);
         right_operand = std::move(right);
         this->op_type = op_type;
     }
-    std::string str(){
+    std::string str()
+    {
         return "Some Binary op";
     }
-    llvm::Value* assign_ptr(VariableTable& vars){
+    llvm::Value *assign_ptr(VariableTable &vars)
+    {
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        
-        if(op_type == BIN_assignment){
+    llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr)
+    {
+
+        if (op_type == BIN_assignment)
+        {
             auto assignee = left_operand->assign_ptr(vars);
-            auto value    = right_operand->llvm_value(vars, assignee->getType()->getPointerElementType());
-
-
+            auto value = right_operand->llvm_value(vars, assignee->getType()->getPointerElementType());
 
             // constant assignment check
-            if(auto var = dynamic_cast<SourceVariable*>(left_operand.get())){
-                auto& va = vars[var->name->str()];
-                if(this->initializes && !va.is_initialized){
+            if (auto var = dynamic_cast<SourceVariable *>(left_operand.get()))
+            {
+                auto &va = vars[var->name->str()];
+                if (this->initializes && !va.is_initialized)
+                {
                     va.is_initialized = true;
                 }
-                else{
-                    if(va.is_initialized && va.constant)except(E_BAD_ASSIGNMENT, "Cannot reassign a constant variable: " + var->name->str());
+                else
+                {
+                    if (va.is_initialized && va.constant)
+                        except(E_BAD_ASSIGNMENT, "Cannot reassign a constant variable: " + var->name->str());
                 }
-
             }
 
             builder()->CreateStore(value, assignee);
 
-
             return cast(value, expected_type);
         }
 
-
-
-        auto left_t  = left_operand->type();
+        auto left_t = left_operand->type();
         auto right_t = right_operand->type();
 
         auto common_t = TypeUtils::get_common_type(left_t, right_t);
@@ -133,16 +200,24 @@ public:
         return cast(op, expected_type);
     }
 
-    std::vector<Statement*> flatten(){
-        std::vector<Statement*> ret = {this};
-        for(auto m : left_operand->flatten())ret.push_back(m);
-        for(auto m : right_operand->flatten())ret.push_back(m);
+    std::vector<Statement *> flatten()
+    {
+        std::vector<Statement *> ret = {this};
+        for (auto m : left_operand->flatten())
+            ret.push_back(m);
+        for (auto m : right_operand->flatten())
+            ret.push_back(m);
         return ret;
     }
+
 private:
-    llvm::Value* get_op(llvm::Value* l, llvm::Value* r){
-        #define X(myop, opname)case BIN_##myop: return builder()->Create##opname(l, r);
-        switch(op_type){
+    llvm::Value *get_op(llvm::Value *l, llvm::Value *r)
+    {
+#define X(myop, opname) \
+    case BIN_##myop:    \
+        return builder()->Create##opname(l, r);
+        switch (op_type)
+        {
             X(plus, Add)
             X(minus, Sub)
             X(star, Mul)
@@ -161,36 +236,39 @@ private:
             X(bitwise_xor, Xor)
             X(bool_and, LogicalAnd)
             X(bool_or, LogicalOr)
-            default: except(E_INTERNAL, "Failed to generate binary operation");
+        default:
+            except(E_INTERNAL, "Failed to generate binary operation");
         }
     }
+
 protected:
-    std::shared_ptr<Type> get_type(){
-        switch(op_type){
-            	case BIN_plus:
-                case BIN_minus:
-                case BIN_star:
-                case BIN_slash:
-                case BIN_percent:
-                case BIN_bitwise_or:
-                case BIN_bitwise_and:
-                case BIN_bitwise_shl:
-                case BIN_bitwise_shr:
-                case BIN_bitwise_xor:
-                case BIN_bool_and:
-                case BIN_bool_or:
-                case BIN_greater:
-                case BIN_greater_eq:
-                case BIN_equals:
-                case BIN_not_equals:
-                case BIN_lesser:
-                case BIN_lesser_eq:
-                    return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
-                case BIN_assignment:
-                    return right_operand->type();
-                default: except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
+    std::shared_ptr<Type> get_type()
+    {
+        switch (op_type)
+        {
+        case BIN_plus:
+        case BIN_minus:
+        case BIN_star:
+        case BIN_slash:
+        case BIN_percent:
+        case BIN_bitwise_or:
+        case BIN_bitwise_and:
+        case BIN_bitwise_shl:
+        case BIN_bitwise_shr:
+        case BIN_bitwise_xor:
+        case BIN_bool_and:
+        case BIN_bool_or:
+        case BIN_greater:
+        case BIN_greater_eq:
+        case BIN_equals:
+        case BIN_not_equals:
+        case BIN_lesser:
+        case BIN_lesser_eq:
+            return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
+        case BIN_assignment:
+            return right_operand->type();
+        default:
+            except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
         }
     }
 };
-
-

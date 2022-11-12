@@ -357,8 +357,6 @@ private
 
 # Builtin Functions
 
-@builtin cast
-cast
 
 @builtin len
 length

@@ -116,12 +116,11 @@
 	new TokenDefinition(TT_struct, "__struct", {"struct"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_func, "__func", {"func"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_is, "__is", {"is"}, "", false, false, 0, false, false, ""),\
-	new TokenDefinition(TT_as, "__as", {"as"}, "", false, false, 0, false, false, ""),\
+	new TokenDefinition(TT_as, "__as", {"as"}, "", false, false, 18, false, false, ""),\
 	new TokenDefinition(TT_return, "__return", {"return"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_let, "__let", {"let"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_const, "__const", {"const"}, "", false, false, 0, false, false, ""),\
 	new TokenDefinition(TT_private, "__private", {"pvt"}, "", false, false, 0, false, false, ""),\
-	new TokenDefinition(TT_cast, "__cast", {}, "", false, false, 0, false, false, {"cast"}),\
 	new TokenDefinition(TT_length, "__length", {}, "", false, false, 0, false, false, {"len"}),\
 	
 
@@ -215,7 +214,6 @@
 	TT_let,\
 	TT_const,\
 	TT_private,\
-	TT_cast,\
 	TT_length,\
 	
 
@@ -254,6 +252,7 @@
 	BIN_bitwise_xor, \
 	BIN_bitwise_shl, \
 	BIN_bitwise_shr, \
+	BIN_as, \
 	
 
 #define INFIX_ENUM_MAPPINGS \
@@ -277,6 +276,7 @@
 	{ TT_bitwise_xor, BIN_bitwise_xor}, \
 	{ TT_bitwise_shl, BIN_bitwise_shl}, \
 	{ TT_bitwise_shr, BIN_bitwise_shr}, \
+	{ TT_as, BIN_as}, \
 	
 
 #define UNARY_ENUM_MEMBERS \

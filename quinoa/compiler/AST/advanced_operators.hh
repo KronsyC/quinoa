@@ -80,8 +80,8 @@ public:
 protected:
     std::shared_ptr<Type> get_type()
     {
+        if(!target)return std::shared_ptr<Type>(nullptr);
         return target->return_type;
-        except(E_INTERNAL, "get_type not implemented for MethodCall");
     }
 };
 
@@ -153,6 +153,31 @@ public:
     }
 };
 
+class ExplicitCast : public Expr{
+public:
+    std::unique_ptr<Expr> value;
+    std::shared_ptr<Type> cast_to;
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+        for(auto m : value->flatten())ret.push_back(m);
+        return ret;
+    }
+    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+        return cast(value->llvm_value(vars, cast_to->llvm_type()), expected_type);
+    }
+
+    std::string str(){
+        return value->str() + " as " + cast_to->str();
+    }
+    std::shared_ptr<Type> get_type(){
+        return cast_to;
+    }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        except(E_BAD_ASSIGNMENT, "Cannot assign a value to an explicitly casted value");
+    }
+};
+
 class Subscript : public Expr{
 public:
     std::unique_ptr<SourceVariable> target;
@@ -171,12 +196,20 @@ public:
         return target->str() + "[" + index->str() + "]";
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        except(E_INTERNAL, "llvm_value not implemented for Subscript");
+        auto ptr = assign_ptr(vars);
+        auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
+        return cast(load, expected_type);
     }
     llvm::Value* assign_ptr(VariableTable& vars){
-        except(E_INTERNAL, "assign_ptr not implemented for Subscript");
+        auto ptr = target->llvm_value(vars);
+        auto idx = index->llvm_value(vars);
+
+        // ptr->print(llvm::outs());
+
+        auto gep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, idx);
+        return gep;
     }
     std::shared_ptr<Type> get_type(){
-        except(E_INTERNAL, "get_type not implemented for Subscript");
+        return target->type()->pointee();
     }
 };

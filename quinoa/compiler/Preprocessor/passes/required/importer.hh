@@ -73,37 +73,6 @@ void deAliasify(CompilationUnit &unit, LongName& alias,
       }
     }
   }
-  // for (auto method : unit.get_methods())
-  // {
-  //   auto content = method->flatten();
-
-  //   for (auto member : content)
-  //   {
-
-  //     // Dealiasify both member access and direct references
-  //     if (instanceof <CompoundIdentifier>(member))
-  //     {
-  //       auto ident = (CompoundIdentifier *)member;
-  //       if(ident->equals(alias)){
-  //         *ident = *fullname;
-  //         continue;
-  //       }
-
-  //       auto ns = ident->all_but_last();
-  //       if (ns->equals(alias))
-  //       {
-  //         auto name = ident->last();
-  //         CompoundIdentifier deAliasedName;
-  //         for(auto p:*fullname)deAliasedName.push_back(p);
-  //         deAliasedName.push_back(name);
-  //         *ident = deAliasedName;
-  //         continue;
-  //       }
-
-
-  //     }
-  //   }
-  // }
   for(auto mod:unit.get_containers()){
     for(auto& c:mod->compositors){
       if(c->name->str() == alias.str()){

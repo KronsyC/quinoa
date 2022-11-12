@@ -24,6 +24,10 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
 			}
 		}
 
+		for(auto param : method->parameters){
+			method->content->set_type(param->name.str(), param->type);
+		}
+		
 		for(auto node : method->content->flatten()){
 			if(auto assign = dynamic_cast<InitializeVar*>(node)){
 				if(assign->type){

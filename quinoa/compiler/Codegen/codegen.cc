@@ -182,6 +182,7 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 		else except(E_INTERNAL, "Attempt to hoist unrecognized node");
 	}
 	for(auto method : mod.get_methods()){
+			if(!method->content)continue;
 			auto fname = method->source_name();
 			auto fn = llmod->getFunction(fname);
 			if (fn == nullptr)

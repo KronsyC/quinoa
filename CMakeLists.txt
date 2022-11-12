@@ -21,7 +21,7 @@ link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
 add_compile_options(-O1)
 
 
-add_definitions(-DLIBQ_DIR="/home/casey/quinoa/libq" -DDEBUG_MODE=1)
+add_definitions(-DLIBQ_DIR="/home/casey/quinoa/libq" -DDEBUG_MODE=1 -freport-bug)
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 # include(FetchContent)
 # FetchContent_Declare(toml11                              # name of the content

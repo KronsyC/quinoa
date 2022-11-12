@@ -50,9 +50,9 @@ public:
     }
 
     LongName(LongName& copy_from){
-        // for(auto p : copy_from.parts){
-        //     parts.push(*p.ptr);
-        // }
+        for(auto p : copy_from.parts){
+            parts.push(*p.ptr);
+        }
     }
     LongName(LongName&&) = default;
     LongName& operator=(LongName&& to) = default;
@@ -78,8 +78,8 @@ public:
         return name->str();
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        auto& var = vars[name->str()];
-        auto value = builder()->CreateLoad(var.value->getType()->getPointerElementType(), var.value);
+        auto ptr = assign_ptr(vars);
+        auto value = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
         return cast(value, expected_type);
     }
     llvm::Value* assign_ptr(VariableTable& vars){
@@ -89,6 +89,7 @@ public:
         return var.value;
     }
     std::shared_ptr<Type> get_type(){
+        if(!scope)except(E_INTERNAL, "variable " + str() + " has no scope");
         return scope->get_type(name->str());
     }
 

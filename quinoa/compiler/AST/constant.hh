@@ -57,6 +57,9 @@ public:
     llvm::Constant* const_value(llvm::Type* expected){
 
         auto val = builder()->getInt64(value);
+        if(!expected){
+            return val;
+        }
         auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, true);
         return cast;
 

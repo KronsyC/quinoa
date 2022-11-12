@@ -11,16 +11,16 @@
 
 
 void link_extern(CompilationUnit& unit){
-    for(auto fn:unit.getAllMethods()){
-        auto meta = fn->metadata;
+    for(auto fn:unit.get_methods()){
+        auto& meta = fn->attrs;
         for(auto tag:meta){
             if(tag->name!="link_extern")continue;
-            if(fn->size())error("link_extern signature must have no content");
-            if(tag->parameters.size() != 1)error("link_extern tag expects one string argument");
-            auto name = (String*)tag->parameters[0];
-            if(!instanceof<String>(name))error("link_extern expects a string");
-            fn->sig->name = new TLCMemberRef(nullptr, Ident::get(name->value));
-            fn->sig->nomangle = true;
+            if(fn->content)except(E_BAD_METADATA, "link_extern method must be a signature");
+            if(tag->arguments.len() != 1)error("link_extern tag expects one string argument");
+            auto& name = tag->arguments[0];
+            if(!dynamic_cast<String*>(&name))error("link_extern expects a string");
+            fn->name->trunc = true;
+            fn->name->member->set_name(name.str().substr(1, name.str().size()-2));
 
         }
     }

@@ -59,13 +59,17 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
     except(E_INTERNAL, "Generic methods are not yet supported");
   }
   for(size_t i = 0; i < call->args.len(); i++){
-    Logger::debug("arg: " + call->args[0].str());
-    auto&  arg_t  = *call->args[i].type();
+    auto arg_t  = call->args[i].type();
+
+    if(!arg_t){
+      ranking.possible = false;
+      break;
+    }
     auto& param_t = *method->get_parameter(i)->type;
 
     // Compare the types of the arg and param
 
-    auto score = arg_t.distance_from(param_t);
+    auto score = arg_t->distance_from(param_t);
     if(score == -1){
       ranking.possible = false;
       break;
@@ -84,8 +88,8 @@ enum SelectionStage{
   RATING
 };
 Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionStage stage = SelectionStage::INITIAL){
-  Logger::debug(std::to_string(ranks.size()) + " possible matches");
 
+  Logger::debug("stage " + std::to_string(stage) + ", " + std::to_string(ranks.size()) + " possible matches");
   switch(stage){
     case SelectionStage::INITIAL:{
       std::vector<MatchRanking> suitors;
@@ -154,7 +158,10 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
       break;
     }
   }
-  if(!target)except(E_BAD_CALL, "Failed to locate module '" + call_mod_name + "' for call");
+  if(!target){
+    Logger::debug("call: " + call->str());
+    except(E_BAD_CALL, "Failed to locate module '" + call_mod_name + "' for call");
+  }
 
   // Find all methods with the name
   std::vector<Method*> methods;

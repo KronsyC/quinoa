@@ -45,12 +45,11 @@ public:
 
 
     std::shared_ptr<Type> type(){
-        if(recalculate_type){
+        if(recalculate_type || !cached_type){
             auto typ = get_type();
             recalculate_type = false;
             cached_type = typ;
         }
-        if(!cached_type)except(E_INTERNAL, "Type is already calculated, yet the cache is empty");
         return cached_type;
     }
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){

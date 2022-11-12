@@ -38,7 +38,6 @@ void resolve_compositor_refs(Container* mod, CompilationUnit& unit){
 
 
         for(auto method : comp->refers_to->get_methods()){
-            Logger::debug("method: " + method->name->str());
 
             // if there is no implementation, ensure the derived
             // module implements the method
