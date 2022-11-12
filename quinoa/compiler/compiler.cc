@@ -4,6 +4,7 @@
 #include "./Parser/parser.h"
 #include "./Preprocessor/preprocessor.hh"
 #include "./Codegen/codegen.hh"
+#include "../lib/clarg_parser.hh"
 #include <fstream>
 
 std::unique_ptr<CompilationUnit> make_ast(std::string sourceCode, std::string path, bool process)
@@ -41,16 +42,23 @@ std::string readFile(std::string path)
 //     // return mod;
 //     return nullptr;
 // }
-std::string compile(std::string sourceCode, std::string path)
+void compile(std::string path, ClargParser& cp)
 {
-    auto toks = Lexer::lexify(sourceCode, path);
+    auto source = readFile(path);
+    auto toks = Lexer::lexify(source, path);
     auto ast = Parser::make_ast(toks);
-    Logger::log("Parsed");
 
     Preprocessor::process_ast(*ast, true);
+
+    Logger::log("Preprocessed the tree");
+
     auto ll_mod = Codegen::codegen(*ast);
+
+
+
     std::string Str;
     llvm::raw_string_ostream OS(Str);
     ll_mod->print(OS, nullptr);
-    return Str;
+
+
 }

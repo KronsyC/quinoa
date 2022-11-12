@@ -95,7 +95,7 @@ static std::map<std::string, std::map<std::string, Container*>> exports;
 static std::map<std::string, std::unique_ptr<CompilationUnit>> import_cache;
 CompilationUnit* get_ast_from_path(std::string path, std::string filename)
 {
-  Logger::log("Importing module from " + path);
+  Logger::debug("Importing module from " + path);
   auto cached = import_cache[path].get();
   if (!cached)
   {
