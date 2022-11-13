@@ -11,7 +11,7 @@
 
 ## Dependencies
 - CMake
-- LLVM
+- LLVM (llvm-devel)
 - Clang
 - Ninja
 
