@@ -32,12 +32,20 @@ std::map<ErrorType, std::string> error_names = { ERR_TYPES };
 #undef X
 [[noreturn]]void except(ErrorType err, std::string message)
 {
+    except(err, message, true);
 
-    if(err == E_INTERNAL && DEBUG_MODE)
-	print_trace();
+}
+void except(ErrorType err, std::string message, bool exits){
+    #ifdef DEBUG
+    if(err == E_INTERNAL)
+        print_trace();
+    #endif
     auto errname = error_names[err];
-    Logger::printQueue();
-    Logger::enqueueMode(false);
+    if(exits){
+        Logger::printQueue();
+        Logger::enqueueMode(false);
+    }
+
     Logger::error(errname + " - " + message);
-    exit(100 + (int)err);
+    if(exits){exit(100 + (int)err);}
 }

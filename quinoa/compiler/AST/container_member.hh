@@ -32,6 +32,14 @@ public:
     std::shared_ptr<Type> type;
 };
 
+class TypeMember : public ContainerMember{
+public:
+    std::shared_ptr<Type> refers_to;
+
+    TypeMember(std::shared_ptr<Type> t){
+        this->refers_to = t;
+    }
+};
 
 class Param : public ANode{
 public:

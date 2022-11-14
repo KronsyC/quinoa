@@ -44,7 +44,7 @@ public:
 protected:
     /**
      * Helper method to instantiate a type onto the heap
-     * types take heavy inspiration from llvm's type system
+     * types take heavy inspiration from llvms type system
      * in that they are 'singletons' and can be directly
      * compared for equality
      *
@@ -296,13 +296,11 @@ public:
 class StructType : public Type
 {
 public:
-    Container *refers_to = nullptr;
+    std::map<std::string, std::shared_ptr<Type>> members;
+    StructType(std::map<std::string, std::shared_ptr<Type>> members){
 
-    StructType(Container *ref)
-    {
-        this->refers_to = ref;
+        this->members = members;
     }
-
     Type *drill()
     {
         return this;
@@ -310,21 +308,44 @@ public:
 
     std::string str()
     {
-        return "struct:some_struct";
+        std::string name = "struct:{";
+        bool first = true;
+        for(auto member :members){
+            if(!first)name+=",";
+
+            name+=member.first + ":" + member.second->str();
+
+            first = false;
+        }
+        name += "}";
+        return name;
     }
     std::shared_ptr<Type> pointee()
     {
         return std::shared_ptr<Type>(nullptr);
     }
 
-    static std::shared_ptr<StructType> get(Container *refers_to)
+    int member_idx(std::string name){
+        int i = 0;
+        for(auto m : members){
+            if(m.first == name)return i;
+            i++;
+        }
+        return -1;
+    }
+
+    static std::shared_ptr<StructType> get(std::map<std::string, std::shared_ptr<Type>> members)
     {
-        return create_heaped(StructType(refers_to));
+        return create_heaped(StructType(members));
     }
 
     int distance_from(Type &target)
     {
-        except(E_INTERNAL, "Type distance for structs not implemented");
+        if(!target.get<StructType>())return -1;
+        if(target.get<StructType>() == this)return 0;
+
+        // Distance is equal to that of the highest
+        except(E_INTERNAL, "distance between: " + str() + " and " + target.str());
     }
     llvm::Constant *default_value(llvm::Type *expected){
         except(E_INTERNAL, "default value not implemented for struct types");
@@ -332,14 +353,17 @@ public:
     bool operator==(Type &against)
     {
         auto st = against.get<StructType>();
-        if (!st)
-            return false;
-        return this->refers_to && st->refers_to == this->refers_to;
+        if (!st)return false;
+        return st->members == members;
     }
 
     llvm::Type *llvm_type()
     {
-        except(E_INTERNAL, "llvm_type not implemented for struct type");
+        std::vector<llvm::Type*> member_types;
+        for(auto member : members){
+            member_types.push_back(member.second->llvm_type());
+        }
+        return llvm::StructType::get(*llctx(), member_types);
     }
 };
 
@@ -371,7 +395,7 @@ public:
         return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
     }
 
-    static std::shared_ptr<TypeRef> create(std::unique_ptr<LongName> name)
+    static std::shared_ptr<TypeRef> get(std::unique_ptr<LongName> name)
     {
         // do not cache TypeRefs, as multiple refs may share the same name
         // but refer to an entirely different type depending on context

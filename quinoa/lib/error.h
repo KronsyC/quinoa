@@ -54,3 +54,4 @@ enum ErrorType { ERR_TYPES };
 #undef X
 
 [[noreturn]]void except(ErrorType err, std::string message);
+void except(ErrorType err, std::string message, bool exits);

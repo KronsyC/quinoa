@@ -18,9 +18,10 @@ void validate_usage(Scope& scope, std::vector<std::string> declared_vars){
             }
 
             if(auto var = dynamic_cast<SourceVariable*>(member)){
-                if(!includes(declared_vars, var->name->str())){
-                    except(E_BAD_VAR, "Cannot use variable '"+var->name->str()+"' before initialization");
-                }
+                // TODO: Reimplement this, but friendlier with structs
+//                if(!includes(declared_vars, var->name->str())){
+//                    except(E_BAD_VAR, "Cannot use variable '"+var->name->str()+"' before initialization");
+//                }
             }
 
         }

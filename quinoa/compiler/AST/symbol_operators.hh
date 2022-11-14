@@ -7,7 +7,7 @@
 #include "./type.hh"
 #include "../../GenMacro.h"
 #include "./type_utils.h"
-
+#include "./reference.hh"
 enum UnaryOpType
 {
     UNARY_ENUM_MEMBERS
@@ -158,11 +158,28 @@ public:
     }
     llvm::Value *assign_ptr(VariableTable &vars)
     {
+        if(op_type == BIN_dot){
+            auto strct = left_operand->assign_ptr(vars);
+            auto strct_t = left_operand->type()->get<StructType>();
+            if(!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
+
+            if(!dynamic_cast<SourceVariable*>(right_operand.get()))except(E_BAD_MEMBER_ACCESS, "You can only index structs with identifiers");
+            auto member_name = ((SourceVariable*)right_operand.get())->name->str();
+            auto idx = strct_t->member_idx(member_name);
+
+            auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
+            return ptr;
+            strct->print(llvm::outs());
+        }
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
     llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr)
     {
-
+        if(op_type == BIN_dot){
+            auto ptr = assign_ptr(vars);
+            auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
+            return load;
+        }
         if (op_type == BIN_assignment)
         {
             auto assignee = left_operand->assign_ptr(vars);
@@ -244,31 +261,49 @@ private:
 protected:
     std::shared_ptr<Type> get_type()
     {
+        auto boo = Primitive::get(PR_boolean);
         switch (op_type)
         {
-        case BIN_plus:
-        case BIN_minus:
-        case BIN_star:
-        case BIN_slash:
-        case BIN_percent:
-        case BIN_bitwise_or:
-        case BIN_bitwise_and:
-        case BIN_bitwise_shl:
-        case BIN_bitwise_shr:
-        case BIN_bitwise_xor:
-        case BIN_bool_and:
-        case BIN_bool_or:
-        case BIN_greater:
-        case BIN_greater_eq:
-        case BIN_equals:
-        case BIN_not_equals:
-        case BIN_lesser:
-        case BIN_lesser_eq:
-            return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
-        case BIN_assignment:
-            return right_operand->type();
-        default:
-            except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
-        }
+            case BIN_bool_and:
+            case BIN_bool_or:
+            case BIN_greater:
+            case BIN_greater_eq:
+            case BIN_equals:
+            case BIN_not_equals:
+            case BIN_lesser:
+            case BIN_lesser_eq:
+            return boo;
+
+            case BIN_plus:
+            case BIN_minus:
+            case BIN_star:
+            case BIN_slash:
+            case BIN_percent:
+            case BIN_bitwise_or:
+            case BIN_bitwise_and:
+            case BIN_bitwise_shl:
+            case BIN_bitwise_shr:
+            case BIN_bitwise_xor:
+
+
+                return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
+
+
+                case BIN_assignment:
+                return right_operand->type();
+            case BIN_dot:{
+                auto left_t = left_operand->type();
+                if(!dynamic_cast<SourceVariable*>(right_operand.get()))except(E_BAD_MEMBER_ACCESS, "A struct may only be indexed with identifiers");
+                auto key = (SourceVariable*)right_operand.get();
+                if(auto strct = left_t->get<StructType>()){
+                    if(strct->member_idx(key->name->str()) == -1)except(E_BAD_MEMBER_ACCESS, "The struct: " + left_operand->str() + " does not have a member: " + key->name->str());
+                    return strct->members[key->name->str()];
+                }
+                else except(E_BAD_MEMBER_ACCESS, "You may only access members of a struct");
+            }
+            default:
+                except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
+            }
     }
 };
+

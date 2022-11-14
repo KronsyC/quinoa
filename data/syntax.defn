@@ -336,6 +336,9 @@ struct
 @alias func
 func
 
+@alias type
+type
+
 @alias is
 is
 
@@ -355,8 +358,3 @@ const
 private
 
 
-# Builtin Functions
-
-
-@builtin len
-length

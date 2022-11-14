@@ -194,6 +194,7 @@ std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
       if(call->target)continue;
       auto best_fn = get_best_target(call, unit);
       if(best_fn){
+          Logger::debug("Resolved call: " + call->name->str());
         call->target = best_fn;
         resolvedCount++;
       }

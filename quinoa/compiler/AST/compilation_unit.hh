@@ -1,7 +1,7 @@
 #pragma once
 #include "./include.hh"
 #include "./container.hh"
-
+#include "./container_member.hh"
 
 class CompilationUnit: public ANode{
 public:
@@ -43,11 +43,23 @@ public:
         }
         return ret;
     }
+    std::vector<TypeMember*> get_types(){
+        std::vector<TypeMember*> ret;
+        for(auto cont : get_containers()){
+            for(auto member : cont->members){
+                if(auto type = dynamic_cast<TypeMember*>(member.ptr)){
+                    ret.push_back(type);
+                }
+            }
+        }
+        return ret;
+    }
     std::vector<ContainerMember*> get_hoists(){
         std::vector<ContainerMember*> ret;
         for(auto m : get_methods())ret.push_back(m);
         for(auto p : get_properties())ret.push_back(p);
         return ret;
     }
+
 
 };

@@ -1,45 +1,45 @@
+import @io;
+
 module Person{
-    struct{
-        name    : c_str;
+
+    type _ = struct{
+        name : c_str;
         surname : c_str;
-        age     : int;
-        nationality : c_str;
+        age : i32;
+    };
 
-        func age(years : int){
-            (*this).age += years;
-        }
-
-    }
-
-
-    func create(name : c_str, surname: c_str, age : int, nationality: c_str) -> Person{
-        
-        // A struct must be fully initialized within the initializer block
-        // otherwise, the compiler will throw an error
+    func create(name : c_str, surname: c_str, age : int) -> Person{
 
         return Person{
-            .name = name;
-            .surname = surname;
-            .age = age;
-            .nationality = nationality;
-        }
+            name : name;
+            surname : surname;
+            age : age;
+        };
 
     }
+
+    func greet(person : Person){
+        io::print("Hello, ");
+        io::print(person.name);
+        io::print(" ");
+        io::print(person.surname);
+        io::print("\n");
+    }
+
 }
 
-module StructsExample is Entry
+module Example is Entry
 {
     func main() -> int{
         
         // call the `create` function to instantiate a new person
-        let person = Person::create("John", "Doe", 38, "American");
+        let john   = Person::create("John", "Doe", 38);
+        let bob    = Person::create("Bob", "Ross", 47);
+        let dwight = Person::create("Dwight", "Schrute", 32);
 
-
-        person.age(5);
-        // John Doe is now 43 years old 
-
-        return person.age;
-
+        Person::greet(john);
+        Person::greet(bob);
+        Person::greet(dwight);
+        return 0;
     }
-
 }

@@ -47,8 +47,9 @@ void Logger::log(string message)
 }
 void Logger::debug(string message)
 {
-    if(DEBUG_MODE)
+#ifdef DEBUG
 	Logger::writeLog(message, Logger::LL_DEBUG);
+#endif
 }
 void Logger::warn(string message)
 {

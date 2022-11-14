@@ -53,13 +53,12 @@ public:
     Vec<ContainerMember*> inherited_members;
 
     std::shared_ptr<ContainerRef> get_ref(){
-        if(!self_ref)self_ref = std::make_shared<ContainerRef>();
-        self_ref->refers_to = this;
-        self_ref->name = std::make_unique<LongName>(this->full_name());
+        if(!self_ref){
+            self_ref = std::make_shared<ContainerRef>();
+            self_ref->refers_to = this;
+            self_ref->name = std::make_unique<LongName>(this->full_name());
+        }
         return self_ref;
-    }
-    void update_ref(){
-        self_ref->refers_to = this;
     }
 
     LongName full_name() const{
@@ -80,6 +79,21 @@ public:
     bool has_compositor(std::string comp_name){
         if(get_compositor(comp_name))return true;
         return false;
+    }
+
+    std::shared_ptr<Type> get_type(std::string name = "_"){
+        for(auto& member : members){
+            if(auto type = dynamic_cast<TypeMember*>(member.ptr)){
+                if(type->name->member->str() == name)return type->refers_to;
+            }
+        }
+
+        if(name == this->name->str()){
+            return get_type();
+        }
+
+
+        return std::shared_ptr<Type>(nullptr);
     }
     std::vector<Method*> get_methods(){
         std::vector<Method*> ret;

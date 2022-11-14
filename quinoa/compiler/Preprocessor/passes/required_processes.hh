@@ -12,14 +12,19 @@
 #include "./required/type_table_builder.hh"
 #include "./required/variable_usage_validator.hh"
 #include "./required/unreachable_code_warner.hh"
+#include "./required/type_ref_resolver.hh"
 void process_required(CompilationUnit* unit){
     resolve_imports(unit);
     resolve_compositors(*unit);
+    resolve_type_references(*unit);
     // resolve_props(*unit);
     bool resolvedTypes = false;
     bool resolvedCalls = false;
     bool resolvedInstances = false;
+
+    #ifndef DEBUG
     Logger::enqueueMode(true);
+    #endif
 
     int run = 2;
     while (run)

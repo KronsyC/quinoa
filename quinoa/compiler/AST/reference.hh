@@ -104,8 +104,6 @@ class ContainerRef : public Reference{
 public:
     Container* refers_to = nullptr;
     std::unique_ptr<LongName> name;
-    Vec<Type> generic_args;
-    
 
     std::string str(){
         return name->str();

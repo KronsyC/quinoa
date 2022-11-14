@@ -1,173 +1,10 @@
 #include "../../lib/vec.hh"
 #include "../../lib/list.h"
-#include "../../lib/logger.h"
-#include "../AST/ast.hh"
 #include "../Lexer/lexer.h"
-#include "../token/token.h"
-#include <map>
-#include <string>
-
-/**
- *
- * Define Various Helper Functions, very useful
- * in the parsing process
- *
- */
-
-std::string get_tt_name(TokenType t)
-{
-    for (auto d : defs)
-    {
-        if (d->ttype == t)
-        {
-            return d->alias.size() ? d->alias[0] : d->name;
-        }
-        return d->name;
-    }
-    return "unknown";
-}
-
-void print_toks(std::vector<Token> toks)
-{
-    std::string output;
-    for (auto t : toks)
-    {
-        output += "\t> ";
-        output += get_tt_name(t.type) + " -> " + t.value;
-        output += "\n";
-    }
-
-    Logger::debug("TOKEN DUMP:\n" + output);
-}
-
-void expects(Token tok, std::initializer_list<TokenType> expected_types)
-{
-    bool is_good = false;
-    for (auto tt : expected_types)
-    {
-        if (tok.is(tt))
-        {
-            is_good = true;
-            break;
-        }
-    }
-
-    if (!is_good)
-    {
-        std::string message = "Unexpected " + get_tt_name(tok.type) + " '" + tok.value + "'.";
-        message += "\n\tWas Expecting: ";
-        bool first = true;
-        for (auto t : expected_types)
-        {
-            if (!first)
-                message += " | ";
-            message += get_tt_name(t);
-            first = false;
-        }
-        except(E_UNEXPECTED_TOKEN, message);
-    }
-}
-void expects(Token tok, TokenType expected_type)
-{
-    expects(tok, {expected_type});
-}
-//
-// pop-with-error
-// pops a token from the list, and errors if it is not a specific type
-//
-inline Token pope(std::vector<Token> &toks, TokenType typ)
-{
-    auto tok = popf(toks);
-    expects(tok, typ);
-    return tok;
-}
-std::vector<Token> read_to(std::vector<Token> &toks, TokenType type)
-{
-    auto initial = toks;
-    std::vector<Token> ret;
-    while (toks.size())
-    {
-        if (toks[0].is(type))
-        {
-            break;
-        }
-        ret.push_back(popf(toks));
-    }
-    if(toks.size() == 0){
-        toks = initial;
-        ret = {};
-    }
-    return ret;
-}
-
-std::vector<Token> read_to_reverse(std::vector<Token> &toks, TokenType type){
-    auto initial = toks;
-    std::vector<Token> ret;
-    int ind = 0;
-    while (toks.size())
-    {
-        auto end = toks[toks.size()-1];
-
-        if (end.is(type) && ind == 0)
-        {
-            break;
-        }
-        pushf(ret, end);
-
-        if(end.isDeIndentationTok())ind++;
-        else if(end.isIndentationTok())ind--;
-        toks.pop_back();
-    }
-    if(toks.size() == 0){
-        toks = initial;
-        ret = {};
-    }
-    return ret;
-}
-
-
-enum IndType
-{
-    INDENTATION_TYPES
-};
-
-std::map<IndType, std::pair<TokenType, TokenType>> mappings{INDENTATION_MAPPINGS};
-
-std::vector<Token> read_block(std::vector<Token> &toks, IndType typ)
-{
-    auto p = mappings[typ];
-    auto i = p.first;
-    auto u = p.second;
-    auto first_tok = pope(toks, i);
-
-    int ind = 1;
-    std::vector<Token> ret;
-    while (toks.size())
-    {
-        auto t = popf(toks);
-        if (t.is(i))
-            ind++;
-        if (t.is(u))
-            ind--;
-        if (ind == 0)
-            break;
-        ret.push_back(t);
-    }
-    if (ind != 0)
-        error("Expected corresponding '" + get_tt_name(u) + "' to " + get_tt_name(first_tok.type) + " at " + first_tok.afterpos());
-    return ret;
-}
-
-/**
- *
- * Actual Parsing Logic Starts Here
- *
- */
+#include "./parser_utils.hh"
 #include "./parser.h"
-#include "../AST/type.hh"
 #include "../AST/symbol_operators.hh"
 #include "../AST/advanced_operators.hh"
-#include "../AST/constant.hh"
 #include "../AST/control_flow.hh"
 
 template <typename T, typename U = Statement>
@@ -179,6 +16,8 @@ inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
 }
 
 #define st(arg) stm(std::move(arg))
+
+
 std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
 {
     auto name = std::make_unique<LongName>();
@@ -210,26 +49,23 @@ std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
     }
     return name;
 }
-std::pair<std::vector<TokenType>, std::vector<TokenType>> get_indenters()
-{
-    std::vector<TokenType> indt;
-    std::vector<TokenType> dindt;
-    for (auto d : defs)
-    {
-        if (d->ind)
-            indt.push_back(d->ttype);
-        else if (d->dind)
-            dindt.push_back(d->ttype);
-    }
-    return {indt, dindt};
-}
 
-std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
+
+std::vector<std::vector<Token>> parse_tst(std::vector<Token> &toks, TokenType at)
 {
     if (toks.size() == 0)
         return {};
 
-    static auto [indt, dindt] = get_indenters();
+    static std::vector<TokenType> indt, dindt;
+    if(!indt.size()){
+        for (auto d : defs)
+        {
+            if (d->ind)
+                indt.push_back(d->ttype);
+            else if (d->dind)
+                dindt.push_back(d->ttype);
+        }
+    }
 
     std::vector<std::vector<Token>> retVal;
     std::vector<Token> temp;
@@ -242,7 +78,7 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
         if (includes(dindt, t.type))
             ind--;
 
-        if (ind == 0 && t.is(TT_comma))
+        if (ind == 0 && t.is(at))
         {
             retVal.push_back(temp);
             temp.clear();
@@ -255,6 +91,11 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
     retVal.push_back(temp);
     return retVal;
 }
+std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
+{
+    return parse_tst(toks, TT_comma);
+}
+
 std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
 {
     if (!toks.size())
@@ -275,12 +116,27 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
     {
         pushf(toks, first);
         auto name = parse_long_name(toks);
-        auto rt = TypeRef::create(std::move(name));
+        auto rt = TypeRef::get(std::move(name));
         ret = rt;
     }
-    else
-        except(E_BAD_TYPE, "Failed to parse type: " + first.value);
+    else if(first.is(TT_struct)){
+        auto struct_content = read_block(toks, IND_braces);
+        expects(struct_content[struct_content.size()-1], TT_semicolon);
+        struct_content.pop_back();
 
+        auto entries = parse_tst(struct_content, TT_semicolon);
+
+        std::map<std::string, std::shared_ptr<Type>> fields;
+        for(auto entry : entries){
+            auto field_name = pope(entry, TT_identifier).value;
+            pope(entry, TT_colon);
+            auto field_type = parse_type(entry);
+
+            fields[field_name] = field_type;
+        }
+        ret = StructType::get(fields);
+    }
+    if(!ret)except(E_BAD_TYPE, "Failed to parse type: " + first.value);
     while (toks.size() && toks[0].is(TT_star))
     {
         popf(toks);
@@ -294,6 +150,8 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
 
         ret = ListType::get(ret);
     }
+
+
     return ret;
 }
 Import parse_import(std::vector<Token> toks)
@@ -329,16 +187,6 @@ ContainerRef parse_container_ref(std::vector<Token> toks)
     ContainerRef ref;
     ref.name = parse_long_name(toks);
 
-    if (toks[0].is(TT_lesser))
-    {
-        auto gen_block = read_block(toks, IND_generics);
-        auto gen_cst = parse_cst(gen_block);
-        for (auto gen_toks : gen_cst)
-        {
-            ref.generic_args.push(parse_type(gen_toks));
-        }
-    }
-
     return ref;
 }
 Param parse_param(std::vector<Token> toks)
@@ -362,84 +210,7 @@ Param parse_param(std::vector<Token> toks)
     return param;
 }
 
-struct Name_Segment
-{
-    std::string name;
-    Vec<Type> type_args;
-};
-Name_Segment parse_name_segment(std::vector<Token> &toks)
-{
-    auto name = pope(toks, TT_identifier);
-    Name_Segment seg;
-    seg.name = name.value;
 
-    Vec<Type> generic_args;
-
-    if (toks[0].is(TT_l_generic))
-    {
-        auto block = read_block(toks, IND_generics);
-        auto cst = parse_cst(block);
-        for (auto typ : cst)
-        {
-            auto type = parse_type(typ);
-            generic_args.push(std::move(type));
-        }
-    }
-    seg.type_args = std::move(generic_args);
-    return seg;
-}
-Vec<Name_Segment> parse_segmented_name(std::vector<Token> &toks)
-{
-    Vec<Name_Segment> segs;
-    while (toks.size())
-    {
-        auto id = parse_name_segment(toks);
-        segs.push(std::move(id));
-        if (!toks[0].is(TT_double_colon))
-            break;
-        popf(toks);
-    }
-    return segs;
-}
-std::unique_ptr<ContainerMemberRef> parse_member_ref_from_segments(Vec<Name_Segment> segments)
-{
-    auto& end = segments[segments.len() - 1];
-    Vec<Name_Segment> container_name_segs;
-
-    for (size_t i = 0; i < segments.len() - 1; i++)
-    {
-        container_name_segs.push(std::move(segments[i]));
-    }
-
-    Vec<Type> container_type_args;
-    LongName container_name;
-    size_t i = 0;
-    for (auto seg : container_name_segs)
-    {
-        container_name.parts.push(Name(seg->name));
-
-        // Take the last segment generics to be the module type params
-        if (i == container_name_segs.len() - 1)
-        {
-            container_type_args = std::move(seg->type_args);
-        }
-        // No other segment should have type args
-        else if (seg->type_args.len())
-        {
-            except(E_BAD_ARGS, "Cannot pass generic arguments to a non-module/seed");
-        }
-        i++;
-    }
-    auto member_ref = std::make_unique<ContainerMemberRef>();
-    member_ref->member = std::make_unique<Name>(end.name);
-    if (container_name.parts.len())
-    {
-        member_ref->container = std::make_unique<ContainerRef>();
-        member_ref->container->generic_args = std::move(container_type_args);
-        member_ref->container->name = std::make_unique<LongName>(std::move(container_name));
-    }
-    return member_ref;
-}
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
     if (!toks.size())
@@ -527,32 +298,25 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         toks = before;
     }
 
-    // Create a function call
-    // Function Calls can come in many forms
-    //
-    // foo::bar();
-    // foo<T>::bar();
-    // foo::bar<T>();
-    // foo<T>::bar<U>();
-    // foo::bar<T>::baz();
-    // foo::bar<T>::baz<U>();
-    // foo::bar::baz<T>();
-    //
-    // Uses a segmenting approach to simplify
-    // the parsing process
-    //
     if (first.is(TT_identifier))
     {
         auto before = toks;
-        if (toks.size() > 1 && !(toks[1].is(TT_l_generic) || toks[1].is(TT_double_colon) || toks[1].is(TT_l_paren)))
+        if (toks.size() > 1 && (toks[1].is(TT_l_generic) || toks[1].is(TT_double_colon) || toks[1].is(TT_l_paren) || toks[1].is(TT_l_brace)))
         {
-        }
-        else
-        {
-            auto segments = parse_segmented_name(toks);
+            auto container_name = parse_long_name(toks);
+            auto member_name = container_name->parts.pop();
+            Vec<Type> type_args;
+            if(toks[0].is(TT_l_generic)){
+                auto gen_block = read_block(toks, IND_generics);
+                except(E_INTERNAL, "Generic argument parsing is not implemented");
+            }
+            auto member_ref = std::make_unique<ContainerMemberRef>();
+            member_ref->member = std::make_unique<Name>(member_name);
+            if(container_name->parts.len()){
+                member_ref->container = std::make_unique<ContainerRef>();
+                member_ref->container->name = std::move(container_name);
 
-            auto& generic_args = segments[segments.len() - 1].type_args;
-            auto member_ref = parse_member_ref_from_segments(std::move(segments));
+            }
             if (toks[0].is(TT_l_paren))
             {
                 Vec<Expr> params;
@@ -567,9 +331,28 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 auto call = std::make_unique<MethodCall>();
                 call->args = std::move(params);
                 call->name = std::move(member_ref);
-                call->type_args = std::move(generic_args);
+                call->type_args = std::move(type_args);
                 call->scope = parent;
                 return call;
+            }
+            else if(toks[0].is(TT_l_brace)){
+                // Struct initialization block
+
+                Logger::debug("struct of type: " + member_ref->str());
+                auto init_block = read_block(toks, IND_braces);
+                expects(init_block[init_block.size()-1], TT_semicolon);
+                init_block.pop_back();
+
+                auto si = std::make_unique<StructInitialization>(std::move(member_ref));
+                auto prop_init_toks = parse_tst(init_block, TT_semicolon);
+                for(auto init : prop_init_toks){
+                    auto prop_name = pope(init, TT_identifier).value;
+                    pope(init, TT_colon);
+                    auto prop_value = parse_expr(init, parent);
+
+                    si->initializers[prop_name] = std::move(prop_value);
+                }
+                return si;
             }
         }
 
@@ -668,13 +451,14 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
         auto f = toks[0];
 
-        // subscript access
         if (f.is(TT_identifier))
         {
             auto initial = toks;
             auto name = parse_long_name(toks);
             if (toks[0].is(TT_l_square_bracket))
             {
+                // subscript access
+
                 auto index_block = read_block(toks, IND_square_brackets);
                 if (toks.size() == 0)
                 {
@@ -686,6 +470,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                     return subs;
                 }
             }
+
             toks = initial;
         }
 
@@ -829,7 +614,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
     }
     return scope;
 }
-Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container *parent, bool within_struct = false)
+Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container *parent)
 {
 
     Vec<ContainerMember> ret;
@@ -843,6 +628,8 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
         auto current = popf(toks);
 
         if(current.is(TT_hashtag)){
+            // Metadata
+
             auto content = read_block(toks, IND_square_brackets);
             auto attr_name = pope(content, TT_identifier).value;
             Vec<ConstantValue> attr_args;
@@ -863,25 +650,11 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
         }
 
-        if(current.is(TT_private) && is_public){
+        else if(current.is(TT_private) && is_public){
             is_public = false;
-            break;
         }
 
-        if(current.is(TT_struct)){
-            if(within_struct)except(E_ERR, "Nested structs are unsupported");
-            // the `struct` keyword in this context
-            // denotes a block of instance members
-
-            auto block = read_block(toks, IND_braces);
-            auto content = parse_container_content(toks, parent, true);
-            for(auto member : content.release()){
-                member->instance_only = true;
-                ret.push(std::unique_ptr<ContainerMember>(member));
-            }
-        }
-
-        if (current.is(TT_func))
+        else if (current.is(TT_func))
         {
             auto nameTok = popf(toks);
             expects(nameTok, TT_identifier);
@@ -935,9 +708,22 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             is_public = true;
 
             ret.push(stm<Method, ContainerMember>(std::move(method)));
-            continue;
         }
-        if(current.is(TT_identifier)){
+        else if(current.is(TT_type)){
+            auto type_name = popf(toks).value;
+            pope(toks, TT_assignment);
+            auto type_toks = read_to(toks, TT_semicolon);
+            popf(toks);
+            auto type = parse_type(type_toks);
+            auto member = std::make_unique<TypeMember>(type);
+            member->parent = parent;
+            member->name = std::make_unique<ContainerMemberRef>();
+            member->name->container = parent->get_ref();
+            member->name->member = std::make_unique<Name>(type_name);
+
+            ret.push(stm<TypeMember, ContainerMember>(std::move(member)));
+        }
+        else if(current.is(TT_identifier)){
             auto prop = std::make_unique<Property>();
 
             prop->name = std::make_unique<ContainerMemberRef>();
@@ -945,7 +731,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             prop->name->container = parent->get_ref();
 
             auto line = read_to(toks, TT_semicolon);
-
+            popf(toks);
             expects(popf(line), TT_colon);
             prop->type = parse_type(line);
 
@@ -961,7 +747,10 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             is_public = true;
             ret.push(stm<Property, ContainerMember>(std::move(prop)));
         }
-    
+        else{
+
+            except(E_ERR, "Unexpected Module Member: " + get_tt_name(current.type));
+        }
     
     }
 

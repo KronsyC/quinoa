@@ -113,7 +113,7 @@ for defi in ALL_DEFINITIONS:
 
     definitions_initializers+="new "
     definitions_initializers+="TokenDefinition("
-    definitions_initializers+=defname + ", " + json.dumps("__"+defi.id)
+    definitions_initializers+=defname + ", " + json.dumps(defi.id)
 
     for k, v in STRUCTURE.items():
         definitions_initializers+=", "

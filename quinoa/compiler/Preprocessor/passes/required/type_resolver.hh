@@ -6,36 +6,66 @@
 // type identification
 
 #include "../include.h"
+#include "./type_table_builder.hh"
+
 
 // Returns True, if all types are resolved
 std::pair<bool, int> resolve_types(CompilationUnit &unit)
 {
+
+
 	bool isGood = true;
 	int resolveCount = 0;
-
 	for(auto method : unit.get_methods()){
-		if(!method->content)continue;
+        build_method_type_table(method, unit);
 
-		for(auto prop:unit.get_properties()){
-			method->content->set_type(prop->name->str(), prop->type);
 
-			if(prop->name->container == method->name->container){
-				method->content->set_type(prop->name->member->str(), prop->type);
-			}
-		}
+        if(!method->content)continue;
 
-		for(auto param : method->parameters){
-			method->content->set_type(param->name.str(), param->type);
-		}
-		
-		for(auto node : method->content->flatten()){
-			if(auto assign = dynamic_cast<InitializeVar*>(node)){
-				if(assign->type){
-					assign->scope->set_type(assign->var_name.str(), assign->type);
-				}	
-			}
-			
-		}
+        for(auto code : method->content->flatten()){
+
+            // Resolve implicitly-typed variables 'let x = 73'
+            if(auto init = dynamic_cast<InitializeVar*>(code)){
+                if(init->type)continue;
+                if(!init->initializer)continue;
+                Logger::debug("Implicit type for: " + init->var_name.str());
+                init->type = init->initializer->type();
+                Logger::debug("init : " + init->initializer->str());
+                if(init->type)Logger::debug("Success");
+                if(init->type)resolveCount++;
+                else isGood = false;
+            }
+            if(auto init = dynamic_cast<StructInitialization*>(code)){
+                if(init->type)continue;
+                auto& name = init->target;
+
+                Logger::debug("Resolve Initialize: " + name->str());
+
+                std::shared_ptr<Type> resolves_to;
+                for(auto typ : unit.get_types()){
+                    if(typ->name->member->str() == "_"){
+                        // Match module, direct exit route
+                        auto mod_name = typ->name->container->str();
+                        if(mod_name == name->str()){
+                            resolves_to = typ->refers_to;
+                            break;
+                        }
+                    }
+                    else{
+                        if(typ->name->str() == name->str()){
+                            resolves_to = typ->refers_to;
+                        }
+                    }
+                }
+                if(!resolves_to)continue;
+                if(resolves_to->get<StructType>()){
+                    init->type = resolves_to;
+                }
+                else except(E_BAD_TYPE, "Attempt to initialize " + name->str() + " as a struct, but it has the type: " + resolves_to->str());
+            }
+
+        }
+
 	}
 
 	return {isGood, resolveCount};

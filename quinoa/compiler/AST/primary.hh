@@ -171,7 +171,10 @@ public:
         auto lookup = type_table[var_name];
         if(lookup)return lookup;
         else if(scope)return scope->get_type(var_name);
-        else except(E_UNRESOLVED_TYPE, "Failed to get type of '" + var_name + "'");
+        else{
+            except(E_UNRESOLVED_TYPE, "Failed to get type of '" + var_name + "'", false);
+            return std::shared_ptr<Type>(nullptr);
+        }
     }
 
     ReturnChance returns(){
