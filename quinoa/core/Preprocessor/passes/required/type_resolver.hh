@@ -31,15 +31,18 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
                 Logger::debug("Implicit type for: " + init->var_name.str());
                 init->type = init->initializer->type();
                 Logger::debug("init : " + init->initializer->str());
-                if(init->type)Logger::debug("Success");
-                if(init->type)resolveCount++;
+                if(init->type){
+                    Logger::debug("Success, type is now " + init->type->str());
+                }
+                if(init->type){
+                    init->scope->set_type(init->var_name.str(), init->type);
+                    resolveCount++;
+                }
                 else isGood = false;
             }
             if(auto init = dynamic_cast<StructInitialization*>(code)){
                 if(init->type)continue;
                 auto& name = init->target;
-
-                Logger::debug("Resolve Initialize: " + name->str());
 
                 std::shared_ptr<Type> resolves_to;
                 for(auto typ : unit.get_types()){
@@ -57,9 +60,17 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
                         }
                     }
                 }
-                if(!resolves_to)continue;
+
+                if(!resolves_to){
+                    resolves_to = method->parent->get_type(name->str());
+                }
+                if(!resolves_to){
+                    isGood = false;
+                    continue;
+                }
                 if(resolves_to->get<StructType>()){
-                    init->type = resolves_to;
+                    init->type = std::static_pointer_cast<StructType>(resolves_to);
+                    resolveCount++;
                 }
                 else except(E_BAD_TYPE, "Attempt to initialize " + name->str() + " as a struct, but it has the type: " + resolves_to->str());
             }

@@ -183,7 +183,7 @@ class StructInitialization : public Expr{
 public:
     std::map<std::string, std::unique_ptr<Expr>> initializers;
     std::unique_ptr<ContainerMemberRef> target;
-    std::shared_ptr<Type> type;
+    std::shared_ptr<StructType> type;
 
     StructInitialization(std::unique_ptr<ContainerMemberRef> tgt){
         this->target = std::move(tgt);
@@ -207,15 +207,15 @@ public:
         return ret;
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        auto struct_type = *(std::shared_ptr<StructType>*)&type;
-        auto struct_ll_type = struct_type->llvm_type();
+        if(!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
+        auto struct_ll_type = type->llvm_type();
         auto alloc = builder()->CreateAlloca(struct_ll_type);
         for(auto& init : initializers){
-            auto idx = struct_type->member_idx(init.first);
+            auto idx = type->member_idx(init.first);
 
             if(idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key");
 
-            auto target_ty = struct_type->members[init.first]->llvm_type();
+            auto target_ty = type->members[init.first]->llvm_type();
             auto init_expr = init.second->llvm_value(vars, target_ty);
 
             auto mem = builder()->CreateStructGEP(struct_ll_type, alloc, idx);
@@ -233,10 +233,10 @@ public:
 
 class Subscript : public Expr{
 public:
-    std::unique_ptr<SourceVariable> target;
+    std::unique_ptr<Expr> target;
     std::unique_ptr<Expr>           index;
 
-    Subscript(std::unique_ptr<SourceVariable> tgt, std::unique_ptr<Expr> idx){
+    Subscript(std::unique_ptr<Expr> tgt, std::unique_ptr<Expr> idx){
         this->target = std::move(tgt);
         this->index  = std::move(idx);
     }

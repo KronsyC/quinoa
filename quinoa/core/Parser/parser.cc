@@ -237,6 +237,7 @@ Param parse_param(std::vector<Token> toks)
 
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
+    print_toks(toks);
     if (!toks.size())
         except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
 
@@ -282,17 +283,47 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         toks = before;
     }
 
+    if (first.is(TT_identifier))
+    {
+        auto initial = toks;
+        auto target_toks = read_to(toks, TT_l_square_bracket);
+        if(target_toks.size()){
+            Logger::debug("SUBSCRIPT OF:");
+            print_toks(target_toks);
+            auto target = parse_expr(target_toks, parent);
+            if (toks[0].is(TT_l_square_bracket))
+            {
+                // subscript access
+
+                auto index_block = read_block(toks, IND_square_brackets);
+                if (toks.size() == 0)
+                {
+                    auto index_expr = parse_expr(index_block, parent);
+                    auto subs = std::make_unique<Subscript>(std::move(target), std::move(index_expr));
+                    subs->scope = parent;
+                    return subs;
+                }
+            }
+        }
+
+
+        toks = initial;
+    }
     // List Literal
     if (first.is(TT_l_square_bracket))
     {
+        auto initial = toks;
         auto content = read_block(toks, IND_square_brackets);
-        auto entries = parse_cst(content);
-        auto list = std::make_unique<ArrayLiteral>();
-         for(auto entry : entries) {
-             auto entry_expr = parse_expr(entry, parent);
-             list->members.push(std::move(entry_expr));
-         }
-         return list;
+        if(!toks.size()){
+            auto entries = parse_cst(content);
+            auto list = std::make_unique<ArrayLiteral>();
+            for(auto entry : entries) {
+                auto entry_expr = parse_expr(entry, parent);
+                list->members.push(std::move(entry_expr));
+            }
+            return list;
+        }
+        toks = initial;
     }
 
     // Unwrap Nested Expression
@@ -391,8 +422,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
     {
         auto t = toks[i];
 
-        // parenthesis are unwrapped at the end, it's counter-intuitive to BIMDAS
-        // but thats how it works in trees
         if (t.isIndentationTok())
             depth++;
         if (t.isDeIndentationTok())
@@ -462,30 +491,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             return uo;
         }
 
-        auto f = toks[0];
 
-        if (f.is(TT_identifier))
-        {
-            auto initial = toks;
-            auto name = parse_long_name(toks);
-            if (toks[0].is(TT_l_square_bracket))
-            {
-                // subscript access
-
-                auto index_block = read_block(toks, IND_square_brackets);
-                if (toks.size() == 0)
-                {
-                    auto var = std::make_unique<SourceVariable>(*name);
-                    var->scope = parent;
-                    auto index_expr = parse_expr(index_block, parent);
-                    auto subs = std::make_unique<Subscript>(std::move(var), std::move(index_expr));
-                    subs->scope = parent;
-                    return subs;
-                }
-            }
-
-            toks = initial;
-        }
 
         print_toks(toks);
         except(E_BAD_EXPRESSION, "Failed To Parse Expression");

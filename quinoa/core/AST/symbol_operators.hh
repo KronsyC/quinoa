@@ -304,6 +304,7 @@ protected:
                 auto left_t = left_operand->type();
                 if(!dynamic_cast<SourceVariable*>(right_operand.get()))except(E_BAD_MEMBER_ACCESS, "A struct may only be indexed with identifiers");
                 auto key = (SourceVariable*)right_operand.get();
+                if(!left_t)return std::shared_ptr<Type>(nullptr);
                 if(auto strct = left_t->get<StructType>()){
                     if(strct->member_idx(key->name->str()) == -1)except(E_BAD_MEMBER_ACCESS, "The struct: " + left_operand->str() + " does not have a member: " + key->name->str());
                     return strct->members[key->name->str()];

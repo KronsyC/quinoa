@@ -41,6 +41,7 @@ public:
     virtual Type *drill() = 0;
 
     virtual llvm::Constant *default_value(llvm::Type *expected) = 0;
+    virtual std::vector<Type*> flatten() = 0;
 
 protected:
     /**
@@ -85,6 +86,9 @@ protected:
 
 public:
     PrimitiveType kind;
+    std::vector<Type*> flatten(){
+        return {this};
+    }
     Primitive(PrimitiveType kind)
     {
         this->kind = kind;
@@ -201,6 +205,11 @@ public:
     {
         this->of = type;
     }
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        for(auto m : of->flatten())ret.push_back(m);
+        return ret;
+    }
     std::shared_ptr<Type> of;
 
     std::string str()
@@ -259,7 +268,11 @@ public:
         this->of = std::move(type);
         this->size = std::move(size);
     }
-
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        for(auto m : of->flatten())ret.push_back(m);
+        return ret;
+    }
     ListType(const ListType& from){
         this->of = from.of;
         this->size = std::make_unique<Integer>(from.size->value);
@@ -323,7 +336,11 @@ public:
     {
         this->of = type;
     }
-
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        for(auto m : of->flatten())ret.push_back(m);
+        return ret;
+    }
     std::shared_ptr<Type> pointee()
     {
         return of;
@@ -374,7 +391,13 @@ public:
     {
         return this;
     }
-
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        for(auto m : members){
+            for(auto f : m.second->flatten())ret.push_back(f);
+        }
+        return ret;
+    }
     std::string str()
     {
         std::string name = "struct:{";
@@ -447,6 +470,11 @@ public:
         if (resolves_to)
             return resolves_to->drill();
         return this;
+    }
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        if(resolves_to)for(auto m : resolves_to->flatten())ret.push_back(m);
+        return ret;
     }
     llvm::Constant *default_value(llvm::Type *expected){
         if(resolves_to)return resolves_to->default_value(expected);

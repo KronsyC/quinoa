@@ -11,7 +11,6 @@ public:
     void write_to(llvm::Value* alloc, VariableTable& vars){
         if(!alloc->getType()->getPointerElementType()->isArrayTy())except(E_BAD_ASSIGNMENT, "You can only write an array literal to a list typed variable");
 
-        alloc->print(llvm::outs());
 
         auto tgt_member_t = alloc->getType()->getPointerElementType()->getArrayElementType();
 
@@ -24,7 +23,10 @@ public:
         }
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        except(E_INTERNAL, "cannot get llvm_value for array literal");
+        auto my_type = type()->llvm_type();
+        auto alloca = builder()->CreateAlloca(my_type);
+        this->write_to(alloca, vars);
+        return builder()->CreateLoad(my_type, alloca);
     }
     llvm::Value* assign_ptr(VariableTable& vars){
         except(E_BAD_ASSIGNMENT, "Array Literals are not assignable");
@@ -50,9 +52,10 @@ private:
         std::vector<std::shared_ptr<Type>> member_types;
         for(auto m : members){
             member_types.push_back(m->type());
+            Logger::debug("member: " + m->type()->str());
         }
         auto common = TypeUtils::get_common_type(member_types);
-
+        if(!common)except(E_BAD_TYPE, "Failed to get common type for array members");
         return ListType::get(common, Integer::get(members.len()));
     }
 

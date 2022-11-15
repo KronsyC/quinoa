@@ -5,12 +5,8 @@
  * i.e they never depend on inferrable data
 */
 #include "../include.h"
-
-void attempt_resolve_typeref(TypeRef& ref, Method* method){
-    Logger::debug("Resolving ref: " + ref.name->str());
-
-    // Check the local container type definitions
-    auto locally_defined_type = method->parent->get_type(ref.name->str());
+void attempt_resolve_typeref(TypeRef& ref, Container* container) {
+    auto locally_defined_type = container->get_type(ref.name->str());
     if(locally_defined_type){
         ref.resolves_to = locally_defined_type;
         Logger::debug("Resolved locally as: " + ref.resolves_to->str());
@@ -18,14 +14,22 @@ void attempt_resolve_typeref(TypeRef& ref, Method* method){
     }
 
     // Check other modules
-    for(auto type : method->parent->parent->get_types()){
+    for(auto type : container->parent->get_types()){
         if(type->name->str() == ref.name->str()){
             ref.resolves_to = type->refers_to;
             Logger::debug("Resolved remotely as: " + ref.resolves_to->str());
             return;
         }
     }
-    except(E_UNRESOLVED_TYPE, "Failed to resolve type " + ref.name->str());
+}
+void attempt_resolve_typeref(TypeRef& ref, Method* method){
+    Logger::debug("Resolving ref: " + ref.name->str());
+
+    attempt_resolve_typeref(ref, method->parent);
+
+    // Check the local container type definitions
+
+    if(!ref.resolves_to)except(E_UNRESOLVED_TYPE, "Failed to resolve type " + ref.name->str());
 }
 
 void resolve_type_references(CompilationUnit& unit){
@@ -52,6 +56,24 @@ void resolve_type_references(CompilationUnit& unit){
 
                     attempt_resolve_typeref(*ref, method);
                 }
+            }
+        }
+    }
+
+    for(auto cont : unit.get_containers()){
+        for(auto mem : cont->members){
+            if(auto type = dynamic_cast<TypeMember*>(mem.ptr)){
+
+                for(auto flat : type->refers_to->flatten()){
+                    if(auto ref = flat->drill()->get<TypeRef>()){
+                        if(ref->resolves_to)continue;
+                        Logger::debug("Resolve type ref to: " + ref->str());
+                        attempt_resolve_typeref(*ref, cont);
+                        Logger::debug("It is now: " + ref->str());
+                    }
+                }
+
+
             }
         }
     }
