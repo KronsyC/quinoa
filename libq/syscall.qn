@@ -1,8 +1,6 @@
 
 module Syscall is Exported{
 
-	#[ link_extern "syscall" ]
-	func call(callNo:i64, ...args:i64[]) -> i64;
 
 	// 0
 	#[ link_extern "read" ]

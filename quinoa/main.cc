@@ -1,7 +1,6 @@
 
 
-#include "./compiler/AST/ast.hh"
-#include "./compiler/compiler.h"
+#include "./core/compiler.h"
 #include "./lib/error.h"
 #include "./lib/logger.h"
 #include "./lib/clarg_parser.hh"

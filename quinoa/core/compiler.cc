@@ -15,7 +15,7 @@ std::unique_ptr<CompilationUnit> make_ast(std::string sourceCode, std::string pa
     if(process)Preprocessor::process_ast(*ast, false);
     return ast;
 }
-std::string readFile(std::string path)
+std::string read_file(std::string path)
 {
     // Read the file into a string
     std::ifstream file(path);
@@ -82,7 +82,7 @@ void emit_exe(llvm::Module* mod, std::string path){
 }
 void compile(std::string path, ClargParser& cp)
 {
-    auto source = readFile(path);
+    auto source = read_file(path);
     auto toks = Lexer::lexify(source, path);
     auto ast = Parser::make_ast(toks);
 

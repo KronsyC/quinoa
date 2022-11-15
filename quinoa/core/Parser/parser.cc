@@ -96,6 +96,18 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
     return parse_tst(toks, TT_comma);
 }
 
+std::unique_ptr<ConstantValue> parse_const(Token tok){
+    switch (tok.type)
+    {
+        case TT_literal_int:
+            return Integer::get(std::stoull(tok.value));
+        case TT_literal_str:
+            return String::get(tok.value);
+        default:
+            except(E_BAD_EXPRESSION, "Failed to generate literal for '" + tok.value + "'");
+    }
+}
+
 std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
 {
     if (!toks.size())
@@ -121,8 +133,10 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
     }
     else if(first.is(TT_struct)){
         auto struct_content = read_block(toks, IND_braces);
-        expects(struct_content[struct_content.size()-1], TT_semicolon);
-        struct_content.pop_back();
+        if(struct_content.size()){
+            expects(struct_content[struct_content.size()-1], TT_semicolon);
+            struct_content.pop_back();
+        }
 
         auto entries = parse_tst(struct_content, TT_semicolon);
 
@@ -145,10 +159,20 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
     if (toks[0].is(TT_l_square_bracket))
     {
         popf(toks);
-        pope(toks, TT_r_square_bracket);
-        // TODO: possible explicit list length
+        if(toks[0].is(TT_r_square_bracket)){
+            popf(toks);
+            ret = DynListType::get(ret);
+        }
+        else{
+            auto len_u = parse_const(popf(toks));
+            auto len = dynamic_cast<Integer*>(len_u.get());
 
-        ret = ListType::get(ret);
+            if(!len)except(E_BAD_ARRAY_LEN, "Arrays must have a constant integer length");
+            pope(toks, TT_r_square_bracket);
+
+            ret = ListType::get(ret, std::move(std::unique_ptr<Integer>((Integer*)len_u.release())));
+        }
+
     }
 
 
@@ -218,22 +242,12 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
     if (toks.size() == 1)
     {
-        auto first = toks[0];
-        switch (popf(toks).type)
-        {
-        case TT_literal_int:
-            return Integer::get(std::stoull(first.value));
-        case TT_literal_str:
-            return String::get(first.value);
-        case TT_identifier:
-        {
-            auto id = std::make_unique<SourceVariable>(first.value);
+        if(toks[0].is(TT_identifier)){
+            auto id = std::make_unique<SourceVariable>(toks[0].value);
             id->scope = parent;
             return id;
         }
-        default:
-            except(E_BAD_EXPRESSION, "Failed to generate literal for '" + first.value + "'");
-        }
+        else return parse_const(popf(toks));
     }
 
     auto first = toks[0];
@@ -819,7 +833,7 @@ std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)
                             : current.is(TT_seed)   ? CT_SEED
                             : current.is(TT_struct) ? CT_STRUCT
                             : CT_NOTYPE;
-
+            container->parent = unit.get();
             if(current.is(TT_struct)){
                 // instance all members
                 for(auto mem : container->members){

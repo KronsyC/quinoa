@@ -77,7 +77,7 @@
 	new TokenDefinition(TT_bitwise_not, "bitwise_not", {"~"}, "", false, false, 0, false, true),\
 	new TokenDefinition(TT_decrement, "decrement", {"--"}, "", false, false, 0, true, true),\
 	new TokenDefinition(TT_bang, "bang", {"!"}, "", false, false, 0, false, true),\
-	new TokenDefinition(TT_amperand, "amperand", {"&"}, "", false, false, 0, false, true),\
+	new TokenDefinition(TT_amperand, "ampersand", {"&"}, "", false, false, 0, false, true),\
 	new TokenDefinition(TT_star, "star", {"*"}, "", false, false, 5, false, true),\
 	new TokenDefinition(TT_plus, "plus", {"+"}, "", false, false, 6, false, false),\
 	new TokenDefinition(TT_minus, "minus", {"-"}, "", false, false, 6, false, true),\

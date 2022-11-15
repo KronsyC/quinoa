@@ -74,12 +74,25 @@ bool isSymbol(string str)
 string escapeNextVal(string& str)
 {
     auto first = popf(str);
+#define X(from, to)case from: return to
     switch(first) {
-    case '"':
-	return "\"";
-
-    case 'n':
-	return "\n";
+        X('"', "\"");
+        X('n', "\n");
+        X('t', "\t");
+        X('r', "\r");
+        X('f', "\f");
+        X('a', "\a");
+        X('b', "\b");
+        X('\\', "\\");
+        X('v', "\v");
+        X('0', "\0");
+        X('1', "\1");
+        X('2', "\2");
+        X('3', "\3");
+        X('4', "\4");
+        X('5', "\5");
+        X('6', "\6");
+        X('7', "\7");
     }
     except(E_UNESCAPABLE, "Failed To Escape string");
     return "";
@@ -93,7 +106,7 @@ inline vector<string> get_aliases()
 {
     // Keyword Check (this is black magic, god have mercy on my soul)
     vector<string> aliases;
-    // Construct a vector with all of the aliases, sorted by length (big->small)
+    // Construct a vector with all the aliases, sorted by length (big->small)
     for(auto def : defs) {
 	for(auto alias : def->alias) {
 	    aliases.push_back(alias);

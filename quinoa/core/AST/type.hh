@@ -6,8 +6,8 @@
 #include "../llvm_globals.h"
 #include "../token/token.h"
 #include "../../lib/list.h"
-
 #include "./reference.hh"
+
 enum PrimitiveType
 {
     PRIMITIVES_ENUM_MEMBERS
@@ -18,6 +18,7 @@ static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAP
 class Primitive;
 class Ptr;
 class ListType;
+class DynListType;
 class TypeRef;
 
 class Type : public ANode
@@ -54,6 +55,7 @@ protected:
     template <class T>
     static std::shared_ptr<T> create_heaped(T obj)
     {
+
         static_assert(std::is_base_of<Type, T>(), "You may only create a heap allocation of a type derivative");
         // O(n) cache mechanism
         // so we do not have to impl a
@@ -239,7 +241,7 @@ public:
         return llvm::ConstantExpr::getIntToPtr(builder()->getInt64(0), expected, false);
     }
 };
-
+#include "./constant.hh"
 class ListType : public Type
 {
 protected:
@@ -250,10 +252,20 @@ protected:
 
 public:
     std::shared_ptr<Type> of;
-    ListType(std::shared_ptr<Type> type)
+    std::unique_ptr<Integer> size;
+
+    ListType(std::shared_ptr<Type> type, std::unique_ptr<Integer> size)
     {
         this->of = std::move(type);
+        this->size = std::move(size);
     }
+
+    ListType(const ListType& from){
+        this->of = from.of;
+        this->size = std::make_unique<Integer>(from.size->value);
+    }
+    ListType(ListType&&) = default;
+
     std::shared_ptr<Type> pointee()
     {
         return of;
@@ -261,21 +273,21 @@ public:
 
     std::string str()
     {
-        return of->str() + "[]";
+        return of->str() + "[" + size->str() + "]";
     }
-    static std::shared_ptr<ListType> get(std::shared_ptr<Type> of)
+    static std::shared_ptr<ListType> get(std::shared_ptr<Type> of, std::unique_ptr<Integer> size)
     {
-        return create_heaped(ListType(of));
+        return create_heaped(ListType(of, std::move(size)));
     }
     llvm::Type *llvm_type()
     {
-        return of->llvm_type()->getPointerTo();
+        return llvm::ArrayType::get(of->llvm_type(), size->value);
     }
     bool operator==(Type &against)
     {
         if (auto k = against.get<ListType>())
         {
-            return k->of == of;
+            return k->of == of && k->size->value == size->value;
         }
         return false;
     }
@@ -285,12 +297,69 @@ public:
         auto lt = target.get<ListType>();
         if (!lt)
             return -1;
+        if(lt->size->value != this->size->value)return -1;
         return this->of->distance_from(*lt->of);
     }
     llvm::Constant *default_value(llvm::Type *expected){
         except(E_INTERNAL, "default value not implemented for list types");
     }
 
+};
+
+/*
+ * Dynamically sized list type
+ * uses a fat pointer to track length
+ */
+class DynListType : public Type{
+protected:
+    Type *drill()
+    {
+        return this;
+    }
+public:
+    std::shared_ptr<Type> of;
+
+    DynListType(std::shared_ptr<Type> type)
+    {
+        this->of = type;
+    }
+
+    std::shared_ptr<Type> pointee()
+    {
+        return of;
+    }
+
+    std::string str()
+    {
+        return of->str() + "[]";
+    }
+    static std::shared_ptr<DynListType> get(std::shared_ptr<Type> of)
+    {
+        return create_heaped(DynListType(of));
+    }
+    llvm::Type *llvm_type()
+    {
+        except(E_INTERNAL, "llvm_type not implemented for DynListType: " + of->str());
+    }
+    bool operator==(Type &against)
+    {
+        if (auto k = against.get<DynListType>())
+        {
+            return k->of == of;
+        }
+        return false;
+    }
+
+    int distance_from(Type &target)
+    {
+        auto lt = target.get<DynListType>();
+        if (!lt)
+            return -1;
+        return this->of->distance_from(*lt->of);
+    }
+    llvm::Constant *default_value(llvm::Type *expected) {
+        except(E_INTERNAL, "default value not implemented for list types");
+    }
 };
 
 class StructType : public Type

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../compiler/AST/ast.hh"
+#include "../core/AST/ast.hh"
 #include "./error.h"
 #include <algorithm>
 #include <string>
@@ -22,10 +22,10 @@ template <typename T> T popf(std::vector<T>& vec)
     vec.erase(vec.begin());
     return first;
 }
-template <typename T> long long indexof(std::vector<T> items, T item)
+template <typename T> long long indexof(std::vector<T>& items, T& item)
 {
     int idx = 0;
-    for(auto i : items) {
+    for(auto& i : items) {
 	if(i == item)
 	    return idx;
 	idx++;

@@ -254,13 +254,20 @@ public:
         return cast(load, expected_type);
     }
     llvm::Value* assign_ptr(VariableTable& vars){
-        auto ptr = target->llvm_value(vars);
+        auto ptr = target->assign_ptr(vars);
         auto idx = index->llvm_value(vars);
 
-        // ptr->print(llvm::outs());
-
-        auto gep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, idx);
-        return gep;
+        if(ptr->getType()->getPointerElementType()->isArrayTy()){
+             auto zero = Integer::get(0)->const_value(index->type()->llvm_type());
+             auto ep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, {zero, idx});
+             return ep;
+        }
+        else if(ptr->getType()->getPointerElementType()->isPointerTy()){
+            auto val = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
+            auto ep = builder()->CreateGEP(val->getType()->getPointerElementType(), val, idx);
+            return ep;
+        }
+        else except(E_BAD_OPERAND, "You may only access subscripts of an array type");
     }
     std::shared_ptr<Type> get_type(){
         return target->type()->pointee();

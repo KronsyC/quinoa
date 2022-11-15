@@ -99,7 +99,7 @@ CompilationUnit* get_ast_from_path(std::string path, std::string filename)
   auto cached = import_cache[path].get();
   if (!cached)
   {
-    auto file = readFile(path);
+    auto file = read_file(path);
     auto ast = make_ast(file, path);
 
     // add the unique namespace prefix to the module

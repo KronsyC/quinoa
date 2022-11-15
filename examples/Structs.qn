@@ -15,7 +15,6 @@ module Person{
             surname : surname;
             age : age;
         };
-
     }
 
     func greet(person : Person){

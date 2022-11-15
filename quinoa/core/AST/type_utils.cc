@@ -29,8 +29,15 @@ std::shared_ptr<Type> TypeUtils::get_common_type(std::shared_ptr<Type> type_1, s
     {
         auto pointee_t1 = type_1->pointee();
         auto pointee_t2 = type_2->pointee();
-        auto mut = get_common_type(pointee_t1, pointee_t2);
-        return ListType::get(mut);
+
+        auto& len_1 = type_1->get<ListType>()->size;
+        auto& len_2 = type_2->get<ListType>()->size;
+
+        if(len_1->value == len_2->value) {
+            auto mut = get_common_type(pointee_t1, pointee_t2);
+            return ListType::get(mut, Integer::get(len_1->value));
+        }
+
     }
     if (type_1->get<Ptr>() && type_2->get<Ptr>())
     {

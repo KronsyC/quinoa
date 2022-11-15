@@ -24,7 +24,7 @@ llvm_map_components_to_libnames(llvm_libs support core irreader linker mcjit nat
 
 add_definitions(-DQUINOA_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
-add_executable(quinoa ${sources} quinoa/compiler/Parser/parser_utils.hh quinoa/compiler/Preprocessor/passes/required/type_ref_resolver.hh)
+add_executable(quinoa ${sources} quinoa/core/Parser/parser_utils.hh quinoa/core/Preprocessor/passes/required/type_ref_resolver.hh)
 target_link_libraries(quinoa ${llvm_libs})
 target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -g)
 
