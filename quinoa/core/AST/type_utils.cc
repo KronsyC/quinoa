@@ -1,5 +1,6 @@
 #include "./type_utils.h"
 #include "../../lib/error.h"
+#include "./type.hh"
 std::shared_ptr<Type> TypeUtils::get_common_type(std::shared_ptr<Type> type_1, std::shared_ptr<Type> type_2, bool second_pass)
 {
     if (*type_1 == *type_2)
@@ -57,3 +58,14 @@ std::shared_ptr<Type> TypeUtils::get_common_type(std::shared_ptr<Type> type_1, s
         except(E_NONEQUIVALENT_TYPES, "Failed to get common type between " + type_1->str() + " and " + type_2->str());
     return get_common_type(type_2, type_1, true);
 }
+std::shared_ptr<Type> TypeUtils::get_common_type(std::vector<std::shared_ptr<Type>> types) {
+    std::shared_ptr<Type> current_common_type;
+    for(auto ty : types){
+        if(!current_common_type)current_common_type = ty;
+        else{
+            current_common_type = get_common_type(ty, current_common_type);
+        }
+    }
+    return current_common_type;
+}
+

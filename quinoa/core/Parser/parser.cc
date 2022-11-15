@@ -6,7 +6,7 @@
 #include "../AST/symbol_operators.hh"
 #include "../AST/advanced_operators.hh"
 #include "../AST/control_flow.hh"
-
+#include "../AST/literal.hh"
 template <typename T, typename U = Statement>
 inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
 {
@@ -287,13 +287,12 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
     {
         auto content = read_block(toks, IND_square_brackets);
         auto entries = parse_cst(content);
-
-        except(E_INTERNAL, "Array literal parser is not implemented");
-        // for(auto entry : entries) {
-        //     auto entry_expr = parse_expr(entry, parent);
-        //     list->push_back(entry_expr);
-        // }
-        // return list;
+        auto list = std::make_unique<ArrayLiteral>();
+         for(auto entry : entries) {
+             auto entry_expr = parse_expr(entry, parent);
+             list->members.push(std::move(entry_expr));
+         }
+         return list;
     }
 
     // Unwrap Nested Expression

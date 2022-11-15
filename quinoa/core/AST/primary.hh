@@ -54,7 +54,7 @@ public:
     }
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         // Generate the expression as a statement
-        // This is common for use-cases such as calls (where the function has side-effects)
+        // This is common for use-cases such as calls (where the function has side effects)
         llvm_value(vars);
     }
     Expr& get_parent(){
@@ -82,6 +82,8 @@ private:
     bool recalculate_type = true;
     std::shared_ptr<Type> cached_type;
 };
+
+
 
 enum JumpType{
     BREAK,

@@ -8,6 +8,7 @@
 #include "../../GenMacro.h"
 #include "./type_utils.h"
 #include "./reference.hh"
+#include "./literal.hh"
 enum UnaryOpType
 {
     UNARY_ENUM_MEMBERS
@@ -53,7 +54,6 @@ public:
         default:
             except(E_BAD_ASSIGNMENT, "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type));
         }
-        except(E_INTERNAL, "assign_ptr not implemented for Subscript");
     }
     llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected)
     {
@@ -180,10 +180,11 @@ public:
             auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
             return load;
         }
+        llvm::Value* value = nullptr;
         if (op_type == BIN_assignment)
         {
             auto assignee = left_operand->assign_ptr(vars);
-            auto value = right_operand->llvm_value(vars, assignee->getType()->getPointerElementType());
+
 
             // constant assignment check
             if (auto var = dynamic_cast<SourceVariable *>(left_operand.get()))
@@ -200,7 +201,15 @@ public:
                 }
             }
 
-            builder()->CreateStore(value, assignee);
+            if(auto literal = dynamic_cast<ArrayLiteral*>(right_operand.get())){
+                literal->write_to(assignee, vars);
+                // no need to set the value, as the preprocessor enforces that array literals may only
+                // be used during initialization
+            }
+            else{
+                value = right_operand->llvm_value(vars, assignee->getType()->getPointerElementType());
+                builder()->CreateStore(value, assignee);
+            }
 
             return cast(value, expected_type);
         }
