@@ -23,9 +23,12 @@ public:
         }
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
-        auto my_type = type()->llvm_type();
+
+        auto my_type = expected_type ? expected_type : type()->llvm_type();
         auto alloca = builder()->CreateAlloca(my_type);
+        if(expected_type && !expected_type->isArrayTy())except(E_BAD_CAST, "Cannot cast an array to a non-array type");
         this->write_to(alloca, vars);
+
         return builder()->CreateLoad(my_type, alloca);
     }
     llvm::Value* assign_ptr(VariableTable& vars){

@@ -234,7 +234,7 @@ public:
 class Subscript : public Expr{
 public:
     std::unique_ptr<Expr> target;
-    std::unique_ptr<Expr>           index;
+    std::unique_ptr<Expr> index;
 
     Subscript(std::unique_ptr<Expr> tgt, std::unique_ptr<Expr> idx){
         this->target = std::move(tgt);
@@ -258,6 +258,17 @@ public:
         auto idx = index->llvm_value(vars);
 
         if(ptr->getType()->getPointerElementType()->isArrayTy()){
+             // Subscripts for arrays may only be integers, iX;
+             if(!index->type()->llvm_type()->isIntegerTy())except(E_BAD_INDEX, "The Index of an array subscript expression must be an integer");
+
+
+             // Generate a bounds-check
+             // TODO: Make this an optional compilation flag
+            generate_bounds_check(idx, ptr->getType()->getPointerElementType()->getArrayNumElements());
+
+
+
+
              auto zero = Integer::get(0)->const_value(index->type()->llvm_type());
              auto ep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, {zero, idx});
              return ep;
@@ -271,5 +282,44 @@ public:
     }
     std::shared_ptr<Type> get_type(){
         return target->type()->pointee();
+    }
+private:
+    void generate_bounds_check(llvm::Value* access_idx, size_t array_len){
+        auto array_len_val = Integer::get(array_len)->const_value(access_idx->getType());
+        auto func = builder()->GetInsertBlock()->getParent();
+        auto mod = func->getParent();
+        auto exception_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_err", func);
+        auto continue_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_cont", func);
+
+        access_idx->print(llvm::outs());
+        array_len_val->print(llvm::outs());
+        auto is_valid_access = builder()->CreateICmpSLE(access_idx, array_len_val);
+
+        builder()->CreateCondBr(is_valid_access, continue_block, exception_block);
+
+        builder()->SetInsertPoint(exception_block);
+
+        // Requires both write() and abort() from libc, ensure they are present
+
+        auto write_sig = llvm::FunctionType::get(builder()->getInt32Ty(), {builder()->getInt32Ty(), builder()->getInt64Ty(), builder()->getInt64Ty()}, false);
+        auto abort_sig = llvm::FunctionType::get(builder()->getVoidTy(), {}, false);
+
+        auto write_fn = mod->getFunction("write") ? mod->getFunction("write") : llvm::Function::Create(write_sig, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "write", mod);
+        auto abort_fn = mod->getFunction("abort") ? mod->getFunction("abort") : llvm::Function::Create(abort_sig, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "abort", mod);
+
+        std::string message = "\033[0;31mERROR:\033[0;0m Array subscript out of bounds\n\tfor expression " + str() + "\n\n";
+
+        builder()->CreateCall(write_fn, {
+           builder()->getInt32(2),
+           builder()->CreatePtrToInt(
+                   builder()->CreateGlobalStringPtr(message),
+                   builder()->getInt64Ty()
+           ),
+           builder()->getInt64(message.size())
+        });
+        builder()->CreateCall(abort_fn);
+
+        builder()->CreateBr(continue_block);
+        builder()->SetInsertPoint(continue_block);
     }
 };
