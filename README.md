@@ -1,6 +1,6 @@
 # Quinoa
 
-## The Purely Compositional Language
+## An experimental programming language
 
 ---
 
@@ -24,7 +24,8 @@
     ```
 2. Build the project
     ```bash
-    ./scripts/compile.sh
+    cmake . -B build
+    cmake --build build/
     ```
 3. Compile a sample file
     ```
