@@ -45,8 +45,6 @@ literal_int
 
 literal_float
 
-literal_string
-
 literal_char
 
 # Type Definitions
@@ -126,6 +124,14 @@ l_paren
 @dind
 r_paren
 
+@alias (<
+@ind
+l_generic
+
+@alias >)
+@dind
+r_generic
+
 @alias {
 @ind
 l_brace
@@ -198,7 +204,7 @@ bang
 
 @prefix
 @alias &
-amperand
+ampersand
 
 # Binary Operators
 
@@ -271,7 +277,7 @@ bitwise_and
 
 @alias |
 @infix 13
-bitiwse_or
+bitwise_or
 
 
 
@@ -324,8 +330,17 @@ module
 @alias seed
 seed
 
+@alias struct
+struct
+
+@alias enum
+enum
+
 @alias func
 func
+
+@alias type
+type
 
 @alias is
 is
@@ -342,16 +357,7 @@ let
 @alias const
 const
 
-@alias pub
-public_access
+@alias pvt
+private
 
-@alias inst
-instance_access
 
-# Builtin Functions
-
-@builtin cast
-cast
-
-@builtin len
-length

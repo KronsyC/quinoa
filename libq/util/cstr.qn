@@ -1,6 +1,6 @@
 module CString is Exported{
 
-    pub func len(str:c_str)->i64{
+    func len(str:c_str)->i64{
         let i:i64 = 0;
         while(str[i] != 0){
             i++;

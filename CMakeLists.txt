@@ -2,34 +2,29 @@ cmake_minimum_required( VERSION 3.24 )
 
 project( quinoa-compiler )
 
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM " ${LLVM_PACKAGE_VERSION})
+
+include_directories(${LLVM_INCLIDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_BUILD_TYPE DEBUG)
 
-
-execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE SYS_LIBS )
-execute_process(COMMAND llvm-config --system-libs OUTPUT_VARIABLE LIBS )
-execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LDF )
-message(STATUS "Found LLVM" ${LIBS})
-
-string(STRIP ${LIBS} LIBS)
-string(STRIP ${SYS_LIBS} SYS_LIBS)
-string(STRIP ${LDF} LDF)
-
-link_libraries(${LIBS} ${SYS_LIBS} ${LDF})
-
+if(DEBUG)
+    message(STATUS "Debug Build Active")
+    add_compile_options(-DDEBUG=1)
+endif()
+add_compile_options(-fdiagnostics-color=always)
 add_compile_options(-O1)
 
+llvm_map_components_to_libnames(llvm_libs support core irreader linker mcjit native)
 
-add_definitions(-DLIBQ_DIR="/home/casey/quinoa/libq" -DDEBUG_MODE=1)
+add_definitions(-DQUINOA_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
-# include(FetchContent)
-# FetchContent_Declare(toml11                              # name of the content
-  # GIT_REPOSITORY https://github.com/ToruNiina/toml11.git  # the repository
-  # GIT_TAG        v3.7.1
-# )
-# FetchContent_MakeAvailable(toml11)
-add_executable(quinoa ${sources})
-target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -g)
+add_executable(quinoa ${sources} quinoa/core/Parser/parser_utils.hh quinoa/core/Preprocessor/passes/required/type_ref_resolver.hh quinoa/core/AST/literal.hh)
+target_link_libraries(quinoa ${llvm_libs})
+target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -g)
 
-# target_link_libraries(quinoa PRIVATE toml11)

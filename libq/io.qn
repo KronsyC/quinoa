@@ -1,34 +1,26 @@
 import @syscall;
 import @util::cstr as CStr;
+
 module IO is Exported{
 
-    let stdin:int = 0;
-    let stdout:int = 1;
-    let stderr:int = 2;
+    stdin  : int = 0;
+    stdout : int = 1;
+    stderr : int = 2;
     
-    func strlen(str:c_str)->i64{
-        let i:i64 = 0;
-        while(str[i] != 0){
-            i++;
-        }
-        return i;
+
+    func putc(ch:char){
+        syscall::write(stdout, &ch as i64, stdout);
     }
-    pub func read(str:c_str, len:i64)->i64{
-        return syscall::read(0, cast<i64>(str), len);
-    }
-    pub func putc(ch:char){
-        syscall::write(stdout, cast<i64>(&ch), 1);
-    }
-    pub func print(message:c_str)->i64{
-        let len = syscall::write(
+    func print(message:c_str)->i64{
+        let len : i64 = syscall::write(
             stdout, 
-            cast<i64>(message), 
+            message as i64, 
             CStr::len(message)
         );
         return len;
     }
-    pub func println(message:c_str) -> i64{
-        let len = IO::print(message);
+    func println(message:c_str) -> i64{
+        let len : i64 = IO::print(message);
         IO::putc(10);
         return len+1;
     }

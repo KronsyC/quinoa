@@ -1,56 +1,58 @@
 #pragma once
-#include<string>
+#include <map>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <sys/prctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <sys/prctl.h>
-#include<map>
 void print_trace();
-void error(std::string reason, bool trace=false);
+void error(std::string reason, bool trace = false);
 
-#define ERR_TYPES \
-X(ERR) \
-X(INTERNAL) \
-X(BAD_ARGS) \
-X(UNDECLARED_VAR) \
-X(UNRESOLVED_CALL) \
-X(BAD_OPERAND) \
-X(BAD_CALL) \
-X(BAD_ASSIGNMENT) \
-X(CONST_ASSIGNMENT) \
-X(UNINITIALIZED_CONST) \
-X(UNDEFINED_PROPERTY) \
-X(BAD_CAST) \
-X(NONEQUIVALENT_TYPES) \
-X(UNRESOLVED_TYPE) \
-X(NO_ARRAY_LEN) \
-X(BAD_ARRAY_LEN) \
-X(NO_ENTRYPOINT) \
-X(MODULE_INHERITANCE) \
-X(UNESCAPABLE) \
-X(UNREADABLE_CHAR) \
-X(BAD_TYPE) \
-X(BAD_EXPRESSION) \
-X(BAD_CONDITIONAL) \
-X(BAD_PARAMETER) \
-X(BAD_IMPORT_ALIAS) \
-X(UNEXPECTED_TOKEN) \
-X(PRIVATE_CALL) \
-X(UNRECOGNIZED_SEED) \
-X(BAD_IMPORT) \
-X(BAD_MEMBER_ACCESS) \
-X(MISSING_FUNCTION)
+#define ERR_TYPES          \
+    X(ERR)                 \
+    X(INTERNAL)            \
+    X(BAD_ARGS)            \
+    X(BAD_CONTROL_FLOW)    \
+    X(BAD_COMPOSITOR)      \
+    X(BAD_INDEX)           \
+    X(BAD_METADATA)        \
+    X(BAD_VAR)             \
+    X(BAD_RETURN)          \
+    X(UNDECLARED_VAR)      \
+    X(UNRESOLVED_CALL)     \
+    X(BAD_OPERAND)         \
+    X(BAD_CALL)            \
+    X(BAD_ASSIGNMENT)      \
+    X(CONST_ASSIGNMENT)    \
+    X(UNINITIALIZED_CONST) \
+    X(UNDEFINED_PROPERTY)  \
+    X(BAD_CAST)            \
+    X(NONEQUIVALENT_TYPES) \
+    X(UNRESOLVED_TYPE)     \
+    X(NO_ARRAY_LEN)        \
+    X(BAD_ARRAY_LEN)       \
+    X(NO_ENTRYPOINT)       \
+    X(MODULE_INHERITANCE)  \
+    X(UNESCAPABLE)         \
+    X(UNREADABLE_CHAR)     \
+    X(BAD_TYPE)            \
+    X(BAD_EXPRESSION)      \
+    X(BAD_CONDITIONAL)     \
+    X(BAD_PARAMETER)       \
+    X(BAD_IMPORT_ALIAS)    \
+    X(UNEXPECTED_TOKEN)    \
+    X(PRIVATE_CALL)        \
+    X(UNRECOGNIZED_SEED)   \
+    X(BAD_IMPORT)          \
+    X(BAD_MEMBER_ACCESS)   \
+    X(MISSING_FUNCTION)
 
 #define X(ename) E_##ename,
 
-enum ErrorType{
-    ERR_TYPES
-};
+enum ErrorType { ERR_TYPES };
 
 #undef X
 
-
-
-
-void except(ErrorType err, std::string message);
+[[noreturn]]void except(ErrorType err, std::string message);
+void except(ErrorType err, std::string message, bool exits);
