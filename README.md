@@ -13,7 +13,6 @@
 - CMake
 - LLVM (llvm-devel)
 - Clang
-- Ninja
 
 ## How To Build:
 
