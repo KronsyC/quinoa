@@ -77,7 +77,7 @@
 	new TokenDefinition(TT_bitwise_not, "bitwise_not", {"~"}, "", false, false, 0, false, true),\
 	new TokenDefinition(TT_decrement, "decrement", {"--"}, "", false, false, 0, true, true),\
 	new TokenDefinition(TT_bang, "bang", {"!"}, "", false, false, 0, false, true),\
-	new TokenDefinition(TT_amperand, "ampersand", {"&"}, "", false, false, 0, false, true),\
+	new TokenDefinition(TT_ampersand, "ampersand", {"&"}, "", false, false, 0, false, true),\
 	new TokenDefinition(TT_star, "star", {"*"}, "", false, false, 5, false, true),\
 	new TokenDefinition(TT_plus, "plus", {"+"}, "", false, false, 6, false, false),\
 	new TokenDefinition(TT_minus, "minus", {"-"}, "", false, false, 6, false, true),\
@@ -111,6 +111,7 @@
 	new TokenDefinition(TT_module, "module", {"module"}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_seed, "seed", {"seed"}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_struct, "struct", {"struct"}, "", false, false, 0, false, false),\
+	new TokenDefinition(TT_enum, "enum", {"enum"}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_func, "func", {"func"}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_type, "type", {"type"}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_is, "is", {"is"}, "", false, false, 0, false, false),\
@@ -170,7 +171,7 @@
 	TT_bitwise_not,\
 	TT_decrement,\
 	TT_bang,\
-	TT_amperand,\
+	TT_ampersand,\
 	TT_star,\
 	TT_plus,\
 	TT_minus,\
@@ -204,6 +205,7 @@
 	TT_module,\
 	TT_seed,\
 	TT_struct,\
+	TT_enum,\
 	TT_func,\
 	TT_type,\
 	TT_is,\
@@ -281,7 +283,7 @@
 	PRE_decrement, \
 	POST_decrement, \
 	PRE_bang, \
-	PRE_amperand, \
+	PRE_ampersand, \
 	PRE_star, \
 	PRE_minus, \
 	
@@ -291,7 +293,7 @@
 	{ TT_bitwise_not, PRE_bitwise_not}, \
 	{ TT_decrement, PRE_decrement}, \
 	{ TT_bang, PRE_bang}, \
-	{ TT_amperand, PRE_amperand}, \
+	{ TT_ampersand, PRE_ampersand}, \
 	{ TT_star, PRE_star}, \
 	{ TT_minus, PRE_minus}, \
 	

@@ -14,7 +14,7 @@ public:
    * (organized by evaluation order)
   */
 
-  bool possible = true;
+  bool possible = false;
 
   // Number of arguments which are matched as varargs (lower is better)
   bool vararg_count = 0;
@@ -51,11 +51,13 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
 
   }
 
+ranking.possible = true;
 
   if(method->generic_params.len()){
     // TODO: reimplement generics under the new system
-    // this is a huge undertaking as the old implementation
-    // used highly unsafe/sketchy tactics
+    //      this is a huge undertaking as the old implementation
+    //      used method cloning, which was highly inefficient
+    //      and bug-prone
     except(E_INTERNAL, "Generic methods are not yet supported");
   }
   for(size_t i = 0; i < call->args.len(); i++){
@@ -68,7 +70,6 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
     auto& param_t = *method->get_parameter(i)->type;
 
     // Compare the types of the arg and param
-
     auto score = arg_t->distance_from(param_t);
     if(score == -1){
       ranking.possible = false;
@@ -77,7 +78,6 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
 
     ranking.general_compat += score;
   }
-
   return ranking;
 }
 
@@ -139,6 +139,7 @@ Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionSta
       if(suitors.size() == 0)return nullptr;
   
       // if there are more than one suitor, the call is ambiguous
+      if(!suitors[0].against)except(E_INTERNAL, "Suitor has no `against` attribute");
       auto call_name = suitors[0].against->name->str();
       if(suitors.size() > 1)except(E_BAD_CALL, "Call to " + call_name + " is ambiguous");
       return suitors[0].against;

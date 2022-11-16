@@ -10,3 +10,4 @@
 #include "../../AST/container.hh"
 #include "../../AST/container_member.hh"
 #include "../../AST/compilation_unit.hh"
+#include "../../AST/type.hh"

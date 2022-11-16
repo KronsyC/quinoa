@@ -65,7 +65,7 @@ public:
         #define ret(LL_INST, cast_to) return cast(bld.Create##LL_INST(val(cast_to)), expected);
         switch (op_type)
         {
-        case PRE_amperand:
+        case PRE_ampersand:
         {
             auto ptr = operand->assign_ptr(vars);
             return cast(ptr, expected);
@@ -111,7 +111,7 @@ protected:
         auto pointee_t = same_t->pointee();
         switch (op_type)
         {
-        case PRE_amperand:
+        case PRE_ampersand:
             return same_ptr;
         case PRE_bang:
             return bool_t;
@@ -169,7 +169,6 @@ public:
 
             auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
             return ptr;
-            strct->print(llvm::outs());
         }
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
@@ -184,8 +183,6 @@ public:
         if (op_type == BIN_assignment)
         {
             auto assignee = left_operand->assign_ptr(vars);
-
-
             // constant assignment check
             if (auto var = dynamic_cast<SourceVariable *>(left_operand.get()))
             {
@@ -207,7 +204,8 @@ public:
                 // be used during initialization
             }
             else{
-                value = right_operand->llvm_value(vars, assignee->getType()->getPointerElementType());
+                auto assignee_assigned_type = assignee->getType()->getPointerElementType();
+                value = right_operand->llvm_value(vars, assignee_assigned_type);
                 builder()->CreateStore(value, assignee);
             }
 

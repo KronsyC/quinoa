@@ -2,17 +2,24 @@ import @io;
 
 module Person{
 
-    type _ = struct{
-        name : c_str;
-        surname : c_str;
-        age : i32;
+
+    type Role = enum{
+        Salesman;
+        Manager;
+        Accountant;
     };
 
-    func create(name : c_str, surname: c_str, age : int) -> Person{
+    type _ = struct{
+        name : c_str;
+        age  : i32;
+        role : Role;
+    };
+
+    func create(name : c_str, age : int, role: Role) -> Person{
 
         return Person{
             name : name;
-            surname : surname;
+            role : role;
             age : age;
         };
     }
@@ -20,8 +27,6 @@ module Person{
     func greet(person : Person){
         io::print("Hello, ");
         io::print(person.name);
-        io::print(" ");
-        io::print(person.surname);
         io::print("\n");
     }
 
@@ -32,9 +37,9 @@ module Example is Entry
     func main() -> int{
         
         // call the `create` function to instantiate a new person
-        let john   = Person::create("John", "Doe", 38);
-        let bob    = Person::create("Bob", "Ross", 47);
-        let dwight = Person::create("Dwight", "Schrute", 32);
+        let john   = Person::create("John",   23, Person::Role::Manager);
+        let bob    = Person::create("Bob",    47, Person::Role::Accountant);
+        let dwight = Person::create("Dwight", 37, Person::Role::Salesman);
 
         Person::greet(john);
         Person::greet(bob);

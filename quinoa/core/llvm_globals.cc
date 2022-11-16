@@ -26,8 +26,6 @@ llvm::Value* cast(llvm::Value* val, llvm::Type* type)
     if(type == tape)
 	return val;
 
-    // auto code = llvm::CastInst::getCastOpcode(val, true, type, true);
-    // return builder()->CreateCast(code, val, type);
     if(isInt(tape) && isInt(type))
 	return builder()->CreateIntCast(val, type, true);
     if(tape->isPointerTy() && type->isIntegerTy())
@@ -36,11 +34,6 @@ llvm::Value* cast(llvm::Value* val, llvm::Type* type)
     if(tape->isPointerTy() && type->isPointerTy()) {
 	return builder()->CreateBitCast(val, type);
     }
-    // if(tape->isArrayTy() && type->isArrayTy()){
-    //   return builder()->CreateBitCast(val, type);
-    //   auto myElType = tape->getArrayElementType();
-    //   auto tgtElType = type->getArrayElementType();
-    // }
     Logger::debug("val type: ");
     tape->print(llvm::outs());
     printf("\n");

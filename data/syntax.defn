@@ -333,6 +333,9 @@ seed
 @alias struct
 struct
 
+@alias enum
+enum
+
 @alias func
 func
 

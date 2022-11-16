@@ -108,7 +108,7 @@ std::unique_ptr<ConstantValue> parse_const(Token tok){
     }
 }
 
-std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
+std::shared_ptr<Type> parse_type(std::vector<Token>& toks)
 {
     if (!toks.size())
         except(E_BAD_TYPE, "Failed to parse type");
@@ -149,6 +149,22 @@ std::shared_ptr<Type> parse_type(std::vector<Token> &toks)
             fields[field_name] = field_type;
         }
         ret = StructType::get(fields);
+    }
+    else if(first.is(TT_enum)){
+        auto enum_content = read_block(toks, IND_braces);
+        if(enum_content.size()){
+            expects(enum_content[enum_content.size()-1], TT_semicolon);
+            enum_content.pop_back();
+        }
+
+        auto entries = parse_tst(enum_content, TT_semicolon);
+        std::vector<std::string> members;
+        for(auto e : entries){
+            if(e.size() != 1 || !e[0].is(TT_identifier))except(E_BAD_TYPE, "An Enum member may only contain a single identifier");
+            members.push_back(e[0].value);
+        }
+        ret = EnumType::get(members);
+
     }
     if(!ret)except(E_BAD_TYPE, "Failed to parse type: " + first.value);
     while (toks.size() && toks[0].is(TT_star))
@@ -288,8 +304,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         auto initial = toks;
         auto target_toks = read_to(toks, TT_l_square_bracket);
         if(target_toks.size()){
-            Logger::debug("SUBSCRIPT OF:");
-            print_toks(target_toks);
             auto target = parse_expr(target_toks, parent);
             if (toks[0].is(TT_l_square_bracket))
             {
@@ -748,7 +762,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             prop->name = std::make_unique<ContainerMemberRef>();
             prop->name->member = std::make_unique<Name>(current.value);
             prop->name->container = parent->get_ref();
-
+            prop->parent = parent;
             auto line = read_to(toks, TT_semicolon);
             popf(toks);
             expects(popf(line), TT_colon);

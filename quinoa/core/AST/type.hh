@@ -459,6 +459,80 @@ public:
     }
 };
 
+class EnumType : public Type{
+public:
+    std::vector<std::string> entries;
+
+    EnumType(std::vector<std::string> entries){
+        this->entries = entries;
+    }
+    Type *drill()
+    {
+        return this;
+    }
+    std::vector<Type*> flatten(){
+        return {this};
+    }
+    std::string str()
+    {
+        std::string name = "enum:{";
+        bool first = true;
+        for(auto e : entries){
+            if(!first)name+=",";
+
+            name+=e;
+
+            first = false;
+        }
+        name += "}";
+        return name;
+    }
+    std::shared_ptr<Type> pointee()
+    {
+        return std::shared_ptr<Type>(nullptr);
+    }
+
+    static std::shared_ptr<EnumType> get(std::vector<std::string> entries)
+    {
+        return create_heaped(EnumType(entries));
+    }
+
+    int distance_from(Type &target)
+    {
+        if(auto _tgt = target.get<EnumType>()){
+            if(_tgt == this)return 0;
+            return -1;
+        }
+        else return -1;
+        except(E_INTERNAL, "Type distance not implemented for enums");
+    }
+    llvm::Constant *default_value(llvm::Type *expected){
+        except(E_INTERNAL, "default value not implemented for enums");
+    }
+    bool operator==(Type &against)
+    {
+        auto en = against.get<EnumType>();
+        if (!en)return false;
+        return en->entries == entries;
+    }
+
+    llvm::Type *llvm_type()
+    {
+        return builder()->getInt32Ty();
+    }
+
+    std::map<std::string, llvm::Constant*> get_members(){
+        std::map<std::string, llvm::Constant*> ret;
+        int i = 0;
+        for(auto member : entries){
+            auto val = builder()->getInt32(i);
+            ret[member] = val;
+            i++;
+        }
+        return ret;
+    }
+
+};
 class TypeRef : public Type
 {
 public:

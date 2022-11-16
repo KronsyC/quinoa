@@ -96,7 +96,22 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 		vars[prop_name] = Variable(prop->type.get(), init);
 	}
 
+    // Inject All Enum Members as variables
+    for(auto type : ast.get_types()){
+        if(auto _enum = dynamic_cast<EnumType*>(type->refers_to.get())){
+            for(auto member : _enum->get_members()){
+                auto alloc = builder()->CreateAlloca(member.second->getType());
+                builder()->CreateStore(member.second, alloc);
+                auto full_name = type->name->str() + "::" + member.first;
+                vars[full_name] = Variable(Primitive::get(PR_int32).get(), alloc, true);
 
+                if(type->parent == method->parent){
+                    auto local_name = type->name->member->str() + "::" + member.first;
+                    vars[local_name] = Variable(Primitive::get(PR_int32).get(), alloc, true);
+                }
+            }
+        }
+    }
 
 	// // Inject the args as variables
 	for (unsigned int i = 0; i < fn->arg_size(); i++)

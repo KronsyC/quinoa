@@ -78,14 +78,14 @@ public:
         return name->str();
     }
     llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+
         auto ptr = assign_ptr(vars);
         auto value = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
         return cast(value, expected_type);
     }
     llvm::Value* assign_ptr(VariableTable& vars){
         auto& var = vars[name->str()];
-
-
+        if(!var.type)except(E_BAD_VAR, "Variable " + name->str() + " was accessed before initialization");
         return var.value;
     }
     std::shared_ptr<Type> get_type(){

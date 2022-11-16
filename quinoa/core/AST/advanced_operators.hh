@@ -213,7 +213,7 @@ public:
         for(auto& init : initializers){
             auto idx = type->member_idx(init.first);
 
-            if(idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key");
+            if(idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
 
             auto target_ty = type->members[init.first]->llvm_type();
             auto init_expr = init.second->llvm_value(vars, target_ty);
@@ -291,8 +291,6 @@ private:
         auto exception_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_err", func);
         auto continue_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_cont", func);
 
-        access_idx->print(llvm::outs());
-        array_len_val->print(llvm::outs());
         auto is_valid_access = builder()->CreateICmpSLE(access_idx, array_len_val);
 
         builder()->CreateCondBr(is_valid_access, continue_block, exception_block);
