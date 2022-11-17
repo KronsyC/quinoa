@@ -6,7 +6,7 @@
 
 ## Disclaimer:
 
-### This project only works on x86-64 linux based systems
+### This project is only verified to work on x86-64 linux based systems
 ---
 
 ## Dependencies
