@@ -105,10 +105,11 @@ public:
 protected:
     std::shared_ptr<Type> get_type()
     {
-        auto bool_t = Primitive::get(PR_boolean);
         auto same_t = operand->type();
+        if(!same_t)return same_t;
         auto same_ptr = Ptr::get(operand->type());
         auto pointee_t = same_t->pointee();
+        auto bool_t = Primitive::get(PR_boolean);
         switch (op_type)
         {
         case PRE_ampersand:
@@ -177,7 +178,7 @@ public:
         if(op_type == BIN_dot){
             auto ptr = assign_ptr(vars);
             auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
-            return load;
+            return cast(load, expected_type);
         }
         llvm::Value* value = nullptr;
         if (op_type == BIN_assignment)

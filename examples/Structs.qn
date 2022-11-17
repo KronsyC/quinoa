@@ -44,6 +44,7 @@ module Example is Entry
         Person::greet(john);
         Person::greet(bob);
         Person::greet(dwight);
+
         return 0;
     }
 }

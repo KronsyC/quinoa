@@ -55,7 +55,6 @@ private:
         std::vector<std::shared_ptr<Type>> member_types;
         for(auto m : members){
             member_types.push_back(m->type());
-            Logger::debug("member: " + m->type()->str());
         }
         auto common = TypeUtils::get_common_type(member_types);
         if(!common)except(E_BAD_TYPE, "Failed to get common type for array members");

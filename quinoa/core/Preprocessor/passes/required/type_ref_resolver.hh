@@ -32,30 +32,50 @@ void attempt_resolve_typeref(TypeRef& ref, Method* method){
     if(!ref.resolves_to)except(E_UNRESOLVED_TYPE, "Failed to resolve type " + ref.name->str());
 }
 
+std::vector<TypeRef*> get_refs_from(Type& type){
+    std::vector<TypeRef*> ret;
+    for(auto ty : type.flatten()){
+        if(auto tr = dynamic_cast<TypeRef*>(ty)){
+            ret.push_back(tr);
+        }
+    }
+    return ret;
+}
+
+void resolve_if_typeref(Type& type, Method* method){
+    for(auto t : get_refs_from(type)){
+        attempt_resolve_typeref(*t, method);
+    }
+}
+
+void resolve_if_typeref(Type& type, Container* container){
+    for(auto t : get_refs_from(type)){
+        attempt_resolve_typeref(*t, container);
+    }
+}
+
 void resolve_type_references(CompilationUnit& unit){
 
     for(auto method : unit.get_methods()){
         // Resolve Return Type (if it is a type-ref)
-        if(auto ref = method->return_type->drill()->get<TypeRef>()){
-            attempt_resolve_typeref(*ref, method);
-        }
+        resolve_if_typeref(*method->return_type, method);
 
         // Resolve Parameter Type (if it is a type-ref)
         for(auto param : method->parameters){
-            if(auto ref = param->type->drill()->get<TypeRef>()){
-                attempt_resolve_typeref(*ref, method);
-            }
+            resolve_if_typeref(*param->type, method);
         }
 
         // Resolve Initializer Type Refs
         if(!method->content)continue;
+
         for(auto code : method->content->flatten()){
             if(auto init = dynamic_cast<InitializeVar*>(code)){
                 if(!init->type)continue;
-                if(auto ref = init->type->drill()->get<TypeRef>()){
+                resolve_if_typeref(*init->type, method);
+            }
 
-                    attempt_resolve_typeref(*ref, method);
-                }
+            if(auto cast = dynamic_cast<ExplicitCast*>(code)){
+                resolve_if_typeref(*cast->cast_to, method);
             }
         }
     }
@@ -63,16 +83,9 @@ void resolve_type_references(CompilationUnit& unit){
     for(auto cont : unit.get_containers()){
         for(auto mem : cont->members){
             if(auto type = dynamic_cast<TypeMember*>(mem.ptr)){
-
                 for(auto flat : type->refers_to->flatten()){
-                    if(auto ref = flat->drill()->get<TypeRef>()){
-                        if(ref->resolves_to)continue;
-                        Logger::debug("Resolve type ref to: " + ref->str());
-                        attempt_resolve_typeref(*ref, cont);
-                        Logger::debug("It is now: " + ref->str());
-                    }
+                    resolve_if_typeref(*flat, cont);
                 }
-
 
             }
         }

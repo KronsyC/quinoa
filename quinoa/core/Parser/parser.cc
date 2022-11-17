@@ -253,7 +253,6 @@ Param parse_param(std::vector<Token> toks)
 
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
-    print_toks(toks);
     if (!toks.size())
         except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
 

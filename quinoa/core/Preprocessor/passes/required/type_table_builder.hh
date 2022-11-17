@@ -15,13 +15,10 @@ void build_method_type_table(Method* method, CompilationUnit& unit){
 
     // Inject local enum definitions
     for(auto type : unit.get_types()){
-        Logger::debug("Type");
         if(auto _enum = dynamic_cast<EnumType*>(type->refers_to.get())){
-            Logger::debug("Enum");
             for(auto member : _enum->entries){
 
                 auto full_name = type->name->str() + "::" + member;
-                Logger::debug("Member: " + full_name);
                 method->content->set_type(full_name, type->refers_to);
 
                 if(type->parent == method->parent){

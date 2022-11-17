@@ -100,6 +100,7 @@ public:
         auto expected_type = func->getReturnType();
 
         if(value){
+            Logger::debug("Return: " + value->str());
             auto return_value  = value->llvm_value(vars, expected_type);
             builder()->CreateRet(return_value);
         }
@@ -291,7 +292,7 @@ private:
         auto exception_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_err", func);
         auto continue_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_cont", func);
 
-        auto is_valid_access = builder()->CreateICmpSLE(access_idx, array_len_val);
+        auto is_valid_access = builder()->CreateICmpSLT(access_idx, array_len_val);
 
         builder()->CreateCondBr(is_valid_access, continue_block, exception_block);
 

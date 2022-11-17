@@ -30,11 +30,10 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit)
                 if(!init->initializer)continue;
                 Logger::debug("Implicit type for: " + init->var_name.str());
                 init->type = init->initializer->type();
-                Logger::debug("init : " + init->initializer->str());
+                Logger::debug("init with: " + init->initializer->str());
+
                 if(init->type){
-                    Logger::debug("Success, type is now " + init->type->str());
-                }
-                if(init->type){
+                    Logger::debug("Init as " + init->type->str());
                     init->scope->set_type(init->var_name.str(), init->type);
                     resolveCount++;
                 }
