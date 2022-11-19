@@ -61,7 +61,7 @@ bool isExtVarChar(char c)
 }
 bool isSymbol(char c)
 {
-    return !isNumber(c) && !isAlphaChar(c);
+    return !isNumber(c) && !isAlphaChar(c) && !isExtVarChar(c);
 }
 bool isSymbol(string str)
 {
@@ -140,41 +140,41 @@ Token readNextToken(string& str)
 
     // string Check
     if(startsWith(str, "\"")) {
-	std::string val;
-	popf(str);
-	bool escapeNext = false;
-	while(str.length()) {
-	    if(escapeNext) {
-		val.append(escapeNextVal(str));
-		escapeNext = false;
-		continue;
-	    } else if(str[0] == '\\') {
-		popf(str);
-		escapeNext = true;
-		continue;
-	    } else if(str[0] == '"') {
-		popf(str);
-		break;
-	    } else {
+        std::string val;
+        popf(str);
+        bool escapeNext = false;
+        while(str.length()) {
+            if(escapeNext) {
+            val.append(escapeNextVal(str));
+            escapeNext = false;
+            continue;
+            } else if(str[0] == '\\') {
+            popf(str);
+            escapeNext = true;
+            continue;
+            } else if(str[0] == '"') {
+            popf(str);
+            break;
+            } else {
 
-		val += popf(str);
-	    }
-	}
-	// TODO: This isn't actually accurate due to the width of escaped characters being smaller than their
-	// source-code variants
-	col += val.size() + 2;
-	return make(TT_literal_str, val);
+            val += popf(str);
+            }
+        }
+        // TODO: This isn't actually accurate due to the width of escaped characters being smaller than their
+        // source-code variants
+        col += val.size() + 2;
+        return make(TT_literal_str, val);
     }
 
     // Number Check
     if(isNumber(str[0])) {
-	std::string constructedNumber;
-	while(isNumber(str[0])) {
-	    constructedNumber += str[0];
-	    popf(str);
-	}
-	col += constructedNumber.size();
-	return make(TT_literal_int, constructedNumber);
+        std::string constructedNumber;
+        while(isNumber(str[0])) {
+            constructedNumber += str[0];
+            popf(str);
+        }
+        col += constructedNumber.size();
+        return make(TT_literal_int, constructedNumber);
     }
 
     static auto aliases = get_aliases();
@@ -184,10 +184,10 @@ Token readNextToken(string& str)
 	if(startsWith(str, a)) {
 	    auto symbol = isSymbol(a);
 	    if(!symbol) {
-		// ensure the character after the keyword isn't an alphachar
-		auto next = str[a.size()];
-		if(isAlphaChar(next))
-		    continue;
+            // ensure the character after the keyword isn't an alphachar
+            auto next = str[a.size()];
+            if(isAlphaChar(next) || isExtVarChar(next))
+                continue;
 	    }
 	    // Locate the appropriate def object and create an appropriate token type
 	    for(auto d : defs) {

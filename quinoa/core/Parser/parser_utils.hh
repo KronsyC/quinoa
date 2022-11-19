@@ -15,7 +15,7 @@ std::string get_tt_name(TokenType t)
     {
         if (d->ttype == t)
         {
-            return d->alias.size() ? d->alias[0] : d->name;
+            return d->name;
         }
     }
     return "unknown";

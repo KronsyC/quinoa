@@ -9,6 +9,7 @@
 #include "./type.hh"
 #include "./container.hh"
 #include "./include.hh"
+#include "./allocating_expr.hh"
 
 
 
@@ -123,7 +124,42 @@ public:
     llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr)
     {
         if(!target)except(E_BAD_CALL, "Cannot create a method call to an unresolved method (this is a bug)");
+
         auto mod = builder()->GetInsertBlock()->getModule();
+
+        if(target == (Method*)1){
+            if(method_name->str() == "len"){
+                if(args.len())except(E_BAD_CALL, "len() expects zero arguments");
+                if(type_args.len())except(E_BAD_CALL, "len() expects zero generic arguments");
+                auto ref = call_on->assign_ptr(vars);
+                auto ref_t = call_on->type()->get<ReferenceType>();
+                if(!ref_t || !ref_t->is_fat())except(E_BAD_CALL, "len() can only be called on fat references");
+
+                ref->getType()->print(llvm::outs());
+                ref->print(llvm::outs());
+
+                auto len_ptr = builder()->CreateStructGEP(ref->getType()->getPointerElementType(), ref, 0);
+                auto len = builder()->CreateLoad(len_ptr->getType()->getPointerElementType(), len_ptr);
+                return cast(len, expected_type);
+                Logger::debug("Generate len");
+            }
+            else if(method_name->str() == "as_ptr"){
+                if(args.len())except(E_BAD_CALL, "as_ptr() expects zero arguments");
+                if(type_args.len())except(E_BAD_CALL, "len() expects zero generic arguments");
+                auto ref = call_on->assign_ptr(vars);
+                auto ref_t = call_on->type()->get<ReferenceType>();
+                if(!ref_t || !ref_t->is_fat())except(E_BAD_CALL, "as_ptr() can only be called on fat references");
+
+                ref->getType()->print(llvm::outs());
+                ref->print(llvm::outs());
+
+                auto content_ptr = builder()->CreateStructGEP(ref->getType()->getPointerElementType(), ref, 1);
+                auto content = builder()->CreateLoad(content_ptr->getType()->getPointerElementType(), content_ptr);
+                return cast(content, expected_type);
+            }
+            else except(E_INTERNAL, "unimplemented compiler method: " + method_name->str());
+        }
+
         auto fn = mod->getFunction(target->source_name());
 
         if(!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->name->str());
@@ -162,6 +198,14 @@ protected:
     std::shared_ptr<Type> get_type()
     {
         if(!target)return std::shared_ptr<Type>(nullptr);
+        if(target == (Method*)1){
+            if(auto ref = call_on->type()->get<ReferenceType>()){
+                #define X(n, ret)if(method_name->str() == #n)return ret;
+                X(len, Primitive::get(PR_int64))
+                X(as_ptr, ref->of)
+            }
+
+        }
         return target->return_type;
 
     }
@@ -225,6 +269,7 @@ public:
         return ret;
     }
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+
         auto ll_type = type->llvm_type();
         auto alloca  = builder()->CreateAlloca(ll_type);
         auto name    = var_name.str();
@@ -261,7 +306,7 @@ public:
     }
 };
 
-class StructInitialization : public Expr{
+class StructInitialization : public AllocatingExpr{
 public:
     std::map<std::string, std::unique_ptr<Expr>> initializers;
     std::unique_ptr<ContainerMemberRef> target;
@@ -288,10 +333,10 @@ public:
         ret += "\n}";
         return ret;
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+
+    void write_direct(llvm::Value* alloc, VariableTable& vars, llvm::Type* expected_type = nullptr){
         if(!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
         auto struct_ll_type = type->llvm_type();
-        auto alloc = builder()->CreateAlloca(struct_ll_type);
         for(auto& init : initializers){
             auto idx = type->member_idx(init.first);
 
@@ -311,8 +356,8 @@ public:
             if(!lookup)except(E_BAD_ASSIGNMENT, "Initialization for struct '" + target->str() + "' is missing a member: '" + name + "'");
         }
 
-        return builder()->CreateLoad(struct_ll_type, alloc);
     }
+
     llvm::Value* assign_ptr(VariableTable& vars){
         except(E_BAD_ASSIGNMENT, "Struct Initializers are not assignable");
     }

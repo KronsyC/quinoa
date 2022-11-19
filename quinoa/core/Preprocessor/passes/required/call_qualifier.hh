@@ -198,17 +198,33 @@ Method* get_best_target(MethodCallOnType* call, CompilationUnit& unit){
     if(!target_ty)return nullptr;
     auto target_paw_ty = target_ty->get<ParentAwareType>();
     if(!target_paw_ty){
+
+        // if the target is a (fat reference type | array)
+        // allow the `len()` method (provided no params or generics)
+
+        if(auto ref = target_ty->get<ReferenceType>()){
+            if(
+                    ref->is_fat()
+                    && (call->method_name->str() == "len" || call->method_name->str() == "as_ptr")
+            ){
+                return (Method*)1;
+            }
+        }
+
         Logger::error("You may only define methods for structs and enums");
         return nullptr;
     }
 
     auto target_mod = target_paw_ty->parent;
 
-    // Find all methods with the name
+    // Find all methods with the name and compatible actionable type
     std::vector<Method*> methods;
 
     for(auto method : target_mod->get_methods()){
-        if(method->name->member->str() == call->method_name->str()){
+        if(
+            method->name->member->str() == call->method_name->str()
+            && call->call_on->type()->distance_from(*method->acts_upon) >= 0
+        ){
             methods.push_back(method);
         }
     }

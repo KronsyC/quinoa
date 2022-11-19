@@ -10,12 +10,12 @@ module Person{
     };
 
     type _ = struct{
-        name : c_str;
+        name : str&;
         age  : i32;
         role : Role;
     };
 
-    func create(name : c_str, age : int, role: Role) -> Person{
+    func create(name : str&, age : int, role: Role) -> Person{
 
         return Person{
             name : name;
@@ -24,9 +24,9 @@ module Person{
         };
     }
 
-    func greet(person : Person){
+    func greet.Person(){
         io::print("Hello, ");
-        io::print(person.name);
+        io::print((*self).name);
         io::print("\n");
     }
 
@@ -41,9 +41,9 @@ module Example is Entry
         let bob    = Person::create("Bob",    47, Person::Role::Accountant);
         let dwight = Person::create("Dwight", 37, Person::Role::Salesman);
 
-        Person::greet(john);
-        Person::greet(bob);
-        Person::greet(dwight);
+        john.greet();
+        bob.greet();
+        dwight.greet();
 
         return 0;
     }

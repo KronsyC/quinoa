@@ -41,7 +41,7 @@
 	new TokenDefinition(TT_literal_char, "literal_char", {}, "", false, false, 0, false, false),\
 	new TokenDefinition(TT_void, "void", {"void"}, {"void"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_boolean, "boolean", {"bool"}, {"integer"}, false, false, 0, false, false),\
-	new TokenDefinition(TT_string, "string", {"c_str"}, {"pointer"}, false, false, 0, false, false),\
+	new TokenDefinition(TT_string, "string", {"str"}, {"str"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_int8, "int8", {"i8", "char"}, {"integer"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_int16, "int16", {"i16"}, {"integer"}, false, false, 0, false, false),\
 	new TokenDefinition(TT_int32, "int32", {"i32", "int"}, {"integer"}, false, false, 0, false, false),\
@@ -357,7 +357,7 @@
 #define PRIMITIVES_ENUM_GROUPS \
 	{PR_void, "void"},\
 	{PR_boolean, "integer"},\
-	{PR_string, "pointer"},\
+	{PR_string, "str"},\
 	{PR_int8, "integer"},\
 	{PR_int16, "integer"},\
 	{PR_int32, "integer"},\

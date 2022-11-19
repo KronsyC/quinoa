@@ -9,6 +9,7 @@
 #include "./type_utils.h"
 #include "./reference.hh"
 #include "./literal.hh"
+#include "./allocating_expr.hh"
 enum UnaryOpType
 {
     UNARY_ENUM_MEMBERS
@@ -159,27 +160,10 @@ public:
     }
     llvm::Value *assign_ptr(VariableTable &vars)
     {
-        if(op_type == BIN_dot){
-            auto strct = left_operand->assign_ptr(vars);
-            auto strct_t = left_operand->type()->get<StructType>();
-            if(!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
-
-            if(!dynamic_cast<SourceVariable*>(right_operand.get()))except(E_BAD_MEMBER_ACCESS, "You can only index structs with identifiers");
-            auto member_name = ((SourceVariable*)right_operand.get())->name->str();
-            auto idx = strct_t->member_idx(member_name);
-
-            auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
-            return ptr;
-        }
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
     llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr)
     {
-        if(op_type == BIN_dot){
-            auto ptr = assign_ptr(vars);
-            auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
-            return cast(load, expected_type);
-        }
         llvm::Value* value = nullptr;
         if (op_type == BIN_assignment)
         {
@@ -206,8 +190,15 @@ public:
             }
             else{
                 auto assignee_assigned_type = assignee->getType()->getPointerElementType();
-                value = right_operand->llvm_value(vars, assignee_assigned_type);
-                builder()->CreateStore(value, assignee);
+
+                if(auto allocating_expr = dynamic_cast<AllocatingExpr*>(right_operand.get())){
+                    allocating_expr->write_direct(assignee, vars, assignee_assigned_type);
+                }
+                else{
+                    value = right_operand->llvm_value(vars, assignee_assigned_type);
+                    builder()->CreateStore(value, assignee);
+                }
+
             }
 
             return cast(value, expected_type);
@@ -292,27 +283,60 @@ protected:
             case BIN_bitwise_shl:
             case BIN_bitwise_shr:
             case BIN_bitwise_xor:
-
-
                 return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
-
-
-                case BIN_assignment:
+            case BIN_assignment:
                 return right_operand->type();
-            case BIN_dot:{
-                auto left_t = left_operand->type();
-                if(!dynamic_cast<SourceVariable*>(right_operand.get()))except(E_BAD_MEMBER_ACCESS, "A struct may only be indexed with identifiers");
-                auto key = (SourceVariable*)right_operand.get();
-                if(!left_t)return std::shared_ptr<Type>(nullptr);
-                if(auto strct = left_t->get<StructType>()){
-                    if(strct->member_idx(key->name->str()) == -1)except(E_BAD_MEMBER_ACCESS, "The struct: " + left_operand->str() + " does not have a member: " + key->name->str());
-                    return strct->members[key->name->str()];
-                }
-                else except(E_BAD_MEMBER_ACCESS, "You may only access members of a struct");
-            }
+
             default:
                 except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
             }
     }
 };
 
+class MemberAccess : public Expr{
+public:
+    std::unique_ptr<Expr> member_of;
+    std::unique_ptr<Name> member_name;
+
+    MemberAccess(std::unique_ptr<Expr> member_of, std::unique_ptr<Name> member_name)
+    {
+        this->member_of = std::move(member_of);
+        this->member_name = std::move(member_name);
+    }
+    std::string str()
+    {
+        return member_of->str() + "." + member_name->str();
+    }
+    llvm::Value *assign_ptr(VariableTable &vars)
+    {
+        auto strct = member_of->assign_ptr(vars);
+        auto strct_t = member_of->type()->get<StructType>();
+        if(!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
+
+        auto idx = strct_t->member_idx(member_name->str());
+
+        auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
+        return ptr;
+    }
+    llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr) {
+        auto ptr = this->assign_ptr(vars);
+        return builder()->CreateLoad(this->get_type()->llvm_type(), ptr);
+    }
+    std::vector<Statement *> flatten()
+    {
+        std::vector<Statement *> ret = {this};
+        for (auto m : member_of->flatten())
+            ret.push_back(m);
+        return ret;
+    }
+protected:
+    std::shared_ptr<Type> get_type(){
+        auto left_t = member_of->type();
+        if(!left_t)return std::shared_ptr<Type>(nullptr);
+        auto strct = left_t->get<StructType>();
+        if(!strct)except(E_BAD_MEMBER_ACCESS, "You may only access members of a struct");
+
+        if(strct->member_idx(member_name->str()) == -1)except(E_BAD_MEMBER_ACCESS, "The struct: " + member_of->str() + " does not have a member: " + member_name->str());
+        return strct->members[member_name->str()];
+    }
+};

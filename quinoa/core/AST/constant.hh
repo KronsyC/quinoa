@@ -11,7 +11,7 @@
 #include "./primary.hh"
 #include "./include.hh"
 #include "./type.hh"
-
+#include "./allocating_expr.hh"
 class ConstantValue : public Expr{
 public:
     virtual llvm::Constant* const_value(llvm::Type* expected) = 0;
@@ -36,10 +36,62 @@ public:
     std::vector<Statement*> flatten(){
         return {this};
     }
+
     llvm::Value* assign_ptr(VariableTable& vars){
         except(E_BAD_ASSIGNMENT, "Constant values are not assignable");
     }
 
+};
+class String : public AllocatingExpr, public Constant<std::string, String>
+{
+public:
+    using Constant::Constant;
+    using AllocatingExpr::llvm_value;
+    std::vector<Statement*> flatten(){
+        return Constant::flatten();
+    }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        return Constant::assign_ptr(vars);
+    }
+    std::string str(){
+        return "\""+value+"\"";
+    }
+    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected){
+        return AllocatingExpr::llvm_value(vars, expected);
+    }
+    void write_direct(llvm::Value* alloc, VariableTable& vars, llvm::Type* expected){
+        auto mod = builder()->GetInsertBlock()->getModule();
+        // Generate the global non null-terminated string
+        std::vector<llvm::Constant*> chars;
+        for(auto _char : value){
+            chars.push_back(builder()->getInt8(_char));
+        }
+        auto initializer_ty = llvm::ArrayType::get(builder()->getInt8Ty(), value.size());
+        auto initializer = llvm::ConstantArray::get(initializer_ty, chars);
+        auto global_str = new llvm::GlobalVariable(*mod, initializer_ty, true, llvm::GlobalValue::LinkageTypes::PrivateLinkage, initializer, ".str");
+
+        // Generate the fat pointer
+        auto str_len = builder()->getInt64(value.size());
+
+        auto this_ty = Constant::type()->llvm_type();
+
+        auto str_len_ptr = builder()->CreateStructGEP(this_ty, alloc, 0);
+        auto str_ptr_ptr = builder()->CreateStructGEP(this_ty, alloc, 1);
+        builder()->CreateStore(str_len, str_len_ptr);
+        builder()->CreateStore(
+                builder()->CreateBitCast(global_str, builder()->getInt8PtrTy()),
+                str_ptr_ptr
+        );
+
+    }
+    std::shared_ptr<Type> get_type(){
+        return ReferenceType::get(Primitive::get(PR_string));
+    }
+    llvm::Constant* const_value(llvm::Type* expected){
+
+
+        except(E_INTERNAL, "Constant Strings are illegal");
+    }
 };
 
 class Integer : public Constant<unsigned long long, Integer>
@@ -50,10 +102,7 @@ public:
     {
         return std::to_string(value);
     }
-    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected)
-    {
-        return const_value(expected);
-    }
+
     llvm::Constant* const_value(llvm::Type* expected){
 
         auto val = builder()->getInt64(value);
@@ -63,6 +112,9 @@ public:
         auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, true);
         return cast;
 
+    }
+    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected){
+        return const_value(expected);
     }
 
 protected:
@@ -93,21 +145,3 @@ private:
     }
 };
 
-class String : public Constant<std::string, String>{
-public:
-    using Constant::Constant;
-    std::string str(){
-        return "\""+value+"\"";
-    }
-    llvm::Constant* llvm_value(VariableTable& vars, llvm::Type* expected){
-        return const_value(expected);
-    }
-    std::shared_ptr<Type> get_type(){
-        return Ptr::get(Primitive::get(PR_int8));
-    }
-    llvm::Constant* const_value(llvm::Type* expected){
-        auto val = builder()->CreateGlobalStringPtr(value, ".str");
-        auto opcode = llvm::CastInst::getCastOpcode(val, true, expected, true);
-        return llvm::ConstantExpr::getCast(opcode, val, expected, false);
-    }
-};

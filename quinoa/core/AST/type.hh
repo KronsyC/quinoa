@@ -20,7 +20,7 @@ class Ptr;
 class ListType;
 class DynListType;
 class TypeRef;
-
+class ReferenceType;
 class Type : public ANode
 {
 public:
@@ -42,6 +42,10 @@ public:
 
     virtual llvm::Constant *default_value(llvm::Type *expected) = 0;
     virtual std::vector<Type*> flatten() = 0;
+    virtual bool ref_implicitly_fat() = 0;
+    bool stack_allocable(){
+        return !ref_implicitly_fat();
+    }
 
 protected:
     /**
@@ -88,6 +92,9 @@ public:
     PrimitiveType kind;
     std::vector<Type*> flatten(){
         return {this};
+    }
+    bool ref_implicitly_fat(){
+        return kind == PR_string;
     }
     Primitive(PrimitiveType kind)
     {
@@ -145,8 +152,9 @@ public:
             T(float64, Double)
 
             T(boolean, Int1)
-            T(void, Void)
             T(string, Int8Ptr)
+            T(void, Void)
+
         default:
             except(E_INTERNAL, "Failed to generate primitive type");
         }
@@ -210,6 +218,9 @@ public:
         for(auto m : of->flatten())ret.push_back(m);
         return ret;
     }
+    bool ref_implicitly_fat() {
+        return false;
+    }
     std::shared_ptr<Type> of;
 
     std::string str()
@@ -250,6 +261,86 @@ public:
         return llvm::ConstantExpr::getIntToPtr(builder()->getInt64(0), expected, false);
     }
 };
+
+
+//
+// References are essentially pointers, but with the following differences
+// - Guaranteed to point to valid memory
+// - Members can be accessed directly (implicitly casts to pointed type)
+// - Can be explicitly cast to c-style pointer for glibc compatibility
+// Inspired by Rust's References
+//
+class ReferenceType : public Type{
+public:
+    std::shared_ptr<Type> of;
+    bool is_fat(){
+        return of->ref_implicitly_fat();
+    }
+    ReferenceType(std::shared_ptr<Type> of){
+        this->of = of;
+    }
+    bool ref_implicitly_fat() {
+        return false;
+    }
+    static std::shared_ptr<ReferenceType> get(std::shared_ptr<Type> of){
+        return create_heaped(ReferenceType(of));
+    }
+
+    std::string str(){
+        return of->str() + "&";
+    }
+
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        for(auto t : of->flatten())ret.push_back(t);
+        return ret;
+
+    }
+    Type* drill(){
+        return this;
+    }
+
+    std::shared_ptr<Type> pointee()
+    {
+        return of;
+    }
+
+    bool operator==(Type &against)
+    {
+        if (auto k = against.get<ReferenceType>())
+        {
+            return k->of == of;
+        }
+        return false;
+    }
+
+    int distance_from(Type &target)
+    {
+        auto pt = target.get<ReferenceType>();
+        if (!pt)
+            return -1;
+        return this->of->distance_from(*pt->of->drill());
+    }
+
+    llvm::Constant* default_value(llvm::Type* expected){
+        except(E_BAD_TYPE, "A Reference Type must be explicitly initialized");
+    }
+
+    llvm::Type* llvm_type(){
+        auto of_ty      = of->llvm_type();
+        auto pointed_ty = of_ty->getPointerTo();
+        if(of->ref_implicitly_fat()){
+            std::vector<llvm::Type*> properties = {
+                    builder()->getInt64Ty(),
+                    of_ty
+            };
+            return llvm::StructType::get(*llctx(), properties);
+        }
+        else return pointed_ty;
+    }
+};
+
+
 #include "./constant.hh"
 class ListType : public Type
 {
@@ -262,7 +353,9 @@ protected:
 public:
     std::shared_ptr<Type> of;
     std::unique_ptr<Integer> size;
-
+    bool ref_implicitly_fat() {
+        return false;
+    }
     ListType(std::shared_ptr<Type> type, std::unique_ptr<Integer> size)
     {
         this->of = std::move(type);
@@ -330,6 +423,9 @@ protected:
         return this;
     }
 public:
+    bool ref_implicitly_fat() {
+        return true;
+    }
     std::shared_ptr<Type> of;
 
     DynListType(std::shared_ptr<Type> type)
@@ -393,6 +489,9 @@ public:
         this->members = members;
         this->parent = cont;
 
+    }
+    bool ref_implicitly_fat() {
+        return false;
     }
     Type *drill()
     {
@@ -469,7 +568,9 @@ public:
 class EnumType : public ParentAwareType{
 public:
     std::vector<std::string> entries;
-
+    bool ref_implicitly_fat() {
+        return false;
+    }
     EnumType(std::vector<std::string> entries, Container* cont){
         this->entries = entries;
         this->parent = cont;
@@ -574,7 +675,11 @@ public:
     {
         return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
     }
+    bool ref_implicitly_fat(){
+        if(!resolves_to)except(E_INTERNAL, "Cannot check if an unresovled type is implicitly fat");
+        else return resolves_to->ref_implicitly_fat();
 
+    }
     static std::shared_ptr<TypeRef> get(std::unique_ptr<LongName> name)
     {
         // do not cache TypeRefs, as multiple refs may share the same name

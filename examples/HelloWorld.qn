@@ -2,11 +2,10 @@ import @io;
 
 module HelloWorldExample is Entry{
 
-    func main(argc:int, argv:c_str*) -> int{
+    func main() -> int{
 
         io::println("Hello, World!");
         return 0;
-        
     } 
 
 }

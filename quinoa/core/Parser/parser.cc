@@ -114,12 +114,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
         except(E_BAD_TYPE, "Failed to parse type");
     std::shared_ptr<Type> ret;
     auto first = popf(toks);
-    // string is an alias for 'i8*'
-    if (first.is(TT_string))
-    {
-        ret = Ptr::get(Primitive::get(PR_int8));
-    }
-    else if (first.isTypeTok())
+    if (first.isTypeTok())
     {
         auto internal_type = primitive_mappings[first.type];
         ret = Primitive::get(internal_type);
@@ -170,28 +165,40 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
 
     }
     if(!ret)except(E_BAD_TYPE, "Failed to parse type: " + first.value);
-    while (toks.size() && toks[0].is(TT_star))
+    bool run = true;
+    while (toks.size() && run)
     {
-        popf(toks);
-        ret = Ptr::get(ret);
-    }
-    if (toks[0].is(TT_l_square_bracket))
-    {
-        popf(toks);
-        if(toks[0].is(TT_r_square_bracket)){
-            popf(toks);
-            ret = DynListType::get(ret);
+        auto first = toks[0];
+        switch(first.type){
+            case TT_star:{
+                popf(toks);
+                ret = Ptr::get(ret);
+                break;
+            }
+            case TT_l_square_bracket:{
+                popf(toks);
+                if(toks[0].is(TT_r_square_bracket)){
+                    popf(toks);
+                    ret = DynListType::get(ret);
+                }
+                else{
+                    auto len_u = parse_const(popf(toks));
+                    auto len = dynamic_cast<Integer*>(len_u.get());
+
+                    if(!len)except(E_BAD_ARRAY_LEN, "Arrays must have a constant integer length");
+                    pope(toks, TT_r_square_bracket);
+
+                    ret = ListType::get(ret, std::move(std::unique_ptr<Integer>((Integer*)len_u.release())));
+                }
+
+            }
+            case TT_ampersand:{
+                popf(toks);
+                ret = ReferenceType::get(ret);
+                break;
+            }
+            default: run = false;
         }
-        else{
-            auto len_u = parse_const(popf(toks));
-            auto len = dynamic_cast<Integer*>(len_u.get());
-
-            if(!len)except(E_BAD_ARRAY_LEN, "Arrays must have a constant integer length");
-            pope(toks, TT_r_square_bracket);
-
-            ret = ListType::get(ret, std::move(std::unique_ptr<Integer>((Integer*)len_u.release())));
-        }
-
     }
 
 
@@ -256,10 +263,8 @@ Param parse_param(std::vector<Token> toks)
 
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
-    print_toks(toks);
     if (!toks.size())
-        except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
-
+        except(E_INTERNAL, "Cannot generate an expression from 0 tokens");
     if (toks.size() == 1)
     {
         if(toks[0].is(TT_identifier)){
@@ -401,18 +406,21 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
                 Logger::debug("struct of type: " + member_ref->str());
                 auto init_block = read_block(toks, IND_braces);
-                expects(init_block[init_block.size()-1], TT_semicolon);
-                init_block.pop_back();
-
                 auto si = std::make_unique<StructInitialization>(std::move(member_ref));
-                auto prop_init_toks = parse_tst(init_block, TT_semicolon);
-                for(auto init : prop_init_toks){
-                    auto prop_name = pope(init, TT_identifier).value;
-                    pope(init, TT_colon);
-                    auto prop_value = parse_expr(init, parent);
+                if(init_block.size()){
+                    expects(init_block[init_block.size()-1], TT_semicolon);
+                    init_block.pop_back();
 
-                    si->initializers[prop_name] = std::move(prop_value);
+                    auto prop_init_toks = parse_tst(init_block, TT_semicolon);
+                    for(auto init : prop_init_toks){
+                        auto prop_name = pope(init, TT_identifier).value;
+                        pope(init, TT_colon);
+                        auto prop_value = parse_expr(init, parent);
+
+                        si->initializers[prop_name] = std::move(prop_value);
+                    }
                 }
+
                 return si;
             }
         }
@@ -520,12 +528,10 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
     auto optype = binary_op_mappings[op.type];
 
-    // If the right expression is a method call and the operator is the dot operator
-    // interpret the expression as a method call on a type
-    if (dynamic_cast<MethodCall*>(rightAST.get()))
-    {
-
-        if (optype == BIN_dot) {
+    if(optype == BIN_dot){
+        expects(right[0], TT_identifier);
+        if (dynamic_cast<MethodCall*>(rightAST.get()))
+        {
             auto base_call = std::unique_ptr<MethodCall>((MethodCall*)rightAST.release() );
             if(base_call->name->container)except(E_BAD_EXPRESSION, "Instance calls may only be identified by single-part identifiers");
             auto call = std::make_unique<MethodCallOnType>();
@@ -537,7 +543,14 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             call->call_on = std::move(leftAST);
             return call;
         }
+        else if(dynamic_cast<SourceVariable*>(rightAST.get())){
+            auto base_var = std::unique_ptr<SourceVariable>((SourceVariable*)rightAST.release());
+            if(base_var->name->parts.len() > 1)except(E_BAD_MEMBER_ACCESS, "You may only use simple identifiers to access members");
+            auto sub = std::make_unique<MemberAccess>(std::move(leftAST), std::make_unique<Name>(base_var->name->last()));
+            return sub;
+        }
     }
+
 
     auto binop = std::make_unique<BinaryOperation>(std::move(leftAST), std::move(rightAST), optype);
     binop->scope = parent;
