@@ -108,7 +108,7 @@ std::unique_ptr<ConstantValue> parse_const(Token tok){
     }
 }
 
-std::shared_ptr<Type> parse_type(std::vector<Token>& toks)
+std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container = nullptr)
 {
     if (!toks.size())
         except(E_BAD_TYPE, "Failed to parse type");
@@ -132,6 +132,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks)
         ret = rt;
     }
     else if(first.is(TT_struct)){
+        if(!container)except(E_BAD_TYPE, "Struct types may only be declared as members of a container");
         auto struct_content = read_block(toks, IND_braces);
         if(struct_content.size()){
             expects(struct_content[struct_content.size()-1], TT_semicolon);
@@ -148,9 +149,11 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks)
 
             fields[field_name] = field_type;
         }
-        ret = StructType::get(fields);
+        ret = StructType::get(fields, container);
+
     }
     else if(first.is(TT_enum)){
+        if(!container)except(E_BAD_TYPE, "Enum types may only be declared as members of a container");
         auto enum_content = read_block(toks, IND_braces);
         if(enum_content.size()){
             expects(enum_content[enum_content.size()-1], TT_semicolon);
@@ -163,7 +166,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks)
             if(e.size() != 1 || !e[0].is(TT_identifier))except(E_BAD_TYPE, "An Enum member may only contain a single identifier");
             members.push_back(e[0].value);
         }
-        ret = EnumType::get(members);
+        ret = EnumType::get(members, container);
 
     }
     if(!ret)except(E_BAD_TYPE, "Failed to parse type: " + first.value);
@@ -253,6 +256,7 @@ Param parse_param(std::vector<Token> toks)
 
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
+    print_toks(toks);
     if (!toks.size())
         except(E_BAD_EXPRESSION, "Cannot generate an expression from 0 tokens");
 
@@ -516,10 +520,28 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
     auto optype = binary_op_mappings[op.type];
 
+    // If the right expression is a method call and the operator is the dot operator
+    // interpret the expression as a method call on a type
+    if (dynamic_cast<MethodCall*>(rightAST.get()))
+    {
+
+        if (optype == BIN_dot) {
+            auto base_call = std::unique_ptr<MethodCall>((MethodCall*)rightAST.release() );
+            if(base_call->name->container)except(E_BAD_EXPRESSION, "Instance calls may only be identified by single-part identifiers");
+            auto call = std::make_unique<MethodCallOnType>();
+            call->method_name = std::move(base_call->name->member);
+            call->args = std::move(base_call->args);
+            call->type_args = std::move(base_call->type_args);
+
+            call->scope = base_call->scope;
+            call->call_on = std::move(leftAST);
+            return call;
+        }
+    }
+
     auto binop = std::make_unique<BinaryOperation>(std::move(leftAST), std::move(rightAST), optype);
     binop->scope = parent;
     return binop;
-    except(E_INTERNAL, "bad expression");
 }
 
 std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = nullptr)
@@ -528,6 +550,7 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
     scope->scope = parent;
     while (toks.size())
     {
+
         auto current = popf(toks);
 
         if (current.is(TT_while))
@@ -572,7 +595,6 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
 
             scope->content.push(st(cond));
             continue;
-            except(E_INTERNAL, "Conditional parser is unimplemented");
         }
         if (current.is(TT_l_brace))
         {
@@ -584,9 +606,12 @@ std::unique_ptr<Scope> parse_scope(std::vector<Token> toks, Scope *parent = null
         }
 
         // Interpret single-line statements
+        // The push and pop may seem unnecessary, but they are required as read_to takes
+        // indentation into account, which has issues when the line starts with `(`
+        pushf(toks, current);
         auto line = read_to(toks, TT_semicolon);
         popf(toks);
-
+        popf(line);
         if (current.is(TT_break))
         {
             scope->content.push(stm(std::make_unique<ControlFlowJump>(JumpType::BREAK)));
@@ -697,8 +722,27 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
             method->name->member = std::make_unique<Name>(nameTok.value);
             method->name->container = parent->get_ref();
+
+            expects(toks[0], {
+                TT_l_paren,
+                TT_dot,
+                TT_l_generic
+            });
+
+            // Acts on specific type
+            if(toks[0].is(TT_dot)){
+                popf(toks);
+                auto acts_on = parse_type(toks);
+
+                // methods may only act upon locally defined types
+                if(acts_on->get<TypeRef>()){
+                    method->acts_upon = std::static_pointer_cast<TypeRef>(acts_on);
+                }
+                else except(E_BAD_METHOD_DEFINITION, "A method may only act upon locally defined types");
+            }
+
             // Generic Parameters
-            if (toks[0].is(TT_lesser))
+            if (toks[0].is(TT_l_generic))
             {
                 auto gp_block = read_block(toks, IND_generics);
                 except(E_INTERNAL, "Method Generic Parameters are unimplemented");
@@ -746,7 +790,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             pope(toks, TT_assignment);
             auto type_toks = read_to(toks, TT_semicolon);
             popf(toks);
-            auto type = parse_type(type_toks);
+            auto type = parse_type(type_toks, parent);
             auto member = std::make_unique<TypeMember>(type);
             member->parent = parent;
             member->name = std::make_unique<ContainerMemberRef>();

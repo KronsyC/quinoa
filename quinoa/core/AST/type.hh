@@ -379,13 +379,20 @@ public:
     }
 };
 
-class StructType : public Type
+class ParentAwareType : public Type{
+public:
+    Container* parent = nullptr;
+};
+
+class StructType : public ParentAwareType
 {
 public:
     std::map<std::string, std::shared_ptr<Type>> members;
-    StructType(std::map<std::string, std::shared_ptr<Type>> members){
+    StructType(std::map<std::string, std::shared_ptr<Type>> members, Container* cont){
 
         this->members = members;
+        this->parent = cont;
+
     }
     Type *drill()
     {
@@ -426,9 +433,9 @@ public:
         return -1;
     }
 
-    static std::shared_ptr<StructType> get(std::map<std::string, std::shared_ptr<Type>> members)
+    static std::shared_ptr<StructType> get(std::map<std::string, std::shared_ptr<Type>> members, Container* cont)
     {
-        return create_heaped(StructType(members));
+        return create_heaped(StructType(members, cont));
     }
 
     int distance_from(Type &target)
@@ -446,7 +453,7 @@ public:
     {
         auto st = against.get<StructType>();
         if (!st)return false;
-        return st->members == members;
+        return st->members == members && parent == st->parent;
     }
 
     llvm::Type *llvm_type()
@@ -459,12 +466,14 @@ public:
     }
 };
 
-class EnumType : public Type{
+class EnumType : public ParentAwareType{
 public:
     std::vector<std::string> entries;
 
-    EnumType(std::vector<std::string> entries){
+    EnumType(std::vector<std::string> entries, Container* cont){
         this->entries = entries;
+        this->parent = cont;
+
     }
     Type *drill()
     {
@@ -492,9 +501,9 @@ public:
         return std::shared_ptr<Type>(nullptr);
     }
 
-    static std::shared_ptr<EnumType> get(std::vector<std::string> entries)
+    static std::shared_ptr<EnumType> get(std::vector<std::string> entries, Container* cont)
     {
-        return create_heaped(EnumType(entries));
+        return create_heaped(EnumType(entries, cont));
     }
 
     int distance_from(Type &target)
@@ -513,7 +522,7 @@ public:
     {
         auto en = against.get<EnumType>();
         if (!en)return false;
-        return en->entries == entries;
+        return en->entries == entries && parent == en->parent;
     }
 
     llvm::Type *llvm_type()

@@ -13,6 +13,7 @@ void error(std::string reason, bool trace = false);
     X(ERR)                 \
     X(INTERNAL)            \
     X(BAD_ARGS)            \
+    X(BAD_METHOD_DEFINITION) \
     X(BAD_CONTROL_FLOW)    \
     X(BAD_COMPOSITOR)      \
     X(BAD_INDEX)           \

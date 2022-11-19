@@ -57,6 +57,12 @@ void resolve_if_typeref(Type& type, Container* container){
 void resolve_type_references(CompilationUnit& unit){
 
     for(auto method : unit.get_methods()){
+
+        if(auto au = method->acts_upon){
+            attempt_resolve_typeref(*au, method);
+        }
+
+
         // Resolve Return Type (if it is a type-ref)
         resolve_if_typeref(*method->return_type, method);
 

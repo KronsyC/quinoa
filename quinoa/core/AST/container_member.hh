@@ -53,12 +53,17 @@ public:
     }
 };
 
+
 class Method : public ContainerMember{
 public:
-    std::unique_ptr<Scope> content;
-    Vec<Generic>           generic_params;
-    Vec<Param>             parameters;
-    std::shared_ptr<Type>  return_type;
+    // `func foo.Type` where `Type` is what is acted upon
+    std::shared_ptr<TypeRef> acts_upon;
+    Vec<Generic>             generic_params;
+    Vec<Param>               parameters;
+    std::shared_ptr<Type>    return_type;
+    std::unique_ptr<Scope>   content;
+
+
 
     bool is_variadic(){
         // Check if the last parameter is a var-arg

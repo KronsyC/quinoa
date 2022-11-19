@@ -106,7 +106,7 @@ public:
         return Ptr::get(Primitive::get(PR_int8));
     }
     llvm::Constant* const_value(llvm::Type* expected){
-        auto val = builder()->CreateGlobalStringPtr(value);
+        auto val = builder()->CreateGlobalStringPtr(value, ".str");
         auto opcode = llvm::CastInst::getCastOpcode(val, true, expected, true);
         return llvm::ConstantExpr::getCast(opcode, val, expected, false);
     }

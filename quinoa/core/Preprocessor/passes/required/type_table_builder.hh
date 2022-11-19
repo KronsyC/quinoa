@@ -4,6 +4,9 @@
 
 void build_method_type_table(Method* method, CompilationUnit& unit){
     if(!method->content)return;
+
+
+
     // Inject  properties
     for(auto prop:unit.get_properties()){
         method->content->set_type(prop->name->str(), prop->type);
@@ -34,7 +37,10 @@ void build_method_type_table(Method* method, CompilationUnit& unit){
     for(auto param : method->parameters){
         method->content->set_type(param->name.str(), param->type);
     }
-
+    // Inject self (if applicable)
+    if(method->acts_upon){
+        method->content->set_type("self", Ptr::get(method->acts_upon));
+    }
     // Inject local variables
     for(auto node : method->content->flatten()){
         if(auto init = dynamic_cast<InitializeVar*>(node)){

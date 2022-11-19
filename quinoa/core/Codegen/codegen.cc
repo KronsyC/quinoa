@@ -26,30 +26,24 @@ llvm::Function *make_fn(
 	auto ret = f.return_type->llvm_type();
 	auto name = f.source_name();
 	std::vector<llvm::Type *> args;
+
+    if(f.acts_upon){
+        auto self_t = Ptr::get(f.acts_upon)->llvm_type();
+        args.push_back(self_t);
+
+    }
 	for (auto a : f.parameters)
 	{
 		auto param_type = a->type->llvm_type();
 		args.push_back(param_type);
 	}
 	bool isVarArg = false;
-	// if(f.parameters.len()) {
 
-	// 	if(f.parameters[f.parameters.len() - 1].is_variadic {
-	// 		isVarArg = true;
-	// 		args.pop_back();
-	// 		if(!f.nomangle) {
-	// 			auto t = Primitive::get(PR_int32);
-	// 			args.push_back(t->getLLType());
-	// 			auto arglen = Ident::get("+vararg_count");
-	// 			f.params[f.params.size() - 1] = new Param(t, arglen);
-	// 		}
-	// 	}
-	// }
 
 	auto sig = llvm::FunctionType::get(ret, args, isVarArg);
 	auto fn = llvm::Function::Create(sig, linkage, name, mod);
 	Logger::debug("Created function " + name);
-	for (unsigned int i = 0; i < fn->arg_size(); i++)
+	for (unsigned int i = 0; i < fn->arg_size() - (bool)f.acts_upon; i++)
 	{
 		auto &param = f.parameters[i];
 		auto name = param.name.str();
@@ -88,6 +82,9 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
 		vars[prop_name] = Variable(prop->type.get(), init);
 	}
+
+
+
 	// Inject all properties as full variables
 	for (auto prop : ast.get_properties())
 	{
@@ -113,71 +110,27 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
         }
     }
 
-	// // Inject the args as variables
-	for (unsigned int i = 0; i < fn->arg_size(); i++)
+    if(auto ty = method->acts_upon){
+        auto arg = fn->getArg(0);
+        auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "self");
+
+        builder()->CreateStore(arg, alloc);
+        vars["self"] = Variable(Ptr::get(ty).get(), alloc);
+    }
+
+	// Inject the args as variables
+    int diff = (bool)method->acts_upon;
+	for (unsigned int i = 0; i < method->parameters.len(); i++)
 	{
+        Logger::debug("Get param: " + std::to_string(i));
 		auto& param = method->parameters[i];
-		auto arg = fn->getArg(i);
+		auto arg = fn->getArg(i+diff);
 		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
 
 		builder()->CreateStore(arg, alloc);
-		vars[arg->getName().str()] = Variable(param.type.get(), alloc);
+		vars[param.name.str()] = Variable(param.type.get(), alloc);
 	}
 
-	// Inject the var-args as a known-length list
-	// if (method->sig->isVariadic())
-	// {
-	// 	auto varParam = method->sig->params[method->sig->params.size() - 1];
-	// 	auto varParamType = (ListType *)varParam->type;
-	// 	auto elementType = varParamType->elements->getLLType();
-	// 	auto one = builder()->getInt32(1);
-	// 	auto lenptr = vars["+vararg_count"];
-	// 	varParamType->size = Ident::get("+vararg_count");
-	// 	auto len =
-	// 		builder()->CreateLoad(lenptr->value->getType()->getPointerElementType(), lenptr->value, "varargs_len");
-
-	// 	auto list = builder()->CreateAlloca(elementType, len, "varargs_list");
-	// 	auto init = builder()->CreateAlloca(elementType->getPointerTo());
-	// 	builder()->CreateStore(list, init);
-	// 	vars[varParam->name->str()] = new Variable(varParamType->elements, init);
-	// 	pushf(*method, (Statement *)list);
-
-	// 	auto i32 = Primitive::get(PR_int32)->getLLType();
-	// 	auto i8p = (new TPtr(Primitive::get(PR_int8)))->getLLType();
-	// 	auto st = llvm::StructType::create(*llctx(), {i32, i32, i8p, i8p});
-	// 	auto alloc = builder()->CreateAlloca(st, nullptr, "var_args_obj");
-	// 	// Tracker / i
-	// 	auto tracker = builder()->CreateAlloca(i32, nullptr, "i");
-	// 	builder()->CreateStore(builder()->getInt32(0), tracker);
-	// 	auto cast = builder()->CreateBitCast(alloc, i8p);
-	// 	builder()->CreateUnaryIntrinsic(llvm::Intrinsic::vastart, cast);
-
-	// 	// Create a loop to iter over each arg, and push it into the list
-	// 	auto eval = llvm::BasicBlock::Create(*llctx(), "while_eval", fn);
-	// 	auto body = llvm::BasicBlock::Create(*llctx(), "while_body", fn);
-	// 	auto cont = llvm::BasicBlock::Create(*llctx(), "while_cont", fn);
-
-	// 	builder()->CreateBr(eval);
-	// 	builder()->SetInsertPoint(eval);
-
-	// 	// Generate the Evaluator
-	// 	auto loaded_i = builder()->CreateLoad(tracker->getType()->getPointerElementType(), tracker);
-	// 	auto isSmaller = builder()->CreateICmpSLT(loaded_i, len);
-	// 	builder()->CreateCondBr(isSmaller, body, cont);
-	// 	builder()->SetInsertPoint(body);
-
-	// 	// get the value and set it in the list
-	// 	auto value = builder()->CreateVAArg(alloc, elementType);
-	// 	auto listPtr = builder()->CreateGEP(list->getType()->getPointerElementType(), list, loaded_i);
-	// 	builder()->CreateStore(value, listPtr);
-
-	// 	// Increment and jump out
-	// 	auto inc = builder()->CreateAdd(loaded_i, one);
-	// 	builder()->CreateStore(inc, tracker);
-	// 	builder()->CreateBr(eval);
-	// 	builder()->SetInsertPoint(cont);
-	// }
-	
 	return vars;
 }
 

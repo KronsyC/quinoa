@@ -16,13 +16,11 @@ void validate_usage(Scope& scope, std::vector<std::string> declared_vars){
             if(auto init = dynamic_cast<InitializeVar*>(member)){
                 declared_vars.push_back(init->var_name.str());
             }
+            // TODO: Implement checks for usage before declaration
+            //       the old implementation was removed as it does not
+            //       act nicely with structs (flattening `x.y` results
+            //       in `y` being interpreted as a standalone variable)
 
-            if(auto var = dynamic_cast<SourceVariable*>(member)){
-                // TODO: Reimplement this, but friendlier with structs
-//                if(!includes(declared_vars, var->name->str())){
-//                    except(E_BAD_VAR, "Cannot use variable '"+var->name->str()+"' before initialization");
-//                }
-            }
 
         }
     }

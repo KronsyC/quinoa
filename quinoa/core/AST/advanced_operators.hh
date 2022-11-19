@@ -12,15 +12,18 @@
 
 
 
-
-
-class MethodCall : public Expr
+class CallLike : public Expr{
+public:
+    Vec<Expr> args;
+    Vec<Type> type_args;
+    std::shared_ptr<Type> return_type;
+    Method*   target = nullptr;
+};
+class MethodCall : public CallLike
 {
 public:
     std::unique_ptr<ContainerMemberRef> name;
-    Vec<Expr> args;
-    Vec<Type> type_args;
-    Method*   target;
+
 
     std::string str()
     {
@@ -83,6 +86,84 @@ protected:
     {
         if(!target)return std::shared_ptr<Type>(nullptr);
         return target->return_type;
+    }
+};
+
+class MethodCallOnType : public CallLike{
+public:
+    std::unique_ptr<Name> method_name;
+    std::unique_ptr<Expr> call_on;
+
+    std::string str(){
+        std::string ret = call_on->str() + "." + method_name->str();
+        if (type_args.len())
+        {
+            bool first = true;
+            for (auto &ta : type_args)
+            {
+                if (!first)
+                    ret += ", ";
+                ret += ta->str();
+                first = false;
+            }
+        }
+
+        ret += "(";
+        bool first = true;
+        for(auto p : args){
+            if(!first)ret += ", ";
+            ret += p->str();
+            first = false;
+
+        }
+        ret += ")";
+        return ret;
+    }
+
+    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr)
+    {
+        if(!target)except(E_BAD_CALL, "Cannot create a method call to an unresolved method (this is a bug)");
+        auto mod = builder()->GetInsertBlock()->getModule();
+        auto fn = mod->getFunction(target->source_name());
+
+        if(!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->name->str());
+
+        std::vector<llvm::Value*> args;
+
+        // Inject the target variable as the first argument
+        args.push_back(call_on->assign_ptr(vars));
+
+
+        for(size_t i = 0; i < this->args.len(); i++){
+            auto& arg   = this->args[i];
+            auto param = target->get_parameter(i);
+
+            auto expected_type = param->type->llvm_type();
+            auto arg_val = arg.llvm_value(vars, expected_type);
+            args.push_back(arg_val);
+        }
+
+        auto call = builder()->CreateCall(fn, args);
+        return cast(call, expected_type);
+    }
+
+    std::vector<Statement*> flatten(){
+        std::vector<Statement*> ret = {this};
+
+        for(auto a : args)for(auto m : a->flatten())ret.push_back(m);
+        for(auto f : call_on->flatten())ret.push_back(f);
+        return ret;
+
+    }
+    llvm::Value* assign_ptr(VariableTable& vars){
+        except(E_INTERNAL, "assign_ptr not implemented for MethodCallOnType");
+    }
+protected:
+    std::shared_ptr<Type> get_type()
+    {
+        if(!target)return std::shared_ptr<Type>(nullptr);
+        return target->return_type;
+
     }
 };
 
@@ -222,6 +303,14 @@ public:
             auto mem = builder()->CreateStructGEP(struct_ll_type, alloc, idx);
             builder()->CreateStore(init_expr, mem);
         }
+
+        // ensure that all members are explicitly initialized
+        for(auto [name, _] : type->members){
+            Logger::debug("Member: " + name);
+            auto& lookup = initializers[name];
+            if(!lookup)except(E_BAD_ASSIGNMENT, "Initialization for struct '" + target->str() + "' is missing a member: '" + name + "'");
+        }
+
         return builder()->CreateLoad(struct_ll_type, alloc);
     }
     llvm::Value* assign_ptr(VariableTable& vars){

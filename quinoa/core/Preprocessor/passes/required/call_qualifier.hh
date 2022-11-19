@@ -26,18 +26,24 @@ public:
   int general_compat = 0;
 
   MatchRanking(bool possible = false){
-    possible = possible;
+    this->possible = possible;
   }
 };
 
 
 
+/*
+ * Create a ranking object based on the method-call pairing
+ */
+MatchRanking rank_method_against_call(Method* method, CallLike* call, bool is_static = true){
 
-MatchRanking rank_method_against_call(Method* method, MethodCall* call){
-  // Sanity Checks
+    if(!method)except(E_INTERNAL, "Failed to create ranking object for method call (method is null)");
+
   MatchRanking ranking(true);
   ranking.against = method;
 
+    if(method->acts_upon && is_static)return MatchRanking();
+    else if(!method->acts_upon && !is_static)return MatchRanking();
 
   // Compare parameter counts (if applicable)
   if(!method->is_variadic()){
@@ -51,7 +57,6 @@ MatchRanking rank_method_against_call(Method* method, MethodCall* call){
 
   }
 
-ranking.possible = true;
 
   if(method->generic_params.len()){
     // TODO: reimplement generics under the new system
@@ -60,6 +65,7 @@ ranking.possible = true;
     //      and bug-prone
     except(E_INTERNAL, "Generic methods are not yet supported");
   }
+  ranking.possible = true;
   for(size_t i = 0; i < call->args.len(); i++){
     auto arg_t  = call->args[i].type();
 
@@ -186,23 +192,66 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   auto best_method = select_best_ranked_method(ranks);
   return best_method;
 }
+Method* get_best_target(MethodCallOnType* call, CompilationUnit& unit){
+    // Find the module that the call targets
+    auto target_ty = call->call_on->type();
+    if(!target_ty)return nullptr;
+    auto target_paw_ty = target_ty->get<ParentAwareType>();
+    if(!target_paw_ty){
+        Logger::error("You may only define methods for structs and enums");
+        return nullptr;
+    }
 
+    auto target_mod = target_paw_ty->parent;
+
+    // Find all methods with the name
+    std::vector<Method*> methods;
+
+    for(auto method : target_mod->get_methods()){
+        if(method->name->member->str() == call->method_name->str()){
+            methods.push_back(method);
+        }
+    }
+    if(methods.size() == 0)except(E_BAD_CALL, "No methods of '"+target_mod->name->str()+"' have the name '" + call->method_name->str() + "'");
+
+    std::vector<MatchRanking> ranks;
+    for(auto method : methods){
+
+        auto rank = rank_method_against_call(method, call, false);
+        ranks.push_back(rank);
+    }
+
+    auto best_method = select_best_ranked_method(ranks);
+    return best_method;
+}
 std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
   int resolvedCount = 0;
   bool success = true;
   for (auto item : code.content->flatten()) {
     if (auto call = dynamic_cast<MethodCall*>(item)){
-      if(call->target)continue;
+        if(call->target)continue;
       auto best_fn = get_best_target(call, unit);
       if(best_fn){
-          Logger::debug("Resolved call: " + call->name->str());
         call->target = best_fn;
         resolvedCount++;
       }
       else{
-        Logger::error("Failed to resolve call to " + call->name->str());
+        Logger::error("Failed to resolve call " + call->str());
         success = false;
       }
+    }
+    if(auto inst_call = dynamic_cast<MethodCallOnType*>(item)){
+
+        if(inst_call->target)continue;
+        auto best_fn = get_best_target(inst_call, unit);
+        if(best_fn){
+            inst_call->target = best_fn;
+            resolvedCount++;
+        }
+        else{
+            Logger::error("Failed to resolve call " + inst_call->str());
+            success = false;
+        }
     }
   }
   return {success, resolvedCount};
