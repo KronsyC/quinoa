@@ -77,7 +77,7 @@ public:
     std::string str(){
         return name->str();
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+    llvm::Value* llvm_value(VariableTable& vars, LLVMType expected_type = {}){
 
         auto ptr = assign_ptr(vars);
         auto value = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);

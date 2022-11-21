@@ -3,8 +3,38 @@
 #include "./include.hh"
 #include "llvm/IR/Value.h"
 #include <map>
-#include "../llvm_globals.h"
+#include "../llvm_utils.h"
 #include "../../lib/logger.h"
+
+#include "llvm/IR/Type.h"
+class Type;
+
+/**
+ * A Convenient wrapper around llvm types
+ * Also contains the quinoa type from which it derives from
+ */
+class LLVMType{
+public:
+    llvm::Type* ll_type = nullptr;
+    Type* qn_type = nullptr;
+
+    llvm::Type* operator->(){
+        return this->ll_type;
+    }
+    LLVMType(llvm::Type* r){
+        this->ll_type = r;
+    }
+    LLVMType() = default;
+    LLVMType(llvm::Type* ll, Type* qn){
+        this->ll_type = ll;
+        this->qn_type = qn;
+    }
+    operator llvm::Type*() const{
+        return ll_type;
+    }
+
+
+};
 class Scope;
 
 enum ReturnChance{
@@ -12,10 +42,10 @@ enum ReturnChance{
     MAYBE,
     DEFINITE,
 };
-
+class Method;
 class Statement : public ANode{
 public:
-    virtual void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) = 0;
+    virtual void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) = 0;
     virtual std::string str() = 0;
     virtual std::vector<Statement*> flatten() = 0;
     virtual ReturnChance returns() = 0;
@@ -52,7 +82,7 @@ public:
         }
         return cached_type;
     }
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         // Generate the expression as a statement
         // This is common for use-cases such as calls (where the function has side effects)
         llvm_value(vars);
@@ -63,7 +93,7 @@ public:
     ReturnChance returns(){
         return ReturnChance::NEVER;
     }
-    virtual llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr) = 0;
+    virtual llvm::Value* llvm_value(VariableTable& vars, LLVMType expected_type = {}) = 0;
     virtual llvm::Value* assign_ptr(VariableTable& vars) = 0;
     
 protected:
@@ -97,7 +127,7 @@ public:
     ControlFlowJump(JumpType type){
         this->type = type;
     }
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         switch(type){
             case JumpType::BREAK:{
                 if(!CFI.breakTo)except(E_BAD_CONTROL_FLOW, "Cannot break from a non-breakable scope");
@@ -155,10 +185,10 @@ public:
         return output + "}";
     }
 
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         for(auto& child : content){
             Logger::debug("Generating Child:\n" + child->str());
-            child->generate(func, vars, CFI);
+            child->generate(qn_fn, func, vars, CFI);
         }
     }
     std::vector<Statement*> flatten(){

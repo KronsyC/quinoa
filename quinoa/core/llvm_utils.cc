@@ -1,6 +1,7 @@
-#include "./llvm_globals.h"
+#include "./llvm_utils.h"
 #include "../lib/error.h"
 #include "../lib/logger.h"
+#include "./AST/type.hh"
 static llvm::LLVMContext _ctx;
 static llvm::IRBuilder<> _builder(_ctx);
 
@@ -13,20 +14,20 @@ llvm::IRBuilder<>* builder()
     return &_builder;
 }
 
-bool isInt(llvm::Type* t)
+bool isInt(LLVMType t)
 {
     return t->isIntegerTy();
 }
-llvm::Value* cast(llvm::Value* val, llvm::Type* type)
+llvm::Value* cast(llvm::Value* val, LLVMType type)
 {
 
-    if(type == nullptr)
+    if(type.ll_type == nullptr)
 	return val;
     auto tape = val->getType();
     if(type == tape)
 	return val;
 
-    if(isInt(tape) && isInt(type)){
+    if(isInt(LLVMType{tape, nullptr}) && isInt(type)){
         Logger::debug("Int -> Int");
         bool is_signed = true;
         if(tape->isIntegerTy(1))is_signed = false;

@@ -55,7 +55,7 @@ public:
         ret += ")";
         return ret;
     }
-    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr)
+    llvm::Value *llvm_value(VariableTable& vars, LLVMType expected_type = {})
     {
         auto mod = builder()->GetInsertBlock()->getModule();
         auto fn = mod->getFunction(target->source_name());
@@ -125,7 +125,7 @@ public:
         return ret;
     }
 
-    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr)
+    llvm::Value *llvm_value(VariableTable& vars, LLVMType expected_type = {})
     {
         if(!target)except(E_BAD_CALL, "Cannot create a method call to an unresolved method (this is a bug)");
 
@@ -196,13 +196,11 @@ public:
     {
         return "return " + value->str();
     }
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI)
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI)
     {
-        auto expected_type = func->getReturnType();
-
         if(value){
             Logger::debug("Return: " + value->str());
-            auto return_value  = value->llvm_value(vars, expected_type);
+            auto return_value  = value->llvm_value(vars, qn_fn->return_type->llvm_type());
             builder()->CreateRet(return_value);
         }
         else{
@@ -244,7 +242,7 @@ public:
         }
         return ret;
     }
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
 
         auto ll_type = type->llvm_type();
         auto name    = var_name.str();
@@ -268,7 +266,7 @@ public:
         for(auto m : value->flatten())ret.push_back(m);
         return ret;
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+    llvm::Value* llvm_value(VariableTable& vars, LLVMType expected_type = {}){
         return cast(value->llvm_value(vars, cast_to->llvm_type()), expected_type);
     }
 
@@ -311,7 +309,7 @@ public:
         return ret;
     }
 
-    void write_direct(llvm::Value* alloc, VariableTable& vars, llvm::Type* expected_type = nullptr){
+    void write_direct(llvm::Value* alloc, VariableTable& vars, LLVMType expected_type = {}){
         if(!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
         auto struct_ll_type = type->llvm_type();
         for(auto& init : initializers){
@@ -360,7 +358,7 @@ public:
     std::string str(){
         return target->str() + "[" + index->str() + "]";
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+    llvm::Value* llvm_value(VariableTable& vars, LLVMType expected_type = {}){
         auto ptr = assign_ptr(vars);
         auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
         return cast(load, expected_type);

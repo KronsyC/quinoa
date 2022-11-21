@@ -20,7 +20,7 @@ public:
         if(if_false)for(auto m : if_false->flatten())ret.push_back(m);
         return ret;
     }
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
 
         auto eval_if = condition->llvm_value(vars, builder()->getInt1Ty());
         auto true_block  = llvm::BasicBlock::Create(*llctx(), "if_true", func);
@@ -33,14 +33,14 @@ public:
 
         builder()->SetInsertPoint(true_block);
 
-        if_true->generate(func, vars, CFI);
+        if_true->generate(qn_fn, func, vars, CFI);
 
         if(if_true->returns() != ReturnChance::DEFINITE)builder()->CreateBr(cont_block);
 
 
         builder()->SetInsertPoint(false_block);
 
-        if(if_false)if_false->generate(func, vars, CFI);
+        if(if_false)if_false->generate(qn_fn, func, vars, CFI);
         if(if_false && if_false->returns() != ReturnChance::DEFINITE)builder()->CreateBr(cont_block);
 
 
@@ -90,7 +90,7 @@ public:
     std::unique_ptr<Expr>  condition;
     std::unique_ptr<Scope> execute;
 
-    void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
 
 
         auto eval_block  = llvm::BasicBlock::Create(*llctx(), "while_eval", func);
@@ -108,7 +108,7 @@ public:
         builder()->CreateCondBr(br_if, exec_block, cont_block);
 
         builder()->SetInsertPoint(exec_block);
-        execute->generate(func, vars, CFI);
+        execute->generate(qn_fn, func, vars, CFI);
         builder()->CreateBr(eval_block);
 
         builder()->SetInsertPoint(cont_block);

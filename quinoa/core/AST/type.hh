@@ -3,7 +3,7 @@
 #include "llvm/IR/Type.h"
 #include "./ast.hh"
 #include "../../GenMacro.h"
-#include "../llvm_globals.h"
+#include "../llvm_utils.h"
 #include "../token/token.h"
 #include "../../lib/list.h"
 #include "./reference.hh"
@@ -15,6 +15,7 @@ enum PrimitiveType
 static std::map<PrimitiveType, std::string> primitive_names{PRIMITIVES_ENUM_NAMES};
 static std::map<TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAPPINGS};
 
+
 class Primitive;
 class Ptr;
 class ListType;
@@ -25,7 +26,13 @@ class Generic;
 class Type : public ANode
 {
 public:
-    virtual llvm::Type *llvm_type() = 0;
+    LLVMType llvm_type(){
+        auto ll_type = internal_llvm_type();
+        auto qn_type = this;
+        return LLVMType{ll_type, qn_type};
+    }
+    virtual llvm::Type *internal_llvm_type() = 0;
+
     virtual std::shared_ptr<Type> pointee() = 0;
     virtual std::string str() = 0;
     template <class T>
@@ -41,7 +48,7 @@ public:
 
     virtual Type *drill() = 0;
 
-    virtual llvm::Constant *default_value(llvm::Type *expected) = 0;
+    virtual llvm::Constant *default_value(LLVMType expected) = 0;
     virtual std::vector<Type*> flatten() = 0;
 
 
@@ -133,7 +140,7 @@ public:
         }
         return {*this, against};
     }
-    llvm::Type *llvm_type()
+    llvm::Type *internal_llvm_type()
     {
 #define T(sw, name) \
     case PR_##sw:   \
@@ -169,7 +176,7 @@ public:
         }
         return false;
     }
-    llvm::Constant *default_value(llvm::Type *expected)
+    llvm::Constant *default_value(LLVMType expected)
     {
         llvm::Constant *ret = nullptr;
         switch (kind)
@@ -226,8 +233,8 @@ public:
         return of->str() + "*";
     }
 
-    llvm::Type *llvm_type() {
-        return of->llvm_type()->getPointerTo();
+    llvm::Type *internal_llvm_type() {
+        return of->internal_llvm_type()->getPointerTo();
     }
 
     std::shared_ptr <Type> pointee() {
@@ -252,7 +259,7 @@ public:
         return this->of->distance_from(*pt->of);
     }
 
-    llvm::Constant *default_value(llvm::Type *expected) {
+    llvm::Constant *default_value(LLVMType expected) {
         return llvm::ConstantExpr::getIntToPtr(builder()->getInt64(0), expected, false);
     }
 
@@ -318,12 +325,12 @@ public:
         return this->of->distance_from(*pt->of->drill());
     }
 
-    llvm::Constant* default_value(llvm::Type* expected){
+    llvm::Constant* default_value(LLVMType expected){
         except(E_BAD_TYPE, "A Reference Type must be explicitly initialized");
     }
 
-    llvm::Type* llvm_type(){
-        auto of_ty      = of->llvm_type();
+    llvm::Type* internal_llvm_type(){
+        auto of_ty      = of->internal_llvm_type();
         auto pointed_ty = of_ty->getPointerTo();
         return pointed_ty;
     }
@@ -373,12 +380,12 @@ public:
     {
         return create_heaped(DynListType(of));
     }
-    llvm::Type *llvm_type()
+    llvm::Type *internal_llvm_type()
     {
         if(type)return type;
         auto struct_ty = llvm::StructType::create(*llctx(), {
                 builder()->getInt64Ty(), // Size of the slice
-                llvm::ArrayType::get(this->of->llvm_type(), 0)->getPointerTo() // Slice Elements
+                llvm::ArrayType::get(this->of->internal_llvm_type(), 0)->getPointerTo() // Slice Elements
         }, "slice:"+this->of->str());
         type = struct_ty;
         return struct_ty;
@@ -399,7 +406,7 @@ public:
             return -1;
         return this->of->distance_from(*lt->of);
     }
-    llvm::Constant *default_value(llvm::Type *expected) {
+    llvm::Constant *default_value(LLVMType expected) {
         except(E_INTERNAL, "default value not implemented for list types");
     }
 
@@ -482,7 +489,7 @@ public:
         // Distance is equal to that of the highest
         except(E_INTERNAL, "distance between: " + str() + " and " + target.str());
     }
-    llvm::Constant *default_value(llvm::Type *expected){
+    llvm::Constant *default_value(LLVMType expected){
         except(E_INTERNAL, "default value not implemented for struct types");
     }
     bool operator==(Type &against)
@@ -492,11 +499,11 @@ public:
         return st->members == members && parent == st->parent;
     }
 
-    llvm::Type *llvm_type()
+    llvm::Type *internal_llvm_type()
     {
         std::vector<llvm::Type*> member_types;
         for(auto member : members){
-            member_types.push_back(member.second->llvm_type());
+            member_types.push_back(member.second->internal_llvm_type());
         }
         return llvm::StructType::get(*llctx(), member_types);
     }
@@ -555,7 +562,7 @@ public:
         else return -1;
         except(E_INTERNAL, "Type distance not implemented for enums");
     }
-    llvm::Constant *default_value(llvm::Type *expected){
+    llvm::Constant *default_value(LLVMType expected){
         except(E_INTERNAL, "default value not implemented for enums");
     }
     bool operator==(Type &against)
@@ -565,7 +572,7 @@ public:
         return en->entries == entries && parent == en->parent;
     }
 
-    llvm::Type *llvm_type()
+    llvm::Type *internal_llvm_type()
     {
         return builder()->getInt32Ty();
     }
@@ -601,7 +608,7 @@ public:
         if(resolves_to)for(auto m : resolves_to->flatten())ret.push_back(m);
         return ret;
     }
-    llvm::Constant *default_value(llvm::Type *expected){
+    llvm::Constant *default_value(LLVMType expected){
         if(resolves_to)return resolves_to->default_value(expected);
         except(E_INTERNAL, "cannot get default value for unresolved type reference");
     }
@@ -626,10 +633,10 @@ public:
         pt->name = std::move(name);
         return pt;
     }
-    llvm::Type *llvm_type()
+    llvm::Type *internal_llvm_type()
     {
         if (resolves_to)
-            return resolves_to->llvm_type();
+            return resolves_to->internal_llvm_type();
         except(E_UNRESOLVED_TYPE, "Cannot generate llvm value for unresolved type reference: " + name->str());
     }
     bool operator==(Type &against)
@@ -663,8 +670,8 @@ public:
         if(temporarily_resolves_to)ret.push_back(temporarily_resolves_to.get());
         return ret;
     }
-    llvm::Type* llvm_type(){
-        if(temporarily_resolves_to)return temporarily_resolves_to->llvm_type();
+    llvm::Type* internal_llvm_type(){
+        if(temporarily_resolves_to)return temporarily_resolves_to->internal_llvm_type();
         else except(E_UNRESOLVED_TYPE, "Cannot get an llvm type for an unresolved generic");
     }
     std::unique_ptr<Name> name;
@@ -714,7 +721,7 @@ public:
         else except(E_UNRESOLVED_TYPE, "Cannot get pointee of unresolved generic type");
     }
 
-    llvm::Constant* default_value(llvm::Type* expected){
+    llvm::Constant* default_value(LLVMType expected){
         if(temporarily_resolves_to)return temporarily_resolves_to->default_value(expected);
         else except(E_UNRESOLVED_TYPE, "Cannot get default value of unresolved generic type");
     }
@@ -763,9 +770,9 @@ public:
     {
         return create_heaped(ListType(of, std::move(size)));
     }
-    llvm::Type *llvm_type()
+    llvm::Type *internal_llvm_type()
     {
-        return llvm::ArrayType::get(of->llvm_type(), size->value);
+        return llvm::ArrayType::get(of->internal_llvm_type(), size->value);
     }
     bool operator==(Type &against)
     {
@@ -784,7 +791,7 @@ public:
         if(lt->size->value != this->size->value)return -1;
         return this->of->distance_from(*lt->of);
     }
-    llvm::Constant *default_value(llvm::Type *expected){
+    llvm::Constant *default_value(LLVMType expected){
         except(E_INTERNAL, "default value not implemented for list types");
     }
     std::pair<Type&, Type&> find_difference(Type& against){

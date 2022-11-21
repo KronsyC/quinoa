@@ -21,7 +21,7 @@ public:
             idx++;
         }
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected_type = nullptr){
+    llvm::Value* llvm_value(VariableTable& vars, LLVMType expected_type = {}){
 
         auto my_type = expected_type ? expected_type : type()->llvm_type();
         auto alloca = builder()->CreateAlloca(my_type);

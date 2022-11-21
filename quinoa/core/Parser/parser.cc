@@ -311,7 +311,26 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         toks = before;
     }
 
-    if (first.is(TT_identifier))
+
+    // List Literal
+    if (first.is(TT_l_square_bracket))
+    {
+        auto initial = toks;
+        auto content = read_block(toks, IND_square_brackets);
+        if(!toks.size()){
+            auto entries = parse_cst(content);
+            auto list = std::make_unique<ArrayLiteral>();
+            for(auto entry : entries) {
+                auto entry_expr = parse_expr(entry, parent);
+                list->members.push(std::move(entry_expr));
+            }
+            return list;
+        }
+        toks = initial;
+    }
+
+    // Subscript
+    if (toks[toks.size()-1].is(TT_r_square_bracket))
     {
         auto initial = toks;
         auto target_toks = read_to(toks, TT_l_square_bracket);
@@ -335,22 +354,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
         toks = initial;
     }
-    // List Literal
-    if (first.is(TT_l_square_bracket))
-    {
-        auto initial = toks;
-        auto content = read_block(toks, IND_square_brackets);
-        if(!toks.size()){
-            auto entries = parse_cst(content);
-            auto list = std::make_unique<ArrayLiteral>();
-            for(auto entry : entries) {
-                auto entry_expr = parse_expr(entry, parent);
-                list->members.push(std::move(entry_expr));
-            }
-            return list;
-        }
-        toks = initial;
-    }
+
 
     // Unwrap Nested Expression
     if (first.is(TT_l_paren))
@@ -367,6 +371,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
         toks = before;
     }
+
 
     if (first.is(TT_identifier))
     {
@@ -394,6 +399,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             }
             if (toks[0].is(TT_l_paren))
             {
+                // function call
                 Vec<Expr> params;
                 auto params_block = read_block(toks, IND_parens);
                 auto params_cst = parse_cst(params_block);

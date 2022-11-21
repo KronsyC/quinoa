@@ -55,7 +55,7 @@ public:
             except(E_BAD_ASSIGNMENT, "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type));
         }
     }
-    llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected)
+    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected)
     {
         auto _bool = Primitive::get(PR_boolean)->llvm_type();
 
@@ -162,7 +162,7 @@ public:
     {
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
-    llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr)
+    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {})
     {
         llvm::Value* value = nullptr;
         if (op_type == BIN_assignment)
@@ -340,7 +340,7 @@ public:
         auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
         return ptr;
     }
-    llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr) {
+    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         if(this->member_of->type()->get<DynListType>()){
             auto slice_val = member_of->assign_ptr(vars);
             if(member_name->str() == "len"){

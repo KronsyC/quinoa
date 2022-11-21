@@ -14,7 +14,7 @@
 #include "./allocating_expr.hh"
 class ConstantValue : public Expr{
 public:
-    virtual llvm::Constant* const_value(llvm::Type* expected) = 0;
+    virtual llvm::Constant* const_value(LLVMType expected) = 0;
 
 };
 
@@ -56,10 +56,10 @@ public:
     std::string str(){
         return "\""+value+"\"";
     }
-    llvm::Value *llvm_value(VariableTable& vars, llvm::Type* expected){
+    llvm::Value *llvm_value(VariableTable& vars, LLVMType expected={}){
         return AllocatingExpr::llvm_value(vars, expected);
     }
-    void write_direct(llvm::Value* alloc, VariableTable& vars, llvm::Type* expected){
+    void write_direct(llvm::Value* alloc, VariableTable& vars, LLVMType expected){
         auto mod = builder()->GetInsertBlock()->getModule();
 
         // Generate the string bytes
@@ -83,7 +83,7 @@ public:
     std::shared_ptr<Type> get_type(){
         return DynListType::get(Primitive::get(PR_int8));
     }
-    llvm::Constant* const_value(llvm::Type* expected){
+    llvm::Constant* const_value(LLVMType expected){
 
 
         except(E_INTERNAL, "Constant Strings are illegal");
@@ -99,7 +99,7 @@ public:
         return std::to_string(value);
     }
 
-    llvm::Constant* const_value(llvm::Type* expected){
+    llvm::Constant* const_value(LLVMType expected){
 
         auto val = builder()->getInt64(value);
         if(!expected){
@@ -109,7 +109,7 @@ public:
         return cast;
 
     }
-    llvm::Value* llvm_value(VariableTable& vars, llvm::Type* expected){
+    llvm::Value* llvm_value(VariableTable& vars, LLVMType expected){
         return const_value(expected);
     }
 

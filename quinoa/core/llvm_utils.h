@@ -26,6 +26,9 @@ public:
     }
 };
 
+
+class LLVMType;
+
 #define VariableTable std::map<std::string, Variable>
 
 struct ControlFlowInfo
@@ -46,8 +49,8 @@ struct ControlFlowInfo
 llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();
 
-llvm::Value* cast(llvm::Value* val, llvm::Type* type);
+llvm::Value* cast(llvm::Value* val, LLVMType type);
 
-llvm::Type* getCommonType(llvm::Type* t1, llvm::Type* t2);
+LLVMType getCommonType(LLVMType t1, LLVMType t2);
 
-bool isInt(llvm::Type* t);
+bool isInt(LLVMType t);

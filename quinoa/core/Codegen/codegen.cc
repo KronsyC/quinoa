@@ -166,7 +166,7 @@ void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, boo
         Logger::debug(pair.first + " -> " + pair.second.type->str());
     }
     Logger::debug("generate content");
-    fn->content->generate(ll_fn, vars, {});
+    fn->content->generate(fn, ll_fn, vars, {});
     if (ll_fn->getReturnType()->isVoidTy())
         builder()->CreateRetVoid();
     Logger::debug("Generated");
