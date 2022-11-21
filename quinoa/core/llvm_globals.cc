@@ -26,8 +26,13 @@ llvm::Value* cast(llvm::Value* val, llvm::Type* type)
     if(type == tape)
 	return val;
 
-    if(isInt(tape) && isInt(type))
-	return builder()->CreateIntCast(val, type, true);
+    if(isInt(tape) && isInt(type)){
+        Logger::debug("Int -> Int");
+        bool is_signed = true;
+        if(tape->isIntegerTy(1))is_signed = false;
+        return builder()->CreateIntCast(val, type, is_signed, "int_cast");
+
+    }
     if(tape->isPointerTy() && type->isIntegerTy())
 	return builder()->CreatePtrToInt(val, type);
 

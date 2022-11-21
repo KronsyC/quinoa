@@ -61,31 +61,27 @@ public:
     }
     void write_direct(llvm::Value* alloc, VariableTable& vars, llvm::Type* expected){
         auto mod = builder()->GetInsertBlock()->getModule();
-        // Generate the global non null-terminated string
+
+        // Generate the string bytes
         std::vector<llvm::Constant*> chars;
         for(auto _char : value){
             chars.push_back(builder()->getInt8(_char));
         }
-        auto initializer_ty = llvm::ArrayType::get(builder()->getInt8Ty(), value.size());
-        auto initializer = llvm::ConstantArray::get(initializer_ty, chars);
-        auto global_str = new llvm::GlobalVariable(*mod, initializer_ty, true, llvm::GlobalValue::LinkageTypes::PrivateLinkage, initializer, ".str");
 
-        // Generate the fat pointer
-        auto str_len = builder()->getInt64(value.size());
+        auto global_str_bytes_ty = llvm::ArrayType::get(builder()->getInt8Ty(), chars.size());
+        auto global_str_initializer = llvm::ConstantArray::get(global_str_bytes_ty, chars);
+        auto global_str_var = new llvm::GlobalVariable(*mod, global_str_bytes_ty, true, llvm::GlobalValue::LinkageTypes::PrivateLinkage, global_str_initializer, ".str");
+        auto len = builder()->getInt64(chars.size());
+        auto cast_arr = builder()->CreateBitCast(global_str_var, llvm::ArrayType::get(builder()->getInt8Ty(), 0)->getPointerTo());
 
-        auto this_ty = Constant::type()->llvm_type();
+        auto len_ptr = builder()->CreateStructGEP(alloc->getType()->getPointerElementType(), alloc, 0);
+        auto arr_ptr = builder()->CreateStructGEP(alloc->getType()->getPointerElementType(), alloc, 1);
 
-        auto str_len_ptr = builder()->CreateStructGEP(this_ty, alloc, 0);
-        auto str_ptr_ptr = builder()->CreateStructGEP(this_ty, alloc, 1);
-        builder()->CreateStore(str_len, str_len_ptr);
-        builder()->CreateStore(
-                builder()->CreateBitCast(global_str, builder()->getInt8PtrTy()),
-                str_ptr_ptr
-        );
-
+        builder()->CreateStore(len, len_ptr);
+        builder()->CreateStore(cast_arr, arr_ptr);
     }
     std::shared_ptr<Type> get_type(){
-        return ReferenceType::get(Primitive::get(PR_string));
+        return DynListType::get(Primitive::get(PR_int8));
     }
     llvm::Constant* const_value(llvm::Type* expected){
 

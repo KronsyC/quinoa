@@ -58,12 +58,12 @@ class Method : public ContainerMember{
 public:
     // `func foo.Type` where `Type` is what is acted upon
     std::shared_ptr<TypeRef> acts_upon;
-    Vec<Generic>             generic_params;
+    std::vector<std::shared_ptr<Generic>> generic_params;
     Vec<Param>               parameters;
     std::shared_ptr<Type>    return_type;
     std::unique_ptr<Scope>   content;
 
-
+    Vec<std::vector<std::shared_ptr<Type>>> generate_usages;
 
     bool is_variadic(){
         // Check if the last parameter is a var-arg
@@ -84,6 +84,16 @@ public:
     std::string source_name(){
         if(this->name->trunc)return this->name->str();
         auto name = this->name->str();
+        if(this->generic_params.size()){
+            name+="<";
+            bool first = true;
+            for(auto g : generic_params){
+                if(!first)name+=",";
+                name+=g->str();
+                first = false;
+            }
+            name+=">";
+        }
         for(auto p : parameters){
             name += "." + p->type->str();
         }
@@ -94,7 +104,7 @@ public:
 
         // basic checks (extremely strict, possibly lax this in the future)
         if(name->member->str() != method->name->member->str())return false;
-        if(generic_params.len() != method->generic_params.len())return false;
+        if(generic_params.size() != method->generic_params.size())return false;
         if(parameters.len() != method->parameters.len())return false;
 
         // type-related checks

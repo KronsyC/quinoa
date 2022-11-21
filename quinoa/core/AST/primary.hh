@@ -4,7 +4,7 @@
 #include "llvm/IR/Value.h"
 #include <map>
 #include "../llvm_globals.h"
-
+#include "../../lib/logger.h"
 class Scope;
 
 enum ReturnChance{
@@ -157,6 +157,7 @@ public:
 
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
         for(auto& child : content){
+            Logger::debug("Generating Child:\n" + child->str());
             child->generate(func, vars, CFI);
         }
     }

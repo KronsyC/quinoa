@@ -114,7 +114,10 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
         except(E_BAD_TYPE, "Failed to parse type");
     std::shared_ptr<Type> ret;
     auto first = popf(toks);
-    if (first.isTypeTok())
+    if(first.is(TT_string)){
+        ret = DynListType::get(Primitive::get(PR_int8));
+    }
+    else if (first.isTypeTok())
     {
         auto internal_type = primitive_mappings[first.type];
         ret = Primitive::get(internal_type);
@@ -190,6 +193,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
 
                     ret = ListType::get(ret, std::move(std::unique_ptr<Integer>((Integer*)len_u.release())));
                 }
+                break;
 
             }
             case TT_ampersand:{
@@ -371,12 +375,17 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         {
             auto container_name = parse_long_name(toks);
             auto member_name = container_name->parts.pop();
-            Vec<Type> type_args;
+            auto member_ref = std::make_unique<ContainerMemberRef>();
+
+            std::vector<std::shared_ptr<Type>> type_args;
             if(toks[0].is(TT_l_generic)){
                 auto gen_block = read_block(toks, IND_generics);
-                except(E_INTERNAL, "Generic argument parsing is not implemented");
+                auto entries = parse_cst(gen_block);
+                for(auto e : entries){
+                    auto ty = parse_type(e);
+                    type_args.push_back(ty);
+                }
             }
-            auto member_ref = std::make_unique<ContainerMemberRef>();
             member_ref->member = std::make_unique<Name>(member_name);
             if(container_name->parts.len()){
                 member_ref->container = std::make_unique<ContainerRef>();
@@ -396,8 +405,8 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
                 auto call = std::make_unique<MethodCall>();
                 call->args = std::move(params);
+                call->type_args = type_args;
                 call->name = std::move(member_ref);
-                call->type_args = std::move(type_args);
                 call->scope = parent;
                 return call;
             }
@@ -758,7 +767,14 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             if (toks[0].is(TT_l_generic))
             {
                 auto gp_block = read_block(toks, IND_generics);
-                except(E_INTERNAL, "Method Generic Parameters are unimplemented");
+                auto gp_sets = parse_cst(gp_block);
+
+                for(auto ty : gp_sets){
+                    assert(ty.size() == 1);
+                    expects(ty[0], TT_identifier);
+                    method->generic_params.push_back(Generic::get(std::make_unique<Name>(ty[0].value), method.get()));
+                }
+                print_toks(gp_block);
             }
 
             // Value Parameters

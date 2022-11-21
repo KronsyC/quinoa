@@ -1,2 +1,0 @@
-module Instantiable is Exported, CompilerImplemented{
-}

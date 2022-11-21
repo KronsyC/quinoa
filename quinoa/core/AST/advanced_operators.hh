@@ -16,7 +16,7 @@
 class CallLike : public Expr{
 public:
     Vec<Expr> args;
-    Vec<Type> type_args;
+    std::vector<std::shared_ptr<Type>> type_args;
     std::shared_ptr<Type> return_type;
     Method*   target = nullptr;
 };
@@ -30,16 +30,18 @@ public:
     {
         std::string ret = name->str();
 
-        if (type_args.len())
+        if (type_args.size())
         {
+            ret+="<";
             bool first = true;
-            for (auto &ta : type_args)
+            for (auto ta : type_args)
             {
                 if (!first)
                     ret += ", ";
                 ret += ta->str();
                 first = false;
             }
+            ret+=">";
         }
         ret += "(";
         bool first = true;
@@ -58,7 +60,7 @@ public:
         auto mod = builder()->GetInsertBlock()->getModule();
         auto fn = mod->getFunction(target->source_name());
 
-        if(!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->name->str());
+        if(!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
 
         std::vector<llvm::Value*> args;
         for(size_t i = 0; i < this->args.len(); i++){
@@ -97,9 +99,10 @@ public:
 
     std::string str(){
         std::string ret = call_on->str() + "." + method_name->str();
-        if (type_args.len())
+        if (type_args.size())
         {
             bool first = true;
+            ret+="<";
             for (auto &ta : type_args)
             {
                 if (!first)
@@ -107,6 +110,7 @@ public:
                 ret += ta->str();
                 first = false;
             }
+            ret+=">";
         }
 
         ret += "(";
@@ -128,36 +132,7 @@ public:
         auto mod = builder()->GetInsertBlock()->getModule();
 
         if(target == (Method*)1){
-            if(method_name->str() == "len"){
-                if(args.len())except(E_BAD_CALL, "len() expects zero arguments");
-                if(type_args.len())except(E_BAD_CALL, "len() expects zero generic arguments");
-                auto ref = call_on->assign_ptr(vars);
-                auto ref_t = call_on->type()->get<ReferenceType>();
-                if(!ref_t || !ref_t->is_fat())except(E_BAD_CALL, "len() can only be called on fat references");
-
-                ref->getType()->print(llvm::outs());
-                ref->print(llvm::outs());
-
-                auto len_ptr = builder()->CreateStructGEP(ref->getType()->getPointerElementType(), ref, 0);
-                auto len = builder()->CreateLoad(len_ptr->getType()->getPointerElementType(), len_ptr);
-                return cast(len, expected_type);
-                Logger::debug("Generate len");
-            }
-            else if(method_name->str() == "as_ptr"){
-                if(args.len())except(E_BAD_CALL, "as_ptr() expects zero arguments");
-                if(type_args.len())except(E_BAD_CALL, "len() expects zero generic arguments");
-                auto ref = call_on->assign_ptr(vars);
-                auto ref_t = call_on->type()->get<ReferenceType>();
-                if(!ref_t || !ref_t->is_fat())except(E_BAD_CALL, "as_ptr() can only be called on fat references");
-
-                ref->getType()->print(llvm::outs());
-                ref->print(llvm::outs());
-
-                auto content_ptr = builder()->CreateStructGEP(ref->getType()->getPointerElementType(), ref, 1);
-                auto content = builder()->CreateLoad(content_ptr->getType()->getPointerElementType(), content_ptr);
-                return cast(content, expected_type);
-            }
-            else except(E_INTERNAL, "unimplemented compiler method: " + method_name->str());
+            except(E_INTERNAL, "unimplemented compiler method: " + method_name->str());
         }
 
         auto fn = mod->getFunction(target->source_name());
@@ -203,6 +178,7 @@ protected:
                 #define X(n, ret)if(method_name->str() == #n)return ret;
                 X(len, Primitive::get(PR_int64))
                 X(as_ptr, ref->of)
+#undef X
             }
 
         }
@@ -271,8 +247,9 @@ public:
     void generate(llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI){
 
         auto ll_type = type->llvm_type();
-        auto alloca  = builder()->CreateAlloca(ll_type);
         auto name    = var_name.str();
+        auto alloca  = builder()->CreateAlloca(ll_type, nullptr, name);
+
         vars[name] = Variable(type.get(), alloca, is_constant);
     }
 
@@ -391,22 +368,31 @@ public:
     llvm::Value* assign_ptr(VariableTable& vars){
         auto ptr = target->assign_ptr(vars);
         auto idx = index->llvm_value(vars);
+        auto zero = Integer::get(0)->const_value(index->type()->llvm_type());
 
         if(ptr->getType()->getPointerElementType()->isArrayTy()){
              // Subscripts for arrays may only be integers, iX;
              if(!index->type()->llvm_type()->isIntegerTy())except(E_BAD_INDEX, "The Index of an array subscript expression must be an integer");
 
 
-             // Generate a bounds-check
-             // TODO: Make this an optional compilation flag
-            generate_bounds_check(idx, ptr->getType()->getPointerElementType()->getArrayNumElements());
+            generate_bounds_check(idx, builder()->getInt64(ptr->getType()->getPointerElementType()->getArrayNumElements()));
 
 
-
-
-             auto zero = Integer::get(0)->const_value(index->type()->llvm_type());
              auto ep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, {zero, idx});
              return ep;
+        }
+        else if(auto slice_ty = target->type()->get<DynListType>()){
+            Logger::debug("Subscript a slice");
+
+            auto len_ptr = builder()->CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, 0);
+            auto len = builder()->CreateLoad(builder()->getInt64Ty(), len_ptr);
+
+            generate_bounds_check(idx, len);
+
+            auto arr_ptr_ptr = builder()->CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, 1);
+            auto arr_ptr = builder()->CreateLoad(arr_ptr_ptr->getType()->getPointerElementType(), arr_ptr_ptr);
+            auto item_ptr = builder()->CreateGEP(arr_ptr->getType()->getPointerElementType(), arr_ptr, {zero, idx});
+            return item_ptr;
         }
         else if(ptr->getType()->getPointerElementType()->isPointerTy()){
             auto val = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
@@ -419,8 +405,7 @@ public:
         return target->type()->pointee();
     }
 private:
-    void generate_bounds_check(llvm::Value* access_idx, size_t array_len){
-        auto array_len_val = Integer::get(array_len)->const_value(access_idx->getType());
+    void generate_bounds_check(llvm::Value* access_idx, llvm::Value* array_len_val){
         auto func = builder()->GetInsertBlock()->getParent();
         auto mod = func->getParent();
         auto exception_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_err", func);
@@ -440,7 +425,7 @@ private:
         auto write_fn = mod->getFunction("write") ? mod->getFunction("write") : llvm::Function::Create(write_sig, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "write", mod);
         auto abort_fn = mod->getFunction("abort") ? mod->getFunction("abort") : llvm::Function::Create(abort_sig, llvm::GlobalValue::LinkageTypes::ExternalLinkage, "abort", mod);
 
-        std::string message = "\033[0;31mERROR:\033[0;0m Array subscript out of bounds\n\tfor expression " + str() + "\n\n";
+        std::string message = "\033[0;31mERROR:\033[0;0m Array subscript out of bounds\n\tfor expression '" + str() + "'\n\n";
 
         builder()->CreateCall(write_fn, {
            builder()->getInt32(2),

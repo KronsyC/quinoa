@@ -6,7 +6,6 @@
 #include "./primary.hh"
 #include "./type.hh"
 #include "../../GenMacro.h"
-#include "./type_utils.h"
 #include "./reference.hh"
 #include "./literal.hh"
 #include "./allocating_expr.hh"
@@ -108,13 +107,13 @@ protected:
     {
         auto same_t = operand->type();
         if(!same_t)return same_t;
-        auto same_ptr = Ptr::get(operand->type());
+        auto same_ref = ReferenceType::get(operand->type());
         auto pointee_t = same_t->pointee();
         auto bool_t = Primitive::get(PR_boolean);
         switch (op_type)
         {
         case PRE_ampersand:
-            return same_ptr;
+            return same_ref;
         case PRE_bang:
             return bool_t;
         case PRE_star:
@@ -156,7 +155,8 @@ public:
     }
     std::string str()
     {
-        return "Some Binary op";
+        auto symbol = this->get_symbol_as_str();
+        return "( " + left_operand->str() + " " + symbol + " " + right_operand->str() + " )";
     }
     llvm::Value *assign_ptr(VariableTable &vars)
     {
@@ -204,16 +204,19 @@ public:
             return cast(value, expected_type);
         }
 
-        auto left_t = left_operand->type();
-        auto right_t = right_operand->type();
 
-        auto common_t = TypeUtils::get_common_type(left_t, right_t);
 
-        auto left_val = left_operand->llvm_value(vars, common_t->llvm_type());
-        auto right_val = right_operand->llvm_value(vars, common_t->llvm_type());
 
+        auto left_val = left_operand->llvm_value(vars);
+        auto right_val = right_operand->llvm_value(vars);
+        left_val->print(llvm::outs());
+        right_val->print(llvm::outs());
         auto op = get_op(left_val, right_val);
-        return cast(op, expected_type);
+        op->print(llvm::outs());
+        expected_type->print(llvm::outs());
+        auto ret = cast(op, expected_type);
+        ret->print(llvm::outs());
+        return ret;
     }
 
     std::vector<Statement *> flatten()
@@ -227,6 +230,24 @@ public:
     }
 
 private:
+    std::string get_symbol_as_str(){
+        #define X(t, sym)case BIN_##t:return #sym;
+        switch (this->op_type) {
+            X(plus, +)
+            X(minus, -)
+            X(star, *)
+            X(slash, /)
+            X(percent, %)
+            X(lesser, <)
+            X(greater, >)
+            X(greater_eq, >=)
+            X(lesser_eq, <=)
+            X(equals, ==)
+            X(not_equals, !=)
+            default: return "op";
+        }
+        #undef X
+    }
     llvm::Value *get_op(llvm::Value *l, llvm::Value *r)
     {
 #define X(myop, opname) \
@@ -255,6 +276,7 @@ private:
         default:
             except(E_INTERNAL, "Failed to generate binary operation");
         }
+#undef X
     }
 
 protected:
@@ -283,7 +305,7 @@ protected:
             case BIN_bitwise_shl:
             case BIN_bitwise_shr:
             case BIN_bitwise_xor:
-                return TypeUtils::get_common_type(left_operand->type(), right_operand->type());
+                return left_operand->type();
             case BIN_assignment:
                 return right_operand->type();
 
@@ -319,6 +341,20 @@ public:
         return ptr;
     }
     llvm::Value *llvm_value(VariableTable &vars, llvm::Type *expected_type = nullptr) {
+        if(this->member_of->type()->get<DynListType>()){
+            auto slice_val = member_of->assign_ptr(vars);
+            if(member_name->str() == "len"){
+                auto len_ptr = builder()->CreateStructGEP(slice_val->getType()->getPointerElementType(), slice_val, 0);
+                auto len = builder()->CreateLoad(len_ptr->getType()->getPointerElementType(), len_ptr);
+                return cast(len, expected_type);
+            }
+            else if(member_name->str() == "ptr"){
+                auto ref_ptr = builder()->CreateStructGEP(slice_val->getType()->getPointerElementType(), slice_val, 1);
+                auto ref = builder()->CreateLoad(ref_ptr->getType()->getPointerElementType(), ref_ptr);
+                return cast(ref, expected_type);
+            }
+            else except(E_BAD_MEMBER_ACCESS, "slices only have the 'ptr' and 'len' properties");
+        }
         auto ptr = this->assign_ptr(vars);
         return builder()->CreateLoad(this->get_type()->llvm_type(), ptr);
     }
@@ -333,10 +369,23 @@ protected:
     std::shared_ptr<Type> get_type(){
         auto left_t = member_of->type();
         if(!left_t)return std::shared_ptr<Type>(nullptr);
-        auto strct = left_t->get<StructType>();
-        if(!strct)except(E_BAD_MEMBER_ACCESS, "You may only access members of a struct");
+        auto member = member_name->str();
+        if(auto strct = left_t->get<StructType>()){
+            if(strct->member_idx(member) == -1)except(E_BAD_MEMBER_ACCESS, "The struct: " + member_of->str() + " does not have a member: " + member);
+            return strct->members[member];
+        }
+        else if(auto slice = left_t->get<DynListType>()){
+            if(member == "len"){
+                return Primitive::get(PR_int64);
+            }
+            else if(member == "ptr"){
+                return Ptr::get(slice->of);
+            }
+            else except(E_BAD_MEMBER_ACCESS, "slices only have the properties 'len' and 'ptr'");
+        }
 
-        if(strct->member_idx(member_name->str()) == -1)except(E_BAD_MEMBER_ACCESS, "The struct: " + member_of->str() + " does not have a member: " + member_name->str());
-        return strct->members[member_name->str()];
+        except(E_BAD_MEMBER_ACCESS, "You may only access members of a container type (structs, slices, arrays)");
+
+
     }
 };

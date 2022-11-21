@@ -15,7 +15,7 @@ module Person{
         role : Role;
     };
 
-    func create(name : str&, age : int, role: Role) -> Person{
+    func create(name : str, age : int, role: Role) -> Person{
 
         return Person{
             name : name;

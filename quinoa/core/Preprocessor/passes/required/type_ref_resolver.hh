@@ -25,6 +25,13 @@ void attempt_resolve_typeref(TypeRef& ref, Container* container) {
 void attempt_resolve_typeref(TypeRef& ref, Method* method){
     Logger::debug("Resolving ref: " + ref.name->str());
 
+    for(auto generic : method->generic_params){
+        if(generic->name->str() == ref.name->str()){
+            ref.resolves_to = generic;
+            return;
+        }
+    }
+
     attempt_resolve_typeref(ref, method->parent);
 
     // Check the local container type definitions

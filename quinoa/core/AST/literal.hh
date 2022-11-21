@@ -1,7 +1,6 @@
 #pragma once
 #include "./include.hh"
 
-#include "./type_utils.h"
 #include "./type.hh"
 
 class ArrayLiteral : public Expr{
@@ -56,9 +55,8 @@ private:
         for(auto m : members){
             member_types.push_back(m->type());
         }
-        auto common = TypeUtils::get_common_type(member_types);
-        if(!common)except(E_BAD_TYPE, "Failed to get common type for array members");
-        return ListType::get(common, Integer::get(members.len()));
+        if(!member_types[0])return member_types[0];
+        return ListType::get(member_types[0], Integer::get(members.len()));
     }
 
 };

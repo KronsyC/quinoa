@@ -21,6 +21,7 @@ class ListType;
 class DynListType;
 class TypeRef;
 class ReferenceType;
+class Generic;
 class Type : public ANode
 {
 public:
@@ -42,10 +43,9 @@ public:
 
     virtual llvm::Constant *default_value(llvm::Type *expected) = 0;
     virtual std::vector<Type*> flatten() = 0;
-    virtual bool ref_implicitly_fat() = 0;
-    bool stack_allocable(){
-        return !ref_implicitly_fat();
-    }
+
+
+    virtual std::pair<Type&, Type&> find_difference(Type& against) = 0;
 
 protected:
     /**
@@ -93,9 +93,7 @@ public:
     std::vector<Type*> flatten(){
         return {this};
     }
-    bool ref_implicitly_fat(){
-        return kind == PR_string;
-    }
+
     Primitive(PrimitiveType kind)
     {
         this->kind = kind;
@@ -110,13 +108,12 @@ public:
     }
     int distance_from(Type &target)
     {
-        if (!target.get<Primitive>())
-            return -1;
-        auto &prim = *(Primitive *)&target;
-        if (prim.kind == this->kind)
+        auto prim = target.get<Primitive>();
+        if (!prim)return -1;
+        if (prim->kind == this->kind)
             return 0;
 
-        if (primitive_group_mappings[prim.kind] == primitive_group_mappings[kind])
+        if (primitive_group_mappings[prim->kind] == primitive_group_mappings[kind])
             return 1;
         return -1;
     }
@@ -129,6 +126,12 @@ public:
     {
         std::shared_ptr<Type> ret(nullptr);
         return ret;
+    }
+    std::pair<Type&, Type&> find_difference(Type& against){
+        if(auto aty = against.get<Primitive>()){
+            if(aty->kind == this->kind)return {*this, *this};
+        }
+        return {*this, against};
     }
     llvm::Type *llvm_type()
     {
@@ -152,9 +155,8 @@ public:
             T(float64, Double)
 
             T(boolean, Int1)
-            T(string, Int8Ptr)
             T(void, Void)
-
+            case PR_string:except(E_INTERNAL, "Strings not implemented");
         default:
             except(E_INTERNAL, "Failed to generate primitive type");
         }
@@ -200,68 +202,67 @@ private:
         PRIMITIVES_ENUM_GROUPS};
 };
 
-class Ptr : public Type
-{
+class Ptr : public Type {
 protected:
-    Type *drill()
-    {
+    Type *drill() {
         return this;
     }
 
 public:
-    Ptr(std::shared_ptr<Type> type)
-    {
+    Ptr(std::shared_ptr <Type> type) {
         this->of = type;
     }
-    std::vector<Type*> flatten(){
-        std::vector<Type*> ret = {this};
-        for(auto m : of->flatten())ret.push_back(m);
+
+    std::vector<Type *> flatten() {
+        std::vector < Type * > ret = {this};
+        for (auto m: of->flatten())ret.push_back(m);
         return ret;
     }
-    bool ref_implicitly_fat() {
-        return false;
-    }
-    std::shared_ptr<Type> of;
 
-    std::string str()
-    {
+
+    std::shared_ptr <Type> of;
+
+    std::string str() {
         return of->str() + "*";
     }
 
-    llvm::Type *llvm_type()
-    {
+    llvm::Type *llvm_type() {
         return of->llvm_type()->getPointerTo();
     }
-    std::shared_ptr<Type> pointee()
-    {
+
+    std::shared_ptr <Type> pointee() {
         return of;
     }
-    static std::shared_ptr<Ptr> get(std::shared_ptr<Type> to)
-    {
+
+    static std::shared_ptr <Ptr> get(std::shared_ptr <Type> to) {
         return create_heaped(Ptr(to));
     }
 
-    bool operator==(Type &against)
-    {
-        if (auto k = against.get<Ptr>())
-        {
+    bool operator==(Type &against) {
+        if (auto k = against.get<Ptr>()) {
             return k->of == of;
         }
         return false;
     }
 
-    int distance_from(Type &target)
-    {
+    int distance_from(Type &target) {
         auto pt = target.get<Ptr>();
         if (!pt)
             return -1;
         return this->of->distance_from(*pt->of);
     }
-    llvm::Constant *default_value(llvm::Type *expected){
+
+    llvm::Constant *default_value(llvm::Type *expected) {
         return llvm::ConstantExpr::getIntToPtr(builder()->getInt64(0), expected, false);
     }
-};
 
+    std::pair<Type &, Type &> find_difference(Type &against) {
+        if (auto pty = against.get<Ptr>()) {
+            return of->drill()->find_difference(*pty->of);
+        }
+        return {*this, against};
+    }
+};
 
 //
 // References are essentially pointers, but with the following differences
@@ -273,15 +274,10 @@ public:
 class ReferenceType : public Type{
 public:
     std::shared_ptr<Type> of;
-    bool is_fat(){
-        return of->ref_implicitly_fat();
-    }
     ReferenceType(std::shared_ptr<Type> of){
         this->of = of;
     }
-    bool ref_implicitly_fat() {
-        return false;
-    }
+
     static std::shared_ptr<ReferenceType> get(std::shared_ptr<Type> of){
         return create_heaped(ReferenceType(of));
     }
@@ -329,88 +325,18 @@ public:
     llvm::Type* llvm_type(){
         auto of_ty      = of->llvm_type();
         auto pointed_ty = of_ty->getPointerTo();
-        if(of->ref_implicitly_fat()){
-            std::vector<llvm::Type*> properties = {
-                    builder()->getInt64Ty(),
-                    of_ty
-            };
-            return llvm::StructType::get(*llctx(), properties);
+        return pointed_ty;
+    }
+
+    std::pair<Type&, Type&> find_difference(Type& against){
+        if(auto pty = against.get<ReferenceType>()){
+            return of->drill()->find_difference(*pty->of);
         }
-        else return pointed_ty;
+        return {*this, against};
     }
 };
 
 
-#include "./constant.hh"
-class ListType : public Type
-{
-protected:
-    Type *drill()
-    {
-        return this;
-    }
-
-public:
-    std::shared_ptr<Type> of;
-    std::unique_ptr<Integer> size;
-    bool ref_implicitly_fat() {
-        return false;
-    }
-    ListType(std::shared_ptr<Type> type, std::unique_ptr<Integer> size)
-    {
-        this->of = std::move(type);
-        this->size = std::move(size);
-    }
-    std::vector<Type*> flatten(){
-        std::vector<Type*> ret = {this};
-        for(auto m : of->flatten())ret.push_back(m);
-        return ret;
-    }
-    ListType(const ListType& from){
-        this->of = from.of;
-        this->size = std::make_unique<Integer>(from.size->value);
-    }
-    ListType(ListType&&) = default;
-
-    std::shared_ptr<Type> pointee()
-    {
-        return of;
-    }
-
-    std::string str()
-    {
-        return of->str() + "[" + size->str() + "]";
-    }
-    static std::shared_ptr<ListType> get(std::shared_ptr<Type> of, std::unique_ptr<Integer> size)
-    {
-        return create_heaped(ListType(of, std::move(size)));
-    }
-    llvm::Type *llvm_type()
-    {
-        return llvm::ArrayType::get(of->llvm_type(), size->value);
-    }
-    bool operator==(Type &against)
-    {
-        if (auto k = against.get<ListType>())
-        {
-            return k->of == of && k->size->value == size->value;
-        }
-        return false;
-    }
-
-    int distance_from(Type &target)
-    {
-        auto lt = target.get<ListType>();
-        if (!lt)
-            return -1;
-        if(lt->size->value != this->size->value)return -1;
-        return this->of->distance_from(*lt->of);
-    }
-    llvm::Constant *default_value(llvm::Type *expected){
-        except(E_INTERNAL, "default value not implemented for list types");
-    }
-
-};
 
 /*
  * Dynamically sized list type
@@ -423,11 +349,8 @@ protected:
         return this;
     }
 public:
-    bool ref_implicitly_fat() {
-        return true;
-    }
-    std::shared_ptr<Type> of;
 
+    std::shared_ptr<Type> of;
     DynListType(std::shared_ptr<Type> type)
     {
         this->of = type;
@@ -452,7 +375,13 @@ public:
     }
     llvm::Type *llvm_type()
     {
-        except(E_INTERNAL, "llvm_type not implemented for DynListType: " + of->str());
+        if(type)return type;
+        auto struct_ty = llvm::StructType::create(*llctx(), {
+                builder()->getInt64Ty(), // Size of the slice
+                llvm::ArrayType::get(this->of->llvm_type(), 0)->getPointerTo() // Slice Elements
+        }, "slice:"+this->of->str());
+        type = struct_ty;
+        return struct_ty;
     }
     bool operator==(Type &against)
     {
@@ -473,6 +402,16 @@ public:
     llvm::Constant *default_value(llvm::Type *expected) {
         except(E_INTERNAL, "default value not implemented for list types");
     }
+
+    std::pair<Type&, Type&> find_difference(Type& against){
+        if(auto pty = against.get<DynListType>()){
+            return this->of->find_difference(*pty->of);
+        }
+        return {*this, against};
+    }
+private:
+    llvm::StructType* type = nullptr;
+
 };
 
 class ParentAwareType : public Type{
@@ -490,9 +429,7 @@ public:
         this->parent = cont;
 
     }
-    bool ref_implicitly_fat() {
-        return false;
-    }
+
     Type *drill()
     {
         return this;
@@ -563,14 +500,16 @@ public:
         }
         return llvm::StructType::get(*llctx(), member_types);
     }
+
+    std::pair<Type&, Type&> find_difference(Type& against){
+        except(E_INTERNAL, "find_difference not implemented for structs");
+    }
 };
 
 class EnumType : public ParentAwareType{
 public:
     std::vector<std::string> entries;
-    bool ref_implicitly_fat() {
-        return false;
-    }
+
     EnumType(std::vector<std::string> entries, Container* cont){
         this->entries = entries;
         this->parent = cont;
@@ -641,7 +580,9 @@ public:
         }
         return ret;
     }
-
+    std::pair<Type&, Type&> find_difference(Type& against){
+        except(E_INTERNAL, "find_difference not implemented for enums");
+    }
 };
 class TypeRef : public Type
 {
@@ -675,11 +616,7 @@ public:
     {
         return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
     }
-    bool ref_implicitly_fat(){
-        if(!resolves_to)except(E_INTERNAL, "Cannot check if an unresovled type is implicitly fat");
-        else return resolves_to->ref_implicitly_fat();
 
-    }
     static std::shared_ptr<TypeRef> get(std::unique_ptr<LongName> name)
     {
         // do not cache TypeRefs, as multiple refs may share the same name
@@ -701,7 +638,10 @@ public:
             return false;
         return *resolves_to == against;
     }
-
+    std::pair<Type&, Type&> find_difference(Type& against){
+        if(resolves_to)return resolves_to->find_difference(*against.drill());
+        return {*this, against};
+    }
     int distance_from(Type &target)
     {
         if (!resolves_to)
@@ -709,6 +649,148 @@ public:
         return resolves_to->distance_from(target);
     }
 };
-class Generic : public TypeRef
+
+class Method;
+class Generic : public Type
 {
+private:
+    Type* drill(){
+        return temporarily_resolves_to ? temporarily_resolves_to->drill() : this;
+    }
+public:
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        if(temporarily_resolves_to)ret.push_back(temporarily_resolves_to.get());
+        return ret;
+    }
+    llvm::Type* llvm_type(){
+        if(temporarily_resolves_to)return temporarily_resolves_to->llvm_type();
+        else except(E_UNRESOLVED_TYPE, "Cannot get an llvm type for an unresolved generic");
+    }
+    std::unique_ptr<Name> name;
+    Method* parent;
+
+    std::shared_ptr<Type> temporarily_resolves_to;
+
+    Generic(std::unique_ptr<Name> name, Method* parent){
+        this->name = std::move(name);
+        this->parent = parent;
+    }
+
+    static std::shared_ptr<Generic> get(std::unique_ptr<Name> name, Method* parent){
+        auto gen = std::make_shared<Generic>(std::move(name), parent);
+        return gen;
+    }
+
+    int distance_from(Type &target)
+    {
+        auto lt = target.get<Generic>();
+        if (!lt)
+            return -1;
+        return this->temporarily_resolves_to && (lt->temporarily_resolves_to == this->temporarily_resolves_to) ? this->temporarily_resolves_to->distance_from(*lt) : -1;
+    }
+
+    std::string str(){
+        if(temporarily_resolves_to)return temporarily_resolves_to->str();
+        else return "GENERIC:"+name->str();
+    }
+    std::pair<Type&, Type&> find_difference(Type& against){
+        if(auto pty = against.get<Generic>()){
+            if(*pty == *this)return {*this, *this};
+        }
+        return {*this, against};
+    }
+
+    bool operator==(Type &against)
+    {
+        if(auto gen = against.get<Generic>()){
+            return gen == this;
+        }
+        else return false;
+    }
+
+    std::shared_ptr<Type> pointee(){
+        if(temporarily_resolves_to)return temporarily_resolves_to->pointee();
+        else except(E_UNRESOLVED_TYPE, "Cannot get pointee of unresolved generic type");
+    }
+
+    llvm::Constant* default_value(llvm::Type* expected){
+        if(temporarily_resolves_to)return temporarily_resolves_to->default_value(expected);
+        else except(E_UNRESOLVED_TYPE, "Cannot get default value of unresolved generic type");
+    }
+
+};
+
+#include "./constant.hh"
+class ListType : public Type
+{
+protected:
+    Type *drill()
+    {
+        return this;
+    }
+
+public:
+    std::shared_ptr<Type> of;
+    std::unique_ptr<Integer> size;
+
+    ListType(std::shared_ptr<Type> type, std::unique_ptr<Integer> size)
+    {
+        this->of = std::move(type);
+        this->size = std::move(size);
+    }
+    std::vector<Type*> flatten(){
+        std::vector<Type*> ret = {this};
+        for(auto m : of->flatten())ret.push_back(m);
+        return ret;
+    }
+    ListType(const ListType& from){
+        this->of = from.of;
+        this->size = std::make_unique<Integer>(from.size->value);
+    }
+    ListType(ListType&&) = default;
+
+    std::shared_ptr<Type> pointee()
+    {
+        return of;
+    }
+
+    std::string str()
+    {
+        return (of ? of->str() : "?") + "[" + size->str() + "]";
+    }
+    static std::shared_ptr<ListType> get(std::shared_ptr<Type> of, std::unique_ptr<Integer> size)
+    {
+        return create_heaped(ListType(of, std::move(size)));
+    }
+    llvm::Type *llvm_type()
+    {
+        return llvm::ArrayType::get(of->llvm_type(), size->value);
+    }
+    bool operator==(Type &against)
+    {
+        if (auto k = against.get<ListType>())
+        {
+            return k->of == of && k->size->value == size->value;
+        }
+        return false;
+    }
+
+    int distance_from(Type &target)
+    {
+        auto lt = target.get<ListType>();
+        if (!lt)
+            return -1;
+        if(lt->size->value != this->size->value)return -1;
+        return this->of->distance_from(*lt->of);
+    }
+    llvm::Constant *default_value(llvm::Type *expected){
+        except(E_INTERNAL, "default value not implemented for list types");
+    }
+    std::pair<Type&, Type&> find_difference(Type& against){
+        if(auto pty = against.get<ListType>()){
+            if(pty->size == this->size)return this->of->find_difference(*pty->of);
+        }
+        return {*this, against};
+    }
 };

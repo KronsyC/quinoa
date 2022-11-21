@@ -1,0 +1,6 @@
+module Memory is Exported{
+
+    #[link_extern "malloc"]
+    func alloc(unit_size : i64, length : i64) -> i8*;
+
+}

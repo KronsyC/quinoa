@@ -3,10 +3,7 @@
 #include "../include.h"
 #include "../../../AST/advanced_operators.hh"
 
-
 struct MatchRanking{
-public:
-
   Method* against = nullptr;
 
   /**
@@ -25,8 +22,22 @@ public:
   // general compatibility (Type Matching)
   int general_compat = 0;
 
+
+  // If there is a match, add this to the generated definitions
+  std::vector<std::shared_ptr<Type>> generate_with;
+
   MatchRanking(bool possible = false){
     this->possible = possible;
+    }
+  auto print(){
+      Logger::debug(
+              "=== Rank for '"+(against ? against->name->str() : "unknown") + "' === \n" \
+              "\t\tIs it possible? " + (possible ? "yes" : "no") + "\n" \
+              "\t\tNo. of var-args: " + std::to_string(vararg_count) + "\n" \
+              "\t\tNo. of generic parameters: " + std::to_string(generic_count) + "\n" \
+              "\t\tGeneral Compatibility: " + std::to_string(general_compat)
+
+      );
   }
 };
 
@@ -58,12 +69,20 @@ MatchRanking rank_method_against_call(Method* method, CallLike* call, bool is_st
   }
 
 
-  if(method->generic_params.len()){
-    // TODO: reimplement generics under the new system
-    //      this is a huge undertaking as the old implementation
-    //      used method cloning, which was highly inefficient
-    //      and bug-prone
-    except(E_INTERNAL, "Generic methods are not yet supported");
+  if(method->generic_params.size()){
+    if(call->type_args.size() != method->generic_params.size())return MatchRanking();
+
+    // The current implementation of the compiler requires generics to be explicitly
+    // defined, later versions of the compiler may change this
+
+
+    // TODO: Check the number of generic-reliant parameters (for use in ranking)
+
+    ranking.generate_with = call->type_args;
+    for(int i = 0; i < method->generic_params.size(); i++){
+        method->generic_params[i]->temporarily_resolves_to = call->type_args[i];
+    }
+
   }
   ranking.possible = true;
   for(size_t i = 0; i < call->args.len(); i++){
@@ -77,6 +96,8 @@ MatchRanking rank_method_against_call(Method* method, CallLike* call, bool is_st
 
     // Compare the types of the arg and param
     auto score = arg_t->distance_from(param_t);
+
+    Logger::debug("Distance from: " + arg_t->str() + " -> " + param_t.str() + " is " + std::to_string(score));
     if(score == -1){
       ranking.possible = false;
       break;
@@ -108,19 +129,19 @@ Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionSta
     }
     case SelectionStage::VARAGS:{
       int smallest_vararg_count = -1;
-      for(auto r : ranks){
+      for(auto& r : ranks){
         if(smallest_vararg_count == -1)smallest_vararg_count = r.vararg_count;
         else if(r.vararg_count < smallest_vararg_count)smallest_vararg_count = r.vararg_count;
       }
       std::vector<MatchRanking> suitors;
-      for(auto r : ranks){
+      for(auto& r : ranks){
         if(r.vararg_count <= smallest_vararg_count)suitors.push_back(r);
       }
       return select_best_ranked_method(suitors, SelectionStage::GENERICS);
     }
     case SelectionStage::GENERICS:{
       int smallest_generic_count = -1;
-      for(auto r : ranks){
+      for(auto& r : ranks){
         if(smallest_generic_count == -1)smallest_generic_count = r.generic_count;
         else if(r.generic_count < smallest_generic_count)smallest_generic_count = r.generic_count;
       }
@@ -132,7 +153,7 @@ Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionSta
     }
   case SelectionStage::RATING:{
       int best_rating = -1;
-      for(auto r : ranks){
+      for(auto& r : ranks){
         if(best_rating == -1)best_rating = r.general_compat;
         else if(r.general_compat < best_rating)best_rating = r.general_compat;
       }
@@ -148,6 +169,11 @@ Method* select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionSta
       if(!suitors[0].against)except(E_INTERNAL, "Suitor has no `against` attribute");
       auto call_name = suitors[0].against->name->str();
       if(suitors.size() > 1)except(E_BAD_CALL, "Call to " + call_name + " is ambiguous");
+
+      if(suitors[0].generate_with.size()){
+          suitors[0].against->generate_usages.push(suitors[0].generate_with);
+
+      }
       return suitors[0].against;
   }
   default: except(E_INTERNAL, "bad selection stage");
@@ -186,6 +212,7 @@ Method* get_best_target(MethodCall* call, CompilationUnit& unit){
   std::vector<MatchRanking> ranks;
   for(auto method : methods){
     auto rank = rank_method_against_call(method, call);
+    rank.print();
     ranks.push_back(rank);
   }
 
@@ -199,17 +226,6 @@ Method* get_best_target(MethodCallOnType* call, CompilationUnit& unit){
     auto target_paw_ty = target_ty->get<ParentAwareType>();
     if(!target_paw_ty){
 
-        // if the target is a (fat reference type | array)
-        // allow the `len()` method (provided no params or generics)
-
-        if(auto ref = target_ty->get<ReferenceType>()){
-            if(
-                    ref->is_fat()
-                    && (call->method_name->str() == "len" || call->method_name->str() == "as_ptr")
-            ){
-                return (Method*)1;
-            }
-        }
 
         Logger::error("You may only define methods for structs and enums");
         return nullptr;

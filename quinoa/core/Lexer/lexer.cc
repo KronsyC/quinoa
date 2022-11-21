@@ -94,6 +94,7 @@ string escapeNextVal(string& str)
         X('6', "\6");
         X('7', "\7");
     }
+#undef X
     except(E_UNESCAPABLE, "Failed To Escape string");
     return "";
 }
