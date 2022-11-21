@@ -400,6 +400,8 @@ public:
         else except(E_BAD_OPERAND, "You may only access subscripts of an array type");
     }
     std::shared_ptr<Type> get_type(){
+        if(!target)except(E_INTERNAL, "subscript bad target");
+        if(!target->type())return target->type();
         return target->type()->pointee();
     }
 private:

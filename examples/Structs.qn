@@ -10,7 +10,7 @@ module Person{
     };
 
     type _ = struct{
-        name : str&;
+        name : str;
         age  : i32;
         role : Role;
     };

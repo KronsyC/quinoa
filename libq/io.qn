@@ -19,7 +19,7 @@ module IO is Exported{
         return len;
     }
     func println( message: str) -> i64{
-        let len : i64 = IO::print(message);
+        let len = IO::print(message);
         IO::putc(10);
         return len+1;
     }
