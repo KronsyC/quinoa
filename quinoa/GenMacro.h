@@ -338,20 +338,20 @@
 	
 
 #define PRIMITIVES_ENUM_NAMES \
-	{PR_void, "PR_void"},\
-	{PR_boolean, "PR_boolean"},\
-	{PR_string, "PR_string"},\
-	{PR_int8, "PR_int8"},\
-	{PR_int16, "PR_int16"},\
-	{PR_int32, "PR_int32"},\
-	{PR_int64, "PR_int64"},\
-	{PR_uint8, "PR_uint8"},\
-	{PR_uint16, "PR_uint16"},\
-	{PR_uint32, "PR_uint32"},\
-	{PR_uint64, "PR_uint64"},\
-	{PR_float16, "PR_float16"},\
-	{PR_float32, "PR_float32"},\
-	{PR_float64, "PR_float64"},\
+	{PR_void, "void"},\
+	{PR_boolean, "bool"},\
+	{PR_string, "str"},\
+	{PR_int8, "i8"},\
+	{PR_int16, "i16"},\
+	{PR_int32, "i32"},\
+	{PR_int64, "i64"},\
+	{PR_uint8, "u8"},\
+	{PR_uint16, "u16"},\
+	{PR_uint32, "u32"},\
+	{PR_uint64, "u64"},\
+	{PR_float16, "f16"},\
+	{PR_float32, "f32"},\
+	{PR_float64, "f64"},\
 	
 
 #define PRIMITIVES_ENUM_GROUPS \

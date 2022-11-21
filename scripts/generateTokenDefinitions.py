@@ -170,7 +170,7 @@ for defi in ALL_DEFINITIONS:
         name = "PR_"+defi.id
         primitives_enum_members+=name+",\n"
         primitives_enum_mappings+="{ TT_"+defi.id+", "+name+"},\n"
-        primitives_enum_names+="{"+name+", "+ "\""+name+"\"},\n"
+        primitives_enum_names+="{"+name+", "+ "\""+defi.properties["alias"][0]+"\"},\n"
         primitives_enum_groups+="{"+name+", "+"\"" + defi.properties["type"][0] + "\""+"},\n"
 # To add a new macro to the source code
 # Simply Write it's generator above
