@@ -85,26 +85,26 @@ CompilationUnit* construct_ast_from_path(std::string path){
         Logger::debug("Cache miss");
         auto file_content = read_file(path);
         auto imported_ast = make_ast(file_content, path, false);
-        apply_syntactic_sugar(*imported_ast);
+        cached = std::move(imported_ast);
+        apply_syntactic_sugar(*cached);
 
         auto prefix_hash = gen_rand_unique_str(4);
-        add_prefixes(*imported_ast, prefix_hash);
+        add_prefixes(*cached, prefix_hash);
 
-        for(auto container : imported_ast->get_containers()){
+        for(auto container : cached->get_containers()){
             // Fix self-references to refer to the new symbol
             auto alias = LongName();
             alias.parts.push(*container->name);
             auto new_name = container->full_name();
             Logger::debug("Fixing self-refs for container: " + alias.str() + " to refer to " + new_name.str());
-            resolve_aliased_symbols(*imported_ast, alias, new_name, false);
+            resolve_aliased_symbols(*cached, alias, new_name, false);
         }
 
-        auto exports = generate_export_table(*imported_ast);
+        auto exports = generate_export_table(*cached);
         all_exports[path] = exports;
 
-        handle_imports(*imported_ast);
+        handle_imports(*cached);
 
-        cached = std::move(imported_ast);
     }
 
 
