@@ -7,6 +7,7 @@
 #include "../AST/advanced_operators.hh"
 #include "../AST/control_flow.hh"
 #include "../AST/literal.hh"
+#include "../AST/container.hh"
 template <typename T, typename U = Statement>
 inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
 {

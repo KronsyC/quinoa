@@ -5,7 +5,6 @@
 #include "./required/compositor_resolver.hh"
 #include "./required/array_validator.hh"
 #include "./required/call_qualifier.hh"
-#include "./required/importer.hh"
 #include "./required/type_resolver.hh"
 #include "./required/type_checker.hh"
 #include "./required/instance_call_resolver.hh"
@@ -14,7 +13,6 @@
 #include "./required/unreachable_code_warner.hh"
 #include "./required/type_ref_resolver.hh"
 void process_required(CompilationUnit* unit){
-    resolve_imports(unit);
     resolve_compositors(*unit);
     resolve_type_references(*unit);
     // resolve_props(*unit);

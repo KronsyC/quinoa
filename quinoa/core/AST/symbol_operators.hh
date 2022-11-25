@@ -209,13 +209,8 @@ public:
 
         auto left_val = left_operand->llvm_value(vars);
         auto right_val = right_operand->llvm_value(vars);
-        left_val->print(llvm::outs());
-        right_val->print(llvm::outs());
         auto op = get_op(left_val, right_val);
-        op->print(llvm::outs());
-        expected_type->print(llvm::outs());
         auto ret = cast(op, expected_type);
-        ret->print(llvm::outs());
         return ret;
     }
 

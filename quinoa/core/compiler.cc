@@ -84,6 +84,7 @@ void compile(std::string path, ClargParser& cp)
 {
     auto source = read_file(path);
     auto toks = Lexer::lexify(source, path);
+
     auto ast = Parser::make_ast(toks);
 
     Preprocessor::process_ast(*ast, true);

@@ -7,6 +7,12 @@ class CompilationUnit: public ANode{
 public:
     Vec<TopLevelEntity> members;
 
+
+    //
+    // Keep track of all dependencies (imported containers)
+    //
+    //
+
     std::vector<Container*> get_containers(){
         std::vector<Container*> ret;
         for(auto m:members){

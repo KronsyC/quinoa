@@ -19,10 +19,14 @@ public:
 class ContainerMember : public ANode{
 public:
     std::unique_ptr<ContainerMemberRef> name;
+    std::shared_ptr<Name> name_space;
     Container* parent;
     Vec<Attribute> attrs;
     bool instance_only = false;
     bool local_only    = false;
+
+    bool aliases_resolved = false;
+
 };
 
 
@@ -83,7 +87,8 @@ public:
 
     std::string source_name(){
         if(this->name->trunc)return this->name->str();
-        auto name = this->name->str();
+        std::string name = name_space ? name_space->str()+"::" : "";
+        name += this->name->str();
         if(this->generic_params.size()){
             name+="<";
             bool first = true;
