@@ -107,8 +107,10 @@ void compile(std::string path, ClargParser& cp)
 
     auto ll_mod = Codegen::codegen(*ast);
 
-    Logger::log("Generated the LLIR");
+    Logger::log("Generated the LLVM module");
 
+    auto target_triple = cp.get_clarg<std::string>("target_triple");
+    ll_mod->setTargetTriple(target_triple);
     auto output_path = cp.get_clarg<std::string>("o");
     auto output_type = get_output_type(output_path);
 

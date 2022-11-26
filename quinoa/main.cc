@@ -1,17 +1,13 @@
 
 
 #include "./core/compiler.h"
-#include "./lib/error.h"
-#include "./lib/logger.h"
-#include "./lib/clarg_parser.hh"
 #include "stdio.h"
-#include <fstream>
 #include <iostream>
 #include <signal.h>
 #include <string>
 #include <vector>
 #include "sys/stat.h"
-#include "toml++/toml.h"
+#include "llvm/Support/Host.h"
 #define TMP_DIR (std::string(QUINOA_DIR) + "/tmp")
 
 using namespace std;
@@ -60,7 +56,11 @@ int main(int argc, char** argv)
     ClargParser parser;
 
     parser.add_clarg("o", "Output File", "quinoa_app");
-    
+    parser.add_clarg("target_triple",
+                     "The compilation target triple to be used for the output, defaults to the host's triple",
+                     llvm::sys::getDefaultTargetTriple().c_str()
+     );
+
     parser.parse_clargs(argc, argv);
 
 
