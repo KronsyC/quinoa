@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 
     ClargParser parser;
 
-    parser.add_clarg<std::string>("o", "Output File", "quinoa_app");
+    parser.add_clarg("o", "Output File", "quinoa_app");
     
     parser.parse_clargs(argc, argv);
 

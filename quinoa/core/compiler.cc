@@ -77,7 +77,7 @@ void emit_obj(llvm::Module* mod, std::string path){
 void emit_exe(llvm::Module* mod, std::string path){
     auto tmp_file = TMP_DIR+"/tmp_ir.ll";
     emit_llir(mod, tmp_file);
-    std::string command = "clang " + tmp_file + " -o " + path;
+    std::string command = "clang " + tmp_file + " -o " + + "\"" + path + "\"";
     system(command.c_str());
 }
 
