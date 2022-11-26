@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../include.h"
 //
 // Validates all literal array instances to ensure that
@@ -7,8 +8,7 @@
 // 3: ?
 //
 
-void validate_array_literals(CompilationUnit &unit)
-{
+void validate_array_literals(CompilationUnit &unit) {
     // for (auto method : unit.getAllMethods())
     // {
     //     auto flat = method->flatten();

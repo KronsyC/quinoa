@@ -33,7 +33,7 @@ std::map<ErrorType, std::string> error_names = { ERR_TYPES };
 [[noreturn]]void except(ErrorType err, std::string message)
 {
     except(err, message, true);
-
+    exit(0);
 }
 void except(ErrorType err, std::string message, bool exits){
     #ifdef DEBUG

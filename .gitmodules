@@ -1,0 +1,6 @@
+[submodule "remote/toml11"]
+	path = remote/toml11
+	url = https://github.com/ToruNiina/toml11
+[submodule "remote/tomlplusplus"]
+	path = remote/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus.git

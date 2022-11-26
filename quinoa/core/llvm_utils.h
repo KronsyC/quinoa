@@ -4,7 +4,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
-struct Type;
+class Type;
 class BinaryOperation;
 
 class Variable

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../include.h"
 /**
  * 
@@ -20,7 +21,7 @@
 //     return calls;
 // }
 
-void impl_generics(CompilationUnit& unit){
+void impl_generics(CompilationUnit &unit) {
     // auto calls = get_all_calls(unit);
     // for(auto call:calls){
     //     if(!call->target)continue;

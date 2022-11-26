@@ -1,4 +1,5 @@
 #pragma once
+
 #include "./include.h"
 
 
@@ -7,7 +8,7 @@
 #include "./finalize/separate_initialzers.hh"
 
 
-void finalize_ast(CompilationUnit& ast){
+void finalize_ast(CompilationUnit &ast) {
     impl_generics(ast);
     split_initializers(ast);
     gen_entrypoint(ast);

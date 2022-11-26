@@ -1,7 +1,8 @@
 #!/bin/python
+import json
 import os
 from typing import List
-import json
+
 __DEFPATH__ =  os.path.abspath("data/syntax.defn")
 __TGTPATH__ = os.path.abspath("quinoa/GenMacro.h")
 

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include "sys/stat.h"
-
+#include "toml++/toml.h"
 #define TMP_DIR (std::string(QUINOA_DIR) + "/tmp")
 
 using namespace std;
@@ -44,6 +44,7 @@ void assert_create_dirs(std::initializer_list<std::string> paths){
 
 int main(int argc, char** argv)
 {
+
     // initialize random numbers
     srand((unsigned)time(NULL) * getpid());
 
@@ -71,11 +72,10 @@ int main(int argc, char** argv)
     if(command == "build") {
         if(argc < 3){
             except(E_BAD_ARGS, "The 'build' command expects a target file path");
-
         }
-	string file_path = argv[2];
+	    string file_path = argv[2];
 
-	compile(file_path, parser);
+	    compile(file_path, parser);
 
     } else
 	except(E_BAD_ARGS, "Unrecognized Command '" + command + "'");

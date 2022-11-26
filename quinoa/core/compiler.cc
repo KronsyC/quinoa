@@ -80,8 +80,22 @@ void emit_exe(llvm::Module* mod, std::string path){
     std::string command = "clang " + tmp_file + " -o " + path;
     system(command.c_str());
 }
+
+bool is_dir(std::string path){
+    struct stat file_stats;
+
+
+    if(stat(path.c_str(), &file_stats) == 0){
+
+        return file_stats.st_mode & S_IFDIR;
+
+    }
+    else except(E_ERR, "Failed to stat() " + path);
+}
 void compile(std::string path, ClargParser& cp)
 {
+
+
     auto source = read_file(path);
     auto toks = Lexer::lexify(source, path);
 
