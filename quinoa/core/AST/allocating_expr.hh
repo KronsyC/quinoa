@@ -5,11 +5,12 @@
 
 class AllocatingExpr : public Expr {
 public:
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         auto alloca = builder()->CreateAlloca(this->type()->llvm_type());
-        write_direct(alloca, vars, expected_type);
-        return builder()->CreateLoad(this->type()->llvm_type(), alloca);
+        auto alloca_value = LLVMValue(alloca, LLVMType(Ptr::get(type())));
+        write_direct(alloca_value, vars, expected_type);
+        return alloca_value.load();
     }
 
-    virtual void write_direct(llvm::Value *alloc, VariableTable &vars, LLVMType expected_type = {}) = 0;
+    virtual void write_direct(LLVMValue alloc, VariableTable &vars, LLVMType expected_type = {}) = 0;
 };

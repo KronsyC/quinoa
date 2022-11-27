@@ -18,7 +18,11 @@ bool isInt(LLVMType t)
 {
     return t->isIntegerTy();
 }
-llvm::Value* cast(llvm::Value* val, LLVMType type)
+LLVMValue Variable::as_value(){
+    return {this->value, LLVMType(Ptr::get(this->type))};
+}
+
+LLVMValue cast(LLVMValue val, LLVMType type)
 {
 
     if(type.ll_type == nullptr)
@@ -27,18 +31,15 @@ llvm::Value* cast(llvm::Value* val, LLVMType type)
     if(type == tape)
 	return val;
 
-    if(isInt(LLVMType{tape, nullptr}) && isInt(type)){
-        Logger::debug("Int -> Int");
-        bool is_signed = true;
-        if(tape->isIntegerTy(1))is_signed = false;
-        return builder()->CreateIntCast(val, type, is_signed, "int_cast");
+    if(isInt(val.type) && isInt(type)){
+        return {builder()->CreateIntCast(val, type, val.type.is_signed()), type};
 
     }
     if(tape->isPointerTy() && type->isIntegerTy())
-	return builder()->CreatePtrToInt(val, type);
+	return {builder()->CreatePtrToInt(val, type), type};
 
     if(tape->isPointerTy() && type->isPointerTy()) {
-	return builder()->CreateBitCast(val, type);
+	return {builder()->CreateBitCast(val, type), type};
     }
     Logger::debug("val type: ");
     tape->print(llvm::outs());
@@ -47,5 +48,4 @@ llvm::Value* cast(llvm::Value* val, LLVMType type)
     type->print(llvm::outs());
     printf("\n");
     except(E_BAD_CAST, "Failed to cast between types");
-    return nullptr;
 }

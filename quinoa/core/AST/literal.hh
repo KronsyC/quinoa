@@ -8,12 +8,11 @@ class ArrayLiteral : public Expr {
 public:
     Vec<Expr> members;
 
-    void write_to(llvm::Value *alloc, VariableTable &vars) {
+    void write_to(LLVMValue alloc, VariableTable &vars) {
         if (!alloc->getType()->getPointerElementType()->isArrayTy())
             except(E_BAD_ASSIGNMENT, "You can only write an array literal to a list typed variable");
 
-
-        auto tgt_member_t = alloc->getType()->getPointerElementType()->getArrayElementType();
+        auto tgt_member_t = LLVMType(alloc.type.qn_type->pointee()->get<ListType>()->of);
 
         int idx = 0;
         for (auto member: members) {
@@ -24,17 +23,17 @@ public:
         }
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
 
         auto my_type = expected_type ? expected_type : type()->llvm_type();
-        auto alloca = builder()->CreateAlloca(my_type);
+        auto alloca = LLVMValue{builder()->CreateAlloca(my_type), LLVMType(Ptr::get(my_type.qn_type))};
         if (expected_type && !expected_type->isArrayTy())except(E_BAD_CAST, "Cannot cast an array to a non-array type");
         this->write_to(alloca, vars);
 
-        return builder()->CreateLoad(my_type, alloca);
+        return alloca.load();
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_BAD_ASSIGNMENT, "Array Literals are not assignable");
     }
 

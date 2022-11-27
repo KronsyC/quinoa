@@ -143,7 +143,7 @@ public:
                     default: except(E_INTERNAL, "Bad Argument Type");
                 }
             } else if (current[0] == '"') {
-                Logger::debug("str not supported");
+                Logger::debug("print not supported");
                 exit(1);
             } else list_args.push_back(current);
         }

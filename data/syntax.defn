@@ -294,7 +294,7 @@ bitwise_shl
 bitwise_shr
 
 
-# Control Flow Shennanigans
+# Control Flow Shenanigans
 @alias if
 if
 @alias else

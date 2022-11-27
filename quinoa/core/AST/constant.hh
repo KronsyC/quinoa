@@ -38,7 +38,7 @@ public:
         return {this};
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_BAD_ASSIGNMENT, "Constant values are not assignable");
     }
 
@@ -53,7 +53,7 @@ public:
         return Constant::flatten();
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         return Constant::assign_ptr(vars);
     }
 
@@ -61,11 +61,11 @@ public:
         return "\"" + value + "\"";
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected = {}) {
         return AllocatingExpr::llvm_value(vars, expected);
     }
 
-    void write_direct(llvm::Value *alloc, VariableTable &vars, LLVMType expected) {
+    void write_direct(LLVMValue alloc, VariableTable &vars, LLVMType expected) {
         auto mod = builder()->GetInsertBlock()->getModule();
 
         // Generate the string bytes
@@ -78,7 +78,7 @@ public:
         auto global_str_initializer = llvm::ConstantArray::get(global_str_bytes_ty, chars);
         auto global_str_var = new llvm::GlobalVariable(*mod, global_str_bytes_ty, true,
                                                        llvm::GlobalValue::LinkageTypes::PrivateLinkage,
-                                                       global_str_initializer, ".str");
+                                                       global_str_initializer, ".print");
         auto len = builder()->getInt64(chars.size());
         auto cast_arr = builder()->CreateBitCast(global_str_var,
                                                  llvm::ArrayType::get(builder()->getInt8Ty(), 0)->getPointerTo());
@@ -120,8 +120,9 @@ public:
 
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected) {
-        return const_value(expected);
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected) {
+        if(!expected.qn_type)expected = this->type();
+        return {const_value(expected), expected};
     }
 
 protected:

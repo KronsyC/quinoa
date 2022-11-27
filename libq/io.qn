@@ -10,8 +10,8 @@ module IO is Exported{
     func putc(ch:char){
         syscall::write(stdout, &ch as i64, stdout);
     }
-    func print(message : str)->i64{
-        let len : i64 = syscall::write(
+    func print(message : str) -> i64{
+        let len = syscall::write(
             stdout,
             message.ptr as i64,
             message.len
@@ -19,8 +19,8 @@ module IO is Exported{
         return len;
     }
     func println( message: str) -> i64{
-        let len = IO::print(message);
-        IO::putc(10);
+        let len = print(message);
+        putc(10);
         return len+1;
     }
 }

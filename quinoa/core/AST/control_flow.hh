@@ -23,7 +23,7 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
 
-        auto eval_if = condition->llvm_value(vars, builder()->getInt1Ty());
+        auto eval_if = condition->llvm_value(vars, Primitive::get(PR_boolean)->llvm_type());
         auto true_block = llvm::BasicBlock::Create(*llctx(), "if_true", func);
         auto false_block = if_false ? llvm::BasicBlock::Create(*llctx(), "if_false", func) : llvm::BasicBlock::Create(
                 *llctx(), "if_cont", func);
@@ -107,7 +107,7 @@ public:
         builder()->CreateBr(eval_block);
 
         builder()->SetInsertPoint(eval_block);
-        auto br_if = condition->llvm_value(vars, builder()->getInt1Ty());
+        auto br_if = condition->llvm_value(vars, Primitive::get(PR_boolean)->llvm_type());
         builder()->CreateCondBr(br_if, exec_block, cont_block);
 
         builder()->SetInsertPoint(exec_block);

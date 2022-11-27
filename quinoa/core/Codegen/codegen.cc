@@ -86,7 +86,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 	{
 		auto prop_name = prop->name->member->str();
 		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
-		vars[prop_name] = Variable(prop->type.get(), init);
+		vars[prop_name] = Variable(prop->type, init);
 	}
 
 
@@ -96,7 +96,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 	{
 		auto prop_name = prop->name->str();
 		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
-		vars[prop_name] = Variable(prop->type.get(), init);
+		vars[prop_name] = Variable(prop->type, init);
 	}
 
     // Inject All Enum Members as variables
@@ -106,11 +106,11 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
                 auto alloc = builder()->CreateAlloca(member.second->getType());
                 builder()->CreateStore(member.second, alloc);
                 auto full_name = type->name->str() + "::" + member.first;
-                vars[full_name] = Variable(Primitive::get(PR_int32).get(), alloc, true);
+                vars[full_name] = Variable(Primitive::get(PR_int32), alloc, true);
 
                 if(type->parent == method->parent){
                     auto local_name = type->name->member->str() + "::" + member.first;
-                    vars[local_name] = Variable(Primitive::get(PR_int32).get(), alloc, true);
+                    vars[local_name] = Variable(Primitive::get(PR_int32), alloc, true);
                 }
             }
         }
@@ -121,7 +121,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
         auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "self");
 
         builder()->CreateStore(arg, alloc);
-        vars["self"] = Variable(Ptr::get(ty).get(), alloc);
+        vars["self"] = Variable(Ptr::get(ty), alloc);
     }
 
 	// Inject the args as variables
@@ -134,13 +134,14 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, arg->getName().str());
 
 		builder()->CreateStore(arg, alloc);
-		vars[param.name.str()] = Variable(param.type.get(), alloc);
+		vars[param.name.str()] = Variable(param.type, alloc);
 	}
 
 	return vars;
 }
 
 void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, bool with_generic = true){
+    if(!fn)except(E_INTERNAL, "(bug) no function");
     Logger::debug("Generate Function: " + fn->source_name());
     if(fn->generic_params.size() && fn->generate_usages.len() == 0)return;
     if(fn->generate_usages.len() && with_generic){

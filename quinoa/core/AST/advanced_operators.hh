@@ -52,13 +52,13 @@ public:
         return ret;
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         auto mod = builder()->GetInsertBlock()->getModule();
         auto fn = mod->getFunction(target->source_name());
 
         if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
 
-        std::vector < llvm::Value * > args;
+        std::vector <llvm::Value*> args;
         for (size_t i = 0; i < this->args.len(); i++) {
             auto &arg = this->args[i];
             auto param = target->get_parameter(i);
@@ -68,7 +68,7 @@ public:
             args.push_back(arg_val);
         }
 
-        auto call = builder()->CreateCall(fn, args);
+        auto call = LLVMValue(builder()->CreateCall(fn, args), target->return_type);
         return cast(call, expected_type);
     }
 
@@ -78,7 +78,7 @@ public:
         return ret;
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_INTERNAL, "assign_ptr not implemented for MethodCall");
     }
 
@@ -120,7 +120,7 @@ public:
         return ret;
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         if (!target)except(E_BAD_CALL, "Cannot create a method call to an unresolved method (this is a bug)");
 
         auto mod = builder()->GetInsertBlock()->getModule();
@@ -133,7 +133,7 @@ public:
 
         if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->name->str());
 
-        std::vector < llvm::Value * > args;
+        std::vector < llvm::Value* > args;
 
         // Inject the target variable as the first argument
         args.push_back(call_on->assign_ptr(vars));
@@ -148,7 +148,7 @@ public:
             args.push_back(arg_val);
         }
 
-        auto call = builder()->CreateCall(fn, args);
+        auto call = LLVMValue(builder()->CreateCall(fn, args), target->return_type);
         return cast(call, expected_type);
     }
 
@@ -161,7 +161,7 @@ public:
 
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_INTERNAL, "assign_ptr not implemented for MethodCallOnType");
     }
 
@@ -242,7 +242,7 @@ public:
         auto name = var_name.str();
         auto alloca = builder()->CreateAlloca(ll_type, nullptr, name);
 
-        vars[name] = Variable(type.get(), alloca, is_constant);
+        vars[name] = Variable(type, alloca, is_constant);
     }
 
     ReturnChance returns() {
@@ -261,7 +261,7 @@ public:
         return ret;
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         return cast(value->llvm_value(vars, cast_to->llvm_type()), expected_type);
     }
 
@@ -273,7 +273,7 @@ public:
         return cast_to;
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_BAD_ASSIGNMENT, "Cannot assign a value to an explicitly casted value");
     }
 };
@@ -307,7 +307,7 @@ public:
         return ret;
     }
 
-    void write_direct(llvm::Value *alloc, VariableTable &vars, LLVMType expected_type = {}) {
+    void write_direct(LLVMValue alloc, VariableTable &vars, LLVMType expected_type = {}) {
         if (!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
         auto struct_ll_type = type->llvm_type();
         for (auto &init: initializers) {
@@ -333,7 +333,7 @@ public:
 
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_BAD_ASSIGNMENT, "Struct Initializers are not assignable");
     }
 
@@ -362,30 +362,35 @@ public:
         return target->str() + "[" + index->str() + "]";
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         auto ptr = assign_ptr(vars);
-        auto load = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
-        return cast(load, expected_type);
+        return cast(ptr.load(), expected_type);
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
+
+        // Returns a pointer to the item at the desired index
+
         auto ptr = target->assign_ptr(vars);
         auto idx = index->llvm_value(vars);
+
+        auto ptr_to_element = LLVMType(Ptr::get(target->type()->pointee()));
+
         auto zero = Integer::get(0)->const_value(index->type()->llvm_type());
 
-        if (ptr->getType()->getPointerElementType()->isArrayTy()) {
+        if (ptr.type.qn_type->get<ListType>()) {
             // Subscripts for arrays may only be integers, iX;
             if (!index->type()->llvm_type()->isIntegerTy())
                 except(E_BAD_INDEX, "The Index of an array subscript expression must be an integer");
 
 
-            generate_bounds_check(idx,
-                                  builder()->getInt64(ptr->getType()->getPointerElementType()->getArrayNumElements()));
+            generate_bounds_check(idx, builder()->getInt64(ptr->getType()->getPointerElementType()->getArrayNumElements()));
 
 
             auto ep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, {zero, idx});
-            return ep;
-        } else if (auto slice_ty = target->type()->get<DynListType>()) {
+            return {ep, ptr_to_element};
+
+        } else if (auto dlt = ptr.type.qn_type->get<DynListType>()) {
             Logger::debug("Subscript a slice");
 
             auto len_ptr = builder()->CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, 0);
@@ -396,11 +401,12 @@ public:
             auto arr_ptr_ptr = builder()->CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, 1);
             auto arr_ptr = builder()->CreateLoad(arr_ptr_ptr->getType()->getPointerElementType(), arr_ptr_ptr);
             auto item_ptr = builder()->CreateGEP(arr_ptr->getType()->getPointerElementType(), arr_ptr, {zero, idx});
-            return item_ptr;
+            return {item_ptr, ptr_to_element};
+
         } else if (ptr->getType()->getPointerElementType()->isPointerTy()) {
             auto val = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
             auto ep = builder()->CreateGEP(val->getType()->getPointerElementType(), val, idx);
-            return ep;
+            return {ep, ptr_to_element};
         } else except(E_BAD_OPERAND, "You may only access subscripts of an array type");
     }
 
@@ -411,7 +417,7 @@ public:
     }
 
 private:
-    void generate_bounds_check(llvm::Value *access_idx, llvm::Value *array_len_val) {
+    void generate_bounds_check(LLVMValue access_idx, llvm::Value* array_len_val) {
         auto func = builder()->GetInsertBlock()->getParent();
         auto mod = func->getParent();
         auto exception_block = llvm::BasicBlock::Create(*llctx(), "bounds_check_err", func);

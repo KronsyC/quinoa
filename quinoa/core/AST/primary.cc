@@ -1,0 +1,49 @@
+#include "./primary.hh"
+#include "./type.hh"
+
+LLVMType::LLVMType(std::shared_ptr<Type> qn_type){
+    this->qn_type = qn_type;
+    this->ll_type = qn_type->llvm_type().ll_type;
+}
+
+
+bool LLVMType::is_signed() {
+    if(auto prim = qn_type->get<Primitive>()){
+        #define X(knd)if(prim->kind == knd)return true;
+
+        X(PR_int8)
+        X(PR_int16)
+        X(PR_int32)
+        X(PR_int64)
+
+        X(PR_float16)
+        X(PR_float32)
+        X(PR_float64)
+
+        return false;
+
+    }
+    if(qn_type->get<Ptr>())return false;
+
+    except(E_INTERNAL, "(bug) Type " + qn_type->str() + " does not semantically have any signage");
+    return false;
+}
+
+LLVMValue LLVMValue::load(){
+    // must be a pointer
+    auto ptr_ty = this->type.qn_type->get<Ptr>();
+    if(!ptr_ty){
+         print();
+        except(E_INTERNAL, "Can only load pointers");
+    }
+
+    auto loaded_ty = ptr_ty->of->llvm_type();
+    auto loaded_val = builder()->CreateLoad(loaded_ty, val);
+
+    return {loaded_val, loaded_ty};
+}
+
+void LLVMValue::print(){
+    this->val->print(llvm::outs());
+    Logger::debug(" < LLVM Value of type: " + this->type.qn_type->str());
+}

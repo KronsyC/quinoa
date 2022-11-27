@@ -18,19 +18,17 @@ class Type;
 class LLVMType {
 public:
     llvm::Type *ll_type = nullptr;
-    Type *qn_type = nullptr;
+    std::shared_ptr<Type> qn_type;
 
     llvm::Type *operator->() {
         return this->ll_type;
     }
 
-    LLVMType(llvm::Type *r) {
-        this->ll_type = r;
-    }
-
+    LLVMType(std::shared_ptr<Type> qn_type);
     LLVMType() = default;
 
-    LLVMType(llvm::Type *ll, Type *qn) {
+    LLVMType(llvm::Type *ll, std::shared_ptr<Type> qn) {
+        if(!qn)except(E_INTERNAL, "(bug) cannot construct an LLVMType without the corresponding quinoa type");
         this->ll_type = ll;
         this->qn_type = qn;
     }
@@ -39,7 +37,29 @@ public:
         return ll_type;
     }
 
+    bool is_signed();
 
+};
+
+class LLVMValue{
+public:
+    LLVMType type;
+    llvm::Value * val;
+
+    LLVMValue(llvm::Value * val, LLVMType type){
+        this->val = val;
+        this->type = type;
+    }
+
+    llvm::Value* operator-> () const{
+        return val;
+    }
+    operator llvm::Value*(){
+        return val;
+    }
+    LLVMValue load();
+
+    void print();
 };
 
 class Scope;
@@ -110,9 +130,9 @@ public:
         return ReturnChance::NEVER;
     }
 
-    virtual llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) = 0;
+    virtual LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) = 0;
 
-    virtual llvm::Value *assign_ptr(VariableTable &vars) = 0;
+    virtual LLVMValue assign_ptr(VariableTable &vars) = 0;
 
 protected:
     virtual std::shared_ptr <Type> get_type() = 0;

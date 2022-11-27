@@ -30,12 +30,14 @@ class ReferenceType;
 
 class Generic;
 
+LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat = true );
+
 class Type : public ANode {
 public:
     LLVMType llvm_type() {
         auto ll_type = internal_llvm_type();
-        auto qn_type = this;
-        return LLVMType{ll_type, qn_type};
+        if(!self)except(E_INTERNAL, "(bug) self property is null");
+        return LLVMType{ll_type, self};
     }
 
     virtual llvm::Type *internal_llvm_type() = 0;
@@ -64,6 +66,7 @@ public:
     virtual std::pair<Type &, Type &> find_difference(Type &against) = 0;
 
 protected:
+    std::shared_ptr<Type> self;
     /**
      * Helper method to instantiate a type onto the heap
      * types take heavy inspiration from llvms type system
@@ -88,6 +91,7 @@ protected:
             auto alloc = std::make_shared<T>(obj);
             keys.push_back(obj);
             values.push_back(alloc);
+            alloc->self = alloc;
             return alloc;
         }
         return values[idx];
@@ -99,6 +103,7 @@ protected:
     Type *drill() {
         return this;
     }
+
 
 public:
     PrimitiveType kind;
@@ -624,6 +629,7 @@ public:
 
         auto pt = std::make_shared<TypeRef>();
         pt->name = std::move(name);
+        pt->self = pt;
         return pt;
     }
 

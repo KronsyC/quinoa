@@ -23,6 +23,7 @@ static std::map <TokenType, UnaryOpType> prefix_op_mappings{PREFIX_ENUM_MAPPINGS
 static std::map <TokenType, UnaryOpType> postfix_op_mappings{POSTFIX_ENUM_MAPPINGS};
 static std::map <TokenType, BinaryOpType> binary_op_mappings{INFIX_ENUM_MAPPINGS};
 
+
 class UnaryOperation : public Expr {
 public:
     std::unique_ptr <Expr> operand;
@@ -44,34 +45,37 @@ public:
         return ret;
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         switch (op_type) {
             case PRE_star:return operand->llvm_value(vars);
             default:
-                except(E_BAD_ASSIGNMENT,
-                       "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type));
+                except(
+                        E_BAD_ASSIGNMENT,
+                       "Cannot get an assignable reference to unary operation of type " + std::to_string(op_type)
+               );
         }
-    }
+    };
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected) {
+    LLVMValue llvm_value( VariableTable &vars, LLVMType expected ) {
         auto _bool = Primitive::get(PR_boolean)->llvm_type();
 
-#define bld (*builder())
-#define val(expected) operand->llvm_value(vars, expected)
+        #define bld (*builder())
+        #define val(expected) operand->llvm_value(vars, expected)
 
-#define ret(LL_INST, cast_to) return cast(bld.Create##LL_INST(val(cast_to)), expected);
+        #define ret(LL_INST, cast_to) return cast({bld.Create##LL_INST(val(cast_to)), type()}, expected);
+        auto none = operand->type()->llvm_type();
         switch (op_type) {
             case PRE_ampersand: {
                 auto ptr = operand->assign_ptr(vars);
                 return cast(ptr, expected);
             }
             case PRE_bang: ret(Not, _bool);
-            case PRE_minus:ret(Neg, nullptr);
-            case PRE_bitwise_not:ret(Not, nullptr);
+            case PRE_minus:ret(Neg, none);
+            case PRE_bitwise_not:ret(Not, none);
             case PRE_star: {
                 if (!operand->type()->get<Ptr>())except(E_BAD_OPERAND, "Cannot dereference non-ptr operand");
                 auto value = operand->llvm_value(vars);
-                return builder()->CreateLoad(value->getType()->getPointerElementType(), value);
+                return value.load();
             }
             case PRE_increment:
             case PRE_decrement:
@@ -79,16 +83,17 @@ public:
             case POST_decrement: {
                 auto ptr = operand->assign_ptr(vars);
 
-                auto val = operand->llvm_value(vars);
-                auto one = cast(bld.getInt32(1), val->getType());
-                auto changed = op_type == POST_increment || op_type == POST_decrement ? bld.CreateAdd(val, one)
-                                                                                      : bld.CreateSub(val, one);
+                auto val = ptr.load();
+                auto one = cast(Integer::get(1)->llvm_value(vars, {}), val.type);
 
-                llvm::Value *return_val =
+                auto updated_val = LLVMValue(op_type == POST_increment || op_type == POST_decrement ? bld.CreateAdd(val, one)
+                                                                                      : bld.CreateSub(val, one), val.type);
+
+                LLVMValue return_val =
                         op_type == POST_increment || op_type == POST_decrement ? operand->llvm_value(vars, expected)
-                                                                               : changed;
+                                                                               : updated_val;
 
-                bld.CreateStore(changed, ptr);
+                bld.CreateStore(updated_val, ptr);
                 return return_val;
             }
 
@@ -140,12 +145,12 @@ public:
         return "( " + left_operand->str() + " " + symbol + " " + right_operand->str() + " )";
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        llvm::Value *value = nullptr;
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+        
         if (op_type == BIN_assignment) {
             auto assignee = left_operand->assign_ptr(vars);
             // constant assignment check
@@ -159,23 +164,22 @@ public:
                 }
             }
 
-            if (auto literal = dynamic_cast<ArrayLiteral *>(right_operand.get())) {
-                literal->write_to(assignee, vars);
-                // no need to set the value, as the preprocessor enforces that array literals may only
-                // be used during initialization
-            } else {
-                auto assignee_assigned_type = assignee->getType()->getPointerElementType();
 
-                if (auto allocating_expr = dynamic_cast<AllocatingExpr *>(right_operand.get())) {
-                    allocating_expr->write_direct(assignee, vars, assignee_assigned_type);
-                } else {
-                    value = right_operand->llvm_value(vars, assignee_assigned_type);
-                    builder()->CreateStore(value, assignee);
-                }
 
+            Logger::debug("Traditional Assignment");
+            auto assignment_type = LLVMType(assignee.type.qn_type->pointee());
+
+            // Optimization for constructs like arrays and structs
+            // removes a copy instruction
+            if (auto allocating_expr = dynamic_cast<AllocatingExpr *>(right_operand.get())) {
+                allocating_expr->write_direct(assignee, vars, assignment_type);
+                return allocating_expr->llvm_value(vars, assignment_type);
             }
 
-            return cast(value, expected_type);
+            auto value = right_operand->llvm_value(vars, assignment_type);
+            builder()->CreateStore(value, assignee);
+            return value;
+
         }
 
 
@@ -215,10 +219,12 @@ private:
 #undef X
     }
 
-    llvm::Value *get_op(llvm::Value *l, llvm::Value *r) {
-#define X(myop, opname) \
-    case BIN_##myop:    \
-        return builder()->Create##opname(l, r);
+    LLVMValue get_op(LLVMValue l, LLVMValue r) {
+        auto mutual_type = get_common_type(l.type, r.type);
+        auto left = cast(l, mutual_type);
+        auto right = cast(r, mutual_type);
+
+        #define X(myop, opname)case BIN_##myop:return {builder()->Create##opname(left, right), mutual_type};
         switch (op_type) {
             X(plus, Add)
             X(minus, Sub)
@@ -287,7 +293,7 @@ public:
         return member_of->str() + "." + member_name->str();
     }
 
-    llvm::Value *assign_ptr(VariableTable &vars) {
+    LLVMValue assign_ptr(VariableTable &vars) {
         auto strct = member_of->assign_ptr(vars);
         auto strct_t = member_of->type()->get<StructType>();
         if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
@@ -295,24 +301,26 @@ public:
         auto idx = strct_t->member_idx(member_name->str());
 
         auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
-        return ptr;
+        return {ptr, LLVMType(Ptr::get(type()))};
     }
 
-    llvm::Value *llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+
+        // Special case for slices (len and ptr properties)
         if (this->member_of->type()->get<DynListType>()) {
             auto slice_val = member_of->assign_ptr(vars);
             if (member_name->str() == "len") {
                 auto len_ptr = builder()->CreateStructGEP(slice_val->getType()->getPointerElementType(), slice_val, 0);
                 auto len = builder()->CreateLoad(len_ptr->getType()->getPointerElementType(), len_ptr);
-                return cast(len, expected_type);
+                return cast({len, type()}, expected_type);
             } else if (member_name->str() == "ptr") {
                 auto ref_ptr = builder()->CreateStructGEP(slice_val->getType()->getPointerElementType(), slice_val, 1);
                 auto ref = builder()->CreateLoad(ref_ptr->getType()->getPointerElementType(), ref_ptr);
-                return cast(ref, expected_type);
+                return cast({ref, type()}, expected_type);
             } else except(E_BAD_MEMBER_ACCESS, "slices only have the 'ptr' and 'len' properties");
         }
         auto ptr = this->assign_ptr(vars);
-        return builder()->CreateLoad(this->get_type()->llvm_type(), ptr);
+        return ptr.load();
     }
 
     std::vector<Statement *> flatten() {

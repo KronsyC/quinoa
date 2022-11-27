@@ -6,11 +6,11 @@
 #include "llvm/IR/Value.h"
 class Type;
 class BinaryOperation;
-
+class LLVMValue;
 class Variable
 {
 public:
-    Type* type;
+    std::shared_ptr<Type> type;
     llvm::AllocaInst* value;
     bool constant = false;
     bool is_initialized = false;
@@ -18,12 +18,14 @@ public:
 
 
     Variable() = default;
-    Variable(Type* type, llvm::AllocaInst* value, bool _const = true)
+    Variable(std::shared_ptr<Type> type, llvm::AllocaInst* value, bool _const = true)
     {
         this->type = type;
         this->value = value;
         this->constant = _const;
     }
+
+    LLVMValue as_value();
 };
 
 
@@ -49,7 +51,7 @@ struct ControlFlowInfo
 llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();
 
-llvm::Value* cast(llvm::Value* val, LLVMType type);
+LLVMValue cast(LLVMValue val, LLVMType type);
 
 LLVMType getCommonType(LLVMType t1, LLVMType t2);
 
