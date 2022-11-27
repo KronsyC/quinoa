@@ -131,7 +131,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
         Logger::debug("Get param: " + std::to_string(i));
 		auto& param = method->parameters[i];
 		auto arg = fn->getArg(i+diff);
-		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "param " + arg->getName().str());
+		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, arg->getName().str());
 
 		builder()->CreateStore(arg, alloc);
 		vars[param.name.str()] = Variable(param.type.get(), alloc);

@@ -12,7 +12,7 @@
 
 namespace Preprocessor {
     void process_ast(CompilationUnit &unit, bool finalize) {
-
+        apply_syntactic_sugar(unit);
         handle_imports(unit);
         for (auto fn: unit.get_methods()) {
             if (fn->content) {
