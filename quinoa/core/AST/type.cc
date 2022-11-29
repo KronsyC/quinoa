@@ -13,17 +13,35 @@ LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
         auto p1 = q1->get<Primitive>();
         auto p2 = q2->get<Primitive>();
 
-        #define ord(a, b)if(p1->kind == a && p2->kind == b)return t2;
+        #define ord(a, b)if(p1->kind == PR_##a && p2->kind == PR_##b)return t2;
 
-        ord(PR_int8, PR_int16)
-        ord(PR_int8, PR_int32)
-        ord(PR_int8, PR_int64)
+        ord(int8, int16)
+        ord(int8, int32)
+        ord(int8, int64)
 
-        ord(PR_int16, PR_int32)
-        ord(PR_int16, PR_int64)
+        ord(int16, int32)
+        ord(int16, int64)
 
-        ord(PR_int32, PR_int64)
+        ord(int32, int64)
 
+        ord(uint8, uint16)
+        ord(uint8, uint32)
+        ord(uint8, uint64)
+
+        ord(uint16, uint32)
+        ord(uint16, uint64)
+
+        ord(uint32, uint64)
+
+
+        ord(uint8, int16)
+        ord(uint8, int32)
+        ord(uint8, int64)
+
+        ord(uint16, int32)
+        ord(uint16, int64)
+
+        ord(uint32, int64)
     }
     if(repeat){
         return get_common_type(t2, t1, false);

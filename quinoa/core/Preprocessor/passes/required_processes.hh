@@ -50,6 +50,7 @@ void process_required(CompilationUnit *unit) {
     Logger::clearQueue();
     Logger::enqueueMode(false);
     build_type_table(*unit);
+    validate_array_literals(*unit);
     check_types(*unit);
     validate_variable_usage(*unit);
     warn_unreachable_code(*unit);

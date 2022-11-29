@@ -29,12 +29,13 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
     if(!to)return val;
 
 
-    Logger::debug("Casting " + val.type.qn_type->str() + " -- to -- " + to.qn_type->str() + ", explicit? " + (is_explicit?"yes":"no"));
-    Logger::debug("Value Signage: " + std::to_string(val.type.is_signed()) + "; target signage: " + std::to_string(to.is_signed()));
+    Logger::debug("$$$ Casting " + val.type.qn_type->str() + " -- to -- " + to.qn_type->str() + ", explicit? " + (is_explicit?"yes":"no"));
 
     auto val_ty = val.type;
 
     if(val_ty == to)return val;
+
+    auto val_ref = val_ty.qn_type->get<ReferenceType>();
 
     if(isInt(val_ty) && isInt(to)){
 
@@ -66,8 +67,39 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
         }
 
     }
+    // Reference -> Ptr
+    if(val_ref && to.qn_type->get<Ptr>()){
+        return LLVMValue{val, to};
+    }
 
-    if(auto ref = val_ty.qn_type->get<ReferenceType>()){
+    // Array Reference -> Slice
+    if(val_ref && to.qn_type->get<DynListType>()){
+
+        if(auto list_ty = val_ref->of->get<ListType>()){
+
+            auto my_element_type = list_ty->of->llvm_type();
+            auto target_element_type = to.qn_type->get<DynListType>()->of->llvm_type();
+
+            // ensure the two types are identical, otherwise error
+            if(my_element_type != target_element_type)return "Cannot cast a list to a slice with a differing element type";
+
+            auto list_len = Integer::get(list_ty->llvm_type()->getArrayNumElements())->const_value(LLVMType(Primitive::get(PR_uint64)));
+
+            auto slice_alloc = builder()->CreateAlloca(to);
+
+            auto len_ptr = builder()->CreateStructGEP(to, slice_alloc, 0);
+            auto list_ptr = builder()->CreateStructGEP(to, slice_alloc, 1);
+
+            auto cast_val = builder()->CreateBitCast(val, list_ptr->getType()->getPointerElementType());
+
+            builder()->CreateStore(list_len, len_ptr);
+            builder()->CreateStore(cast_val, list_ptr);
+
+            return LLVMValue{builder()->CreateLoad(to, slice_alloc), to};
+        }
+    }
+
+    if(val_ref){
         // if the target type is a reference, ensure their contents are coercible
         if(to.qn_type->get<ReferenceType>()){
             except(E_INTERNAL, "Reference -> Reference casting is currently unsupported");
@@ -86,6 +118,8 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
             return LLVMValue{builder()->CreatePtrToInt(val, to), to};
         }
     }
+
+
 
     except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
 }

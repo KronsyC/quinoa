@@ -372,13 +372,17 @@ public:
         // Returns a pointer to the item at the desired index
 
         auto ptr = target->assign_ptr(vars);
-        auto idx = index->llvm_value(vars);
+        auto tgt_ty = target->type();
+        auto tgt_ll_ty = target->type()->llvm_type();
 
+        auto idx = index->llvm_value(vars, Primitive::get(PR_uint64)->llvm_type());
+
+        Logger::debug("SUBSCRIPT: " + tgt_ty->str());
         auto ptr_to_element = LLVMType(Ptr::get(target->type()->pointee()));
 
         auto zero = Integer::get(0)->const_value(index->type()->llvm_type());
 
-        if (ptr.type.qn_type->get<ListType>()) {
+        if (tgt_ty->get<ListType>()) {
             // Subscripts for arrays may only be integers, iX;
             if (!index->type()->llvm_type()->isIntegerTy())
                 except(E_BAD_INDEX, "The Index of an array subscript expression must be an integer");
@@ -390,24 +394,33 @@ public:
             auto ep = builder()->CreateGEP(ptr->getType()->getPointerElementType(), ptr, {zero, idx});
             return {ep, ptr_to_element};
 
-        } else if (auto dlt = ptr.type.qn_type->get<DynListType>()) {
+        }
+        else if (tgt_ty->get<DynListType>()) {
             Logger::debug("Subscript a slice");
-
-            auto len_ptr = builder()->CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, 0);
+            auto len_ptr = builder()->CreateStructGEP(tgt_ll_ty, ptr, 0);
             auto len = builder()->CreateLoad(builder()->getInt64Ty(), len_ptr);
+
+
 
             generate_bounds_check(idx, len);
 
-            auto arr_ptr_ptr = builder()->CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, 1);
-            auto arr_ptr = builder()->CreateLoad(arr_ptr_ptr->getType()->getPointerElementType(), arr_ptr_ptr);
-            auto item_ptr = builder()->CreateGEP(arr_ptr->getType()->getPointerElementType(), arr_ptr, {zero, idx});
+            auto internal_arr_ptr = builder()->CreateStructGEP(tgt_ll_ty, ptr, 1);
+            auto arr = builder()->CreateLoad(internal_arr_ptr->getType()->getPointerElementType(), internal_arr_ptr);
+
+            auto item_ptr = builder()->CreateGEP(arr->getType()->getPointerElementType(), arr, {zero, idx});
+
+            item_ptr->print(llvm::outs());
             return {item_ptr, ptr_to_element};
+
 
         } else if (ptr->getType()->getPointerElementType()->isPointerTy()) {
             auto val = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
             auto ep = builder()->CreateGEP(val->getType()->getPointerElementType(), val, idx);
             return {ep, ptr_to_element};
-        } else except(E_BAD_OPERAND, "You may only access subscripts of an array type");
+        } else{
+            ptr.print();
+            except(E_BAD_OPERAND, "You may only access subscripts of an array type, operand was found to be of type: " + tgt_ty->str());
+        }
     }
 
     std::shared_ptr <Type> get_type() {

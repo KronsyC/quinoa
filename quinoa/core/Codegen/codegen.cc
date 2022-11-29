@@ -106,11 +106,11 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
                 auto alloc = builder()->CreateAlloca(member.second->getType());
                 builder()->CreateStore(member.second, alloc);
                 auto full_name = type->name->str() + "::" + member.first;
-                vars[full_name] = Variable(Primitive::get(PR_int32), alloc, true);
+                vars[full_name] = Variable(type->refers_to, alloc, true);
 
                 if(type->parent == method->parent){
                     auto local_name = type->name->member->str() + "::" + member.first;
-                    vars[local_name] = Variable(Primitive::get(PR_int32), alloc, true);
+                    vars[local_name] = Variable(type->refers_to, alloc, true);
                 }
             }
         }

@@ -159,13 +159,13 @@ public:
 protected:
     std::shared_ptr <Type> get_type() {
         if (value <= maxVal(8))
-            return Primitive::get(PR_int8);
+            return Primitive::get(PR_uint8);
         if (value <= maxVal(16))
-            return Primitive::get(PR_int16);
+            return Primitive::get(PR_uint16);
         if (value <= maxVal(32))
-            return Primitive::get(PR_int32);
+            return Primitive::get(PR_uint32);
         if (value <= maxVal(64))
-            return Primitive::get(PR_int64);
+            return Primitive::get(PR_uint64);
         except(E_BAD_EXPRESSION, "Cannot infer type for integer larger than 64 bits");
     }
 

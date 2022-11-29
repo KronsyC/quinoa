@@ -323,6 +323,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         if(!toks.size()){
             auto entries = parse_cst(content);
             auto list = std::make_unique<ArrayLiteral>();
+            list->scope = parent;
             for(auto entry : entries) {
                 auto entry_expr = parse_expr(entry, parent);
                 list->members.push(std::move(entry_expr));

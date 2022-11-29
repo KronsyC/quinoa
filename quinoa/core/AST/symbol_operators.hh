@@ -67,6 +67,15 @@ public:
         switch (op_type) {
             case PRE_ampersand: {
                 auto ptr = operand->assign_ptr(vars);
+
+                auto ptr_ty = ptr.type.qn_type->get<Ptr>();
+                if(!ptr_ty)except(E_INTERNAL, "assign_ptr returned a non-pointer type");
+
+                // Change the ptr to a reference, this is safe as they are
+                // internally the exact same thing
+                ptr.type = LLVMType(ReferenceType::get(ptr_ty->of));
+
+                Logger::debug("Changed ref from: " + ptr_ty->str() + " to " + ptr.type.qn_type->str());
                 return cast(ptr, expected);
             }
             case PRE_bang: ret(Not, _bool);
@@ -86,7 +95,7 @@ public:
                 auto val = ptr.load();
                 auto one = cast(Integer::get(1)->llvm_value(vars, {}), val.type);
 
-                auto updated_val = LLVMValue(op_type == POST_increment || op_type == POST_decrement ? bld.CreateAdd(val, one)
+                auto updated_val = LLVMValue(op_type == POST_increment || op_type == PRE_increment ? bld.CreateAdd(val, one)
                                                                                       : bld.CreateSub(val, one), val.type);
 
                 LLVMValue return_val =
@@ -186,8 +195,7 @@ public:
         auto left_val = left_operand->llvm_value(vars);
         auto right_val = right_operand->llvm_value(vars);
         auto op = get_op(left_val, right_val);
-        auto ret = cast(op, expected_type);
-        return ret;
+        return cast(op, expected_type);
     }
 
     std::vector<Statement *> flatten() {
@@ -201,52 +209,65 @@ public:
 
 private:
     std::string get_symbol_as_str() {
-#define X(t, sym)case BIN_##t:return #sym;
+#define r(x, y)case BIN_##x: return #y;
+
         switch (this->op_type) {
-            X(plus, +)
-            X(minus, -)
-            X(star, *)
-            X(slash, /)
-            X(percent, %)
-            X(lesser, <)
-            X(greater, >)
-            X(greater_eq, >=)
-            X(lesser_eq, <=)
-            X(equals, ==)
-            X(not_equals, !=)
-            default: return "op";
+            r(percent, %)
+            r(star, *)
+            r(plus, +)
+            r(minus, -)
+            r(bool_or, ||)
+            r(bool_and, &&)
+            r(dot, .)
+            r(slash, /)
+            r(lesser, <)
+            r(greater, >)
+            r(lesser_eq, <=)
+            r(greater_eq, >=)
+            r(assignment, =)
+            r(equals, ==)
+            r(not_equals, !=)
+            r(bitwise_and, &)
+            r(bitwise_or, |)
+            r(bitwise_xor, ^)
+            r(bitwise_shl, <<)
+            r(bitwise_shr, >>)
+#undef r
         }
-#undef X
     }
 
     LLVMValue get_op(LLVMValue l, LLVMValue r) {
         auto mutual_type = get_common_type(l.type, r.type);
         auto left = cast(l, mutual_type);
         auto right = cast(r, mutual_type);
+        auto bool_ty = Primitive::get(PR_boolean)->llvm_type();
+        #define X(myop, opname, resultant_type)                            \
+            case BIN_##myop:                                               \
+                return {builder()->Create##opname(left, right), resultant_type};
 
-        #define X(myop, opname)case BIN_##myop:return {builder()->Create##opname(left, right), mutual_type};
         switch (op_type) {
-            X(plus, Add)
-            X(minus, Sub)
-            X(star, Mul)
-            X(slash, SDiv)
-            X(percent, SRem)
-            X(lesser, ICmpSLT)
-            X(greater, ICmpSGT)
-            X(lesser_eq, ICmpSLE)
-            X(greater_eq, ICmpSGE)
-            X(not_equals, ICmpNE)
-            X(equals, ICmpEQ)
-            X(bitwise_or, Or)
-            X(bitwise_and, And)
-            X(bitwise_shl, Shl)
-            X(bitwise_shr, AShr)
-            X(bitwise_xor, Xor)
-            X(bool_and, LogicalAnd)
-            X(bool_or, LogicalOr)
-            default:except(E_INTERNAL, "Failed to generate binary operation");
+            X(plus,         Add,         mutual_type)
+            X(minus,        Sub,         mutual_type)
+            X(star,         Mul,         mutual_type)
+            X(slash,        SDiv,        mutual_type)
+            X(percent,      SRem,        mutual_type)
+            X(lesser,       ICmpSLT,     bool_ty)
+            X(greater,      ICmpSGT,     bool_ty)
+            X(lesser_eq,    ICmpSLE,     bool_ty)
+            X(greater_eq,   ICmpSGE,     bool_ty)
+            X(not_equals,   ICmpNE,      bool_ty)
+            X(equals,       ICmpEQ,      bool_ty)
+            X(bitwise_or,   Or,          mutual_type)
+            X(bitwise_and,  And,         mutual_type)
+            X(bitwise_shl,  Shl,         mutual_type)
+            X(bitwise_shr,  AShr,        mutual_type)
+            X(bitwise_xor,  Xor,         mutual_type)
+            X(bool_and,     LogicalAnd, mutual_type)
+            X(bool_or,      LogicalOr,  mutual_type)
+            case BIN_dot: except(E_INTERNAL, "Unreachable code path detected");
+            case BIN_assignment: except(E_INTERNAL, "Unreachable code path detected");
         }
-#undef X
+        #undef X
     }
 
 protected:

@@ -8,6 +8,7 @@
 #include "../../lib/logger.h"
 
 #include "llvm/IR/Type.h"
+#include "../../lib/list.h"
 
 class Type;
 
@@ -272,6 +273,21 @@ public:
         }
 
         return ReturnChance::NEVER;
+    }
+
+    Statement* parent_of(Statement* node){
+        auto content = this->flatten();
+        if(!includes(content, node))return nullptr;
+
+        size_t check_idx = indexof(content, node) - 1;
+
+        while(check_idx >= 0){
+            auto current_node = content[check_idx];
+            auto current_children = current_node->flatten();
+            if(includes(current_children, node))return current_node;
+            check_idx--;
+        }
+        return nullptr;
     }
 
 private:
