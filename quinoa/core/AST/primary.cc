@@ -1,6 +1,7 @@
 #include "./primary.hh"
 #include "./type.hh"
-
+#include "./reference.hh"
+#include "./container.hh"
 LLVMType::LLVMType(std::shared_ptr<Type> qn_type){
     this->qn_type = qn_type;
     this->ll_type = qn_type->llvm_type().ll_type;
@@ -53,4 +54,9 @@ LLVMValue LLVMValue::load(){
 void LLVMValue::print(){
     this->val->print(llvm::outs());
     Logger::debug(" < LLVM Value of type: " + this->type.qn_type->str());
+}
+
+std::string ContainerRef::str(){
+    if(this->refers_to)return refers_to->full_name().str();
+    else return this->name->str();
 }

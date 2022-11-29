@@ -33,11 +33,10 @@ void add_prefixes(CompilationUnit &unit, std::string str_prefix) {
     if (!prefix) {
         prefix = std::make_shared<Name>(str_prefix);
     }
+
     for (auto container: unit.get_containers()) {
+        if(container->name_space)continue;
         container->name_space = prefix;
-        for (auto member: container->members) {
-            member->name_space = prefix;
-        }
     }
 }
 

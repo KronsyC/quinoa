@@ -21,7 +21,6 @@ public:
 class ContainerMember : public ANode {
 public:
     std::unique_ptr <ContainerMemberRef> name;
-    std::shared_ptr <Name> name_space;
     Container *parent;
     Vec<Attribute> attrs;
     bool instance_only = false;
@@ -69,8 +68,7 @@ public:
     std::shared_ptr <Type> return_type;
     std::unique_ptr <Scope> content;
 
-    Vec<std::vector < std::shared_ptr < Type>>>
-    generate_usages;
+    Vec<std::vector < std::shared_ptr < Type>>> generate_usages;
 
     bool is_variadic() {
         // Check if the last parameter is a var-arg
@@ -90,7 +88,7 @@ public:
 
     std::string source_name() {
         if (this->name->trunc)return this->name->str();
-        std::string name = name_space ? name_space->str() + "::" : "";
+        std::string name;
         name += this->name->str();
         if (this->generic_params.size()) {
             name += "<";

@@ -123,9 +123,7 @@ public:
     Container *refers_to = nullptr;
     std::unique_ptr <LongName> name;
 
-    std::string str() {
-        return name->str();
-    }
+    std::string str();
 };
 
 class ContainerMemberRef : public Reference {
