@@ -52,6 +52,7 @@ llvm::LLVMContext* llctx();
 llvm::IRBuilder<>* builder();
 
 LLVMValue cast(LLVMValue val, LLVMType type);
+LLVMValue cast_explicit(LLVMValue val, LLVMType type);
 
 LLVMType getCommonType(LLVMType t1, LLVMType t2);
 

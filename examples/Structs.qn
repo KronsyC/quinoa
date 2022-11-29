@@ -26,8 +26,7 @@ module Person{
 
     func greet.Person(){
         io::print("Hello, ");
-        io::print((*self).name);
-        io::print("\n");
+        io::println(self.name);
     }
 
 }

@@ -101,6 +101,37 @@ public:
     }
 };
 
+class Boolean : public Constant<bool, Boolean> {
+public:
+    using Constant::Constant;
+
+    std::string str() {
+        return value ? "true" : "false";
+    }
+
+    llvm::Constant *const_value(LLVMType expected) {
+
+        auto val = builder()->getInt1(value);
+        if (!expected) {
+            return val;
+        }
+        auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, true);
+        return cast;
+
+    }
+
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected) {
+        if(!expected.qn_type)expected = this->type();
+        return {const_value(expected), expected};
+    }
+
+protected:
+    std::shared_ptr<Type> get_type() {
+        return Primitive::get(PR_boolean);
+    }
+
+};
+
 class Integer : public Constant<unsigned long long, Integer> {
 public:
     using Constant::Constant;
@@ -150,4 +181,3 @@ private:
         return ((long long) 1 << bits) - 1;
     }
 };
-

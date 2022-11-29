@@ -192,8 +192,7 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
         if (value) {
-            Logger::debug("Return: " + value->str());
-            auto return_value = value->llvm_value(vars, qn_fn->return_type->llvm_type());
+            auto return_value = value->llvm_value(vars, qn_fn->return_type);
             builder()->CreateRet(return_value);
         } else {
             builder()->CreateRetVoid();
@@ -262,7 +261,7 @@ public:
     }
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        return cast(value->llvm_value(vars, cast_to->llvm_type()), expected_type);
+        return cast(cast_explicit(value->llvm_value(vars), cast_to), expected_type);
     }
 
     std::string str() {
@@ -316,6 +315,7 @@ public:
             if (idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
 
             auto target_ty = type->members[init.first]->llvm_type();
+            Logger::debug("Cast " + init.second->type()->str() + " to " + target_ty.qn_type->str());
             auto init_expr = init.second->llvm_value(vars, target_ty);
 
             auto mem = builder()->CreateStructGEP(struct_ll_type, alloc, idx);

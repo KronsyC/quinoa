@@ -2,23 +2,23 @@ import @syscall;
 
 module IO is Exported{
 
-    stdin  : int = 0;
-    stdout : int = 1;
-    stderr : int = 2;
+    stdin  : u32 = 0;
+    stdout : u32 = 1;
+    stderr : u32 = 2;
     
 
     func putc(ch:char){
-        syscall::write(stdout, &ch as i64, stdout);
+        syscall::write(stdout, &ch as u64, stdout);
     }
     func print(message : str) -> i64{
         let len = syscall::write(
             stdout,
-            message.ptr as i64,
+            message.ptr as u64,
             message.len
         );
         return len;
     }
-    func println( message: str) -> i64{
+    func println( message: str ) -> i64{
         let len = print(message);
         putc(10);
         return len+1;

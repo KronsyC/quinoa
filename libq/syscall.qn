@@ -4,20 +4,20 @@ module Syscall is Exported{
 
 	// 0
 	#[ link_extern "read" ]
-	func read(fd:i64, ptr:i64, len:i64)->i64;
+	func read( fd: u32, ptr:u64, len:u64)->i64;
 
 	// 1
 	#[ link_extern "write" ]
-	func write(fd:int, ptr:i64, len:i64)->i64;
+	func write(fd : u32, ptr : u64, len : u64) ->i64;
 
 	// 2
 	#[ link_extern "open" ]
-	func open(filename:i64, flags:int, mode:int)->i64;
+	func open(filename:u64, flags:int, mode:int)->i64;
 
 	// 3
 	#[ link_extern "close" ]
-	func close(fd:i64)->i64;
+	func close(fd:u32)->i64;
 
 	#[ link_extern "exit" ]
-	func exit(status:i64)->i64;
+	func exit(status: u8 )->i64;
 }

@@ -104,6 +104,8 @@ std::unique_ptr<ConstantValue> parse_const(Token tok){
             return Integer::get(std::stoull(tok.value));
         case TT_literal_str:
             return String::get(tok.value);
+        case TT_literal_false:return Boolean::get(false);
+        case TT_literal_true:return Boolean::get(true);
         default:
             except(E_BAD_EXPRESSION, "Failed to generate literal for '" + tok.value + "'");
     }
@@ -367,7 +369,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         // if there are leftover tokens, something like
         // (a + b) - c
         // may have been accidentally picked up, skip
-        if (!toks.size())
+        if (toks.empty())
             return parse_expr(block, parent);
 
         toks = before;
@@ -404,7 +406,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 Vec<Expr> params;
                 auto params_block = read_block(toks, IND_parens);
                 auto params_cst = parse_cst(params_block);
-                for (auto param_toks : params_cst)
+                for (const auto& param_toks : params_cst)
                 {
                     auto param = parse_expr(param_toks, parent);
                     params.push(std::move(param));
@@ -423,7 +425,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 Logger::debug("struct of type: " + member_ref->str());
                 auto init_block = read_block(toks, IND_braces);
                 auto si = std::make_unique<StructInitialization>(std::move(member_ref));
-                if(init_block.size()){
+                if(!init_block.empty()){
                     expects(init_block[init_block.size()-1], TT_semicolon);
                     init_block.pop_back();
 
@@ -446,7 +448,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
     // Build a Table of Operator Precedences
     static std::map<TokenType, int> precedences;
-    if (!precedences.size())
+    if (precedences.empty())
     {
         for (auto d : defs)
         {
@@ -474,15 +476,14 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         int weight = precedences[t.type];
         if (weight == 0)
             continue;
-        weight_map.push_back({i, weight});
+        weight_map.emplace_back(i, weight);
     }
 
     // find the best place to split the expression
     int splitPoint = -1;
     int splitWeight = 0;
-    for (unsigned int i = 0; i < weight_map.size(); i++)
+    for (auto pair : weight_map)
     {
-        auto pair = weight_map[i];
         int index = pair.first;
         int weight = pair.second;
         if (splitPoint == -1 || (splitWeight <= weight))

@@ -295,7 +295,14 @@ public:
 
     LLVMValue assign_ptr(VariableTable &vars) {
         auto strct = member_of->assign_ptr(vars);
-        auto strct_t = member_of->type()->get<StructType>();
+        auto retrv_t = member_of->type();
+
+        while(auto ref_t = retrv_t->get<ReferenceType>()){
+            // Implicitly de-reference the op for member access
+            retrv_t = ref_t->of;
+            strct = strct.load();
+        }
+        auto strct_t = retrv_t->get<StructType>();
         if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
 
         auto idx = strct_t->member_idx(member_name->str());
@@ -320,7 +327,7 @@ public:
             } else except(E_BAD_MEMBER_ACCESS, "slices only have the 'ptr' and 'len' properties");
         }
         auto ptr = this->assign_ptr(vars);
-        return ptr.load();
+        return cast(ptr.load(), expected_type);
     }
 
     std::vector<Statement *> flatten() {
@@ -335,19 +342,25 @@ protected:
         auto left_t = member_of->type();
         if (!left_t)return std::shared_ptr<Type>(nullptr);
         auto member = member_name->str();
+
+        while(auto ref_t = left_t->get<ReferenceType>()){
+            // Implicitly de-reference the op for member access
+            left_t = ref_t->of;
+        }
+
         if (auto strct = left_t->get<StructType>()) {
             if (strct->member_idx(member) == -1)
                 except(E_BAD_MEMBER_ACCESS, "The struct: " + member_of->str() + " does not have a member: " + member);
             return strct->members[member];
         } else if (auto slice = left_t->get<DynListType>()) {
             if (member == "len") {
-                return Primitive::get(PR_int64);
+                return Primitive::get(PR_uint64);
             } else if (member == "ptr") {
                 return Ptr::get(slice->of);
             } else except(E_BAD_MEMBER_ACCESS, "slices only have the properties 'len' and 'ptr'");
         }
 
-        except(E_BAD_MEMBER_ACCESS, "You may only access members of a container type (structs, slices, arrays)");
+        except(E_BAD_MEMBER_ACCESS, "You may only access members of a container type (structs, slices, arrays), but the type was found to be: " + left_t->str());
 
 
     }

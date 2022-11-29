@@ -1,24 +1,35 @@
-import @util::cstr as CStr;
+import @syscall;
 
 module File is Exported{
-    inst let fd:i64 = 0;
 
-    pub func create(fd:int) -> File{
-        let f : File;
-        f.fd = fd;
-        return f;
+    type _ = struct{
+        fd : u32;
+        is_open : bool;
+    };
+
+
+    func write.File(data : byte[]) -> i64{
+
+        if(!(self.is_open)){
+            return -1;
+        }
+
+        return syscall::write(self.fd, data.ptr as u64, data.len);
     }
 
-    pub inst func write(ptr:i64, len:i64) -> i64{
-        return write_raw((*this).fd, ptr, len );
+    func close.File(){
+        self.is_open = false;
+        syscall::close(self.fd);
     }
 
-    pub inst func write(print:c_str)->int{
-        let len = CStr::len(print);
-        return (*this).write(cast<i64>(print), len);
+    func read.File(){
     }
 
-    #[ link_extern("write") ]
-    func write_raw(fd:i64, ptr:i64, len:i64) -> i64;
+    func from_descriptor( fd : u32 ) -> File{
+        return File{
+            fd : fd;
+            is_open : true;
+        };
+    }
 
 }

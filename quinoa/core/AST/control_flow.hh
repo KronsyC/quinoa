@@ -74,7 +74,7 @@ public:
     }
 
     ReturnChance returns() {
-        if (!if_false)return if_true->returns();
+        if (!if_false)return ReturnChance::MAYBE;
         else {
             auto r1 = if_true->returns();
             auto r2 = if_false->returns();

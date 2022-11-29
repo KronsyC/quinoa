@@ -25,22 +25,29 @@ bool LLVMType::is_signed() {
     }
     if(qn_type->get<Ptr>())return false;
 
-    except(E_INTERNAL, "(bug) Type " + qn_type->str() + " does not semantically have any signage");
+//    except(E_INTERNAL, "(bug) Type " + qn_type->str() + " does not semantically have any signage");
     return false;
 }
 
 LLVMValue LLVMValue::load(){
     // must be a pointer
-    auto ptr_ty = this->type.qn_type->get<Ptr>();
-    if(!ptr_ty){
-         print();
-        except(E_INTERNAL, "Can only load pointers");
+
+    if(auto ptr_ty = this->type.qn_type->get<Ptr>()){
+        auto loaded_ty = ptr_ty->of->llvm_type();
+        auto loaded_val = builder()->CreateLoad(loaded_ty, val);
+
+        return {loaded_val, loaded_ty};
     }
 
-    auto loaded_ty = ptr_ty->of->llvm_type();
-    auto loaded_val = builder()->CreateLoad(loaded_ty, val);
+    if(auto ref_ty = this->type.qn_type->get<ReferenceType>()){
+        auto loaded_ty = ref_ty->of->llvm_type();
+        auto loaded_val = builder()->CreateLoad(loaded_ty, val);
 
-    return {loaded_val, loaded_ty};
+        return {loaded_val, loaded_ty};
+    }
+    print();
+    except(E_INTERNAL, "Can only load pointers or references");
+
 }
 
 void LLVMValue::print(){

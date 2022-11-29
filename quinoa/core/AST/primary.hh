@@ -37,6 +37,10 @@ public:
         return ll_type;
     }
 
+    bool operator==(LLVMType& other) const{
+           return other.qn_type == qn_type;
+    }
+
     bool is_signed();
 
 };
