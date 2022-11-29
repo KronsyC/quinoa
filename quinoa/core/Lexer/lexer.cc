@@ -168,8 +168,9 @@ Token readNextToken(string& str)
     }
 
     // Number Check
-    if(isNumber(str[0])) {
+    if(isNumber(str[0]) || (str.size() >= 2 && (str[0] == '-' && isNumber(str[1])))){
         std::string constructedNumber;
+        if(str[0] == '-')constructedNumber+= popf(str);
         while(isNumber(str[0])) {
             constructedNumber += str[0];
             popf(str);

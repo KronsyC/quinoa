@@ -132,7 +132,7 @@ protected:
 
 };
 
-class Integer : public Constant<unsigned long long, Integer> {
+class Integer : public Constant<long long, Integer> {
 public:
     using Constant::Constant;
 
@@ -146,7 +146,7 @@ public:
         if (!expected) {
             return val;
         }
-        auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, true);
+        auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, value < 0);
         return cast;
 
     }
@@ -158,15 +158,30 @@ public:
 
 protected:
     std::shared_ptr <Type> get_type() {
-        if (value <= maxVal(8))
-            return Primitive::get(PR_uint8);
-        if (value <= maxVal(16))
-            return Primitive::get(PR_uint16);
-        if (value <= maxVal(32))
-            return Primitive::get(PR_uint32);
-        if (value <= maxVal(64))
-            return Primitive::get(PR_uint64);
-        except(E_BAD_EXPRESSION, "Cannot infer type for integer larger than 64 bits");
+        if(value < 0){
+#define X(i)((long long)-(maxVal(i) >> 2))
+            if (value >= X(8))
+                return Primitive::get(PR_int8);
+            if (value >= X(16))
+                return Primitive::get(PR_int16);
+            if (value >= X(32))
+                return Primitive::get(PR_int32);
+            if (value >= X(64))
+                return Primitive::get(PR_int64);
+        }
+        else{
+            unsigned long long v = value;
+            if (v <= maxVal(8))
+                return Primitive::get(PR_uint8);
+            if (v <= maxVal(16))
+                return Primitive::get(PR_uint16);
+            if (v <= maxVal(32))
+                return Primitive::get(PR_uint32);
+            if (v <= maxVal(64))
+                return Primitive::get(PR_uint64);
+            except(E_BAD_EXPRESSION, "Cannot infer type for integer larger than 64 bits");
+        }
+
     }
 
 private:

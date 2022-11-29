@@ -421,10 +421,11 @@ private:
     llvm::StructType *type = nullptr;
 
 };
-
 class ParentAwareType : public Type {
 public:
     Container *parent = nullptr;
+
+    std::string get_name();
 };
 
 class StructType : public ParentAwareType {
@@ -498,13 +499,16 @@ public:
         if (!st)return false;
         return st->members == members && parent == st->parent;
     }
-
+    llvm::StructType* cached_struct_ty = nullptr;
     llvm::Type *internal_llvm_type() {
+        if(cached_struct_ty)return cached_struct_ty;
         std::vector < llvm::Type * > member_types;
         for (auto member: members) {
             member_types.push_back(member.second->internal_llvm_type());
         }
-        return llvm::StructType::get(*llctx(), member_types);
+        auto struct_ty = llvm::StructType::create(*llctx(), member_types, "struct:"+this->get_name());
+        cached_struct_ty = struct_ty;
+        return struct_ty;
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {

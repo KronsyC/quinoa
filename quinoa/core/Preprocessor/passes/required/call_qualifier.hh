@@ -116,7 +116,6 @@ enum SelectionStage {
 
 Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionStage stage = SelectionStage::INITIAL) {
 
-    Logger::debug("stage " + std::to_string(stage) + ", " + std::to_string(ranks.size()) + " possible matches");
     switch (stage) {
         case SelectionStage::INITIAL: {
             std::vector <MatchRanking> suitors;
@@ -213,7 +212,6 @@ Method *get_best_target(MethodCall *call, CompilationUnit &unit) {
     std::vector <MatchRanking> ranks;
     for (auto method: methods) {
         auto rank = rank_method_against_call(method, call);
-        rank.print();
         ranks.push_back(rank);
     }
 

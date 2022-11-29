@@ -235,7 +235,6 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
         for (auto &child: content) {
-            Logger::debug("Generating Child:\n" + child->str());
             child->generate(qn_fn, func, vars, CFI);
         }
     }

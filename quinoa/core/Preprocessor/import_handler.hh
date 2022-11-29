@@ -48,13 +48,11 @@ void resolve_aliased_symbols(CompilationUnit &unit, LongName &alias, LongName &r
 
         for (auto code: fn->content->flatten()) {
             if (auto call = dynamic_cast<MethodCall *>(code)) {
-                Logger::debug("-- " + call->name->container->name->str() + " / " + alias.str());
                 if (call->name->container->name->str() == alias.str()) {
                     call->name->container->name = std::make_unique<LongName>(replace_with);
                 }
             }
         }
-//        if(change_state)fn->aliases_resolved = true;
     }
 
 }
@@ -95,7 +93,6 @@ CompilationUnit *construct_ast_from_path(std::string path) {
             auto alias = LongName();
             alias.parts.push(*container->name);
             auto new_name = container->full_name();
-            Logger::debug("Fixing self-refs for container: " + alias.str() + " to refer to " + new_name.str());
             resolve_aliased_symbols(*cached, alias, new_name, false);
         }
 

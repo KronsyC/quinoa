@@ -19,6 +19,38 @@ public:
     std::vector <std::shared_ptr<Type>> type_args;
     std::shared_ptr <Type> return_type;
     Method *target = nullptr;
+
+    LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args) {
+
+        std::vector <llvm::Value*> args;
+        llvm::Value* ret_val_if_param = nullptr;
+        if(target->must_parameterize_return_val()){
+            auto alloc = builder()->CreateAlloca(target->return_type->llvm_type());
+            args.push_back(alloc);
+            ret_val_if_param =alloc;
+        }
+        for(auto a : injected_args)args.push_back(a);
+        auto mod = builder()->GetInsertBlock()->getModule();
+        auto fn = mod->getFunction(target->source_name());
+
+        if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
+
+
+
+        for (size_t i = 0; i < this->args.len(); i++) {
+            auto &arg = this->args[i];
+            auto param = target->get_parameter(i);
+
+            auto expected_type = param->type->llvm_type();
+            auto arg_val = arg.llvm_value(vars, expected_type);
+            args.push_back(arg_val);
+        }
+
+        auto call = builder()->CreateCall(fn, args);
+
+
+        return {ret_val_if_param ? (llvm::Value*)builder()->CreateLoad(ret_val_if_param->getType()->getPointerElementType(), (llvm::Value*)ret_val_if_param) : call, target->return_type->llvm_type()};
+    }
 };
 
 class MethodCall : public CallLike {
@@ -53,22 +85,8 @@ public:
     }
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        auto mod = builder()->GetInsertBlock()->getModule();
-        auto fn = mod->getFunction(target->source_name());
 
-        if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
-
-        std::vector <llvm::Value*> args;
-        for (size_t i = 0; i < this->args.len(); i++) {
-            auto &arg = this->args[i];
-            auto param = target->get_parameter(i);
-
-            auto expected_type = param->type->llvm_type();
-            auto arg_val = arg.llvm_value(vars, expected_type);
-            args.push_back(arg_val);
-        }
-
-        auto call = LLVMValue(builder()->CreateCall(fn, args), target->return_type);
+        auto call = create_call(vars, {});
         return cast(call, expected_type);
     }
 
@@ -79,7 +97,10 @@ public:
     }
 
     LLVMValue assign_ptr(VariableTable &vars) {
-        except(E_INTERNAL, "assign_ptr not implemented for MethodCall");
+        // an assign_ptr may only be generated for calls which internally
+        // pass a reference to the function, which is abstracted as a return value
+        if(!target->must_parameterize_return_val())except(E_BAD_OPERAND, "Indirection is only allowed on functions which return Arrays, Slices, or Structs");
+        except(E_INTERNAL, "assign_ptr not implemented for MethodCall: " + str());
     }
 
 protected:
@@ -121,34 +142,7 @@ public:
     }
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        if (!target)except(E_BAD_CALL, "Cannot create a method call to an unresolved method (this is a bug)");
-
-        auto mod = builder()->GetInsertBlock()->getModule();
-
-        if (target == (Method *) 1) {
-            except(E_INTERNAL, "unimplemented compiler method: " + method_name->str());
-        }
-
-        auto fn = mod->getFunction(target->source_name());
-
-        if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->name->str());
-
-        std::vector < llvm::Value* > args;
-
-        // Inject the target variable as the first argument
-        args.push_back(call_on->assign_ptr(vars));
-
-
-        for (size_t i = 0; i < this->args.len(); i++) {
-            auto &arg = this->args[i];
-            auto param = target->get_parameter(i);
-
-            auto expected_type = param->type->llvm_type();
-            auto arg_val = arg.llvm_value(vars, expected_type);
-            args.push_back(arg_val);
-        }
-
-        auto call = LLVMValue(builder()->CreateCall(fn, args), target->return_type);
+        auto call = create_call(vars, {call_on->assign_ptr(vars)});
         return cast(call, expected_type);
     }
 
@@ -193,7 +187,15 @@ public:
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
         if (value) {
             auto return_value = value->llvm_value(vars, qn_fn->return_type);
-            builder()->CreateRet(return_value);
+
+            if(qn_fn->must_parameterize_return_val()){
+                auto write_to = func->getArg(0);
+                builder()->CreateStore(return_value, write_to);
+            }
+            else{
+                builder()->CreateRet(return_value);
+
+            }
         } else {
             builder()->CreateRetVoid();
         }
@@ -396,7 +398,6 @@ public:
 
         }
         else if (tgt_ty->get<DynListType>()) {
-            Logger::debug("Subscript a slice");
             auto len_ptr = builder()->CreateStructGEP(tgt_ll_ty, ptr, 0);
             auto len = builder()->CreateLoad(builder()->getInt64Ty(), len_ptr);
 

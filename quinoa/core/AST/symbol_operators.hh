@@ -64,6 +64,7 @@ public:
 
         #define ret(LL_INST, cast_to) return cast({bld.Create##LL_INST(val(cast_to)), type()}, expected);
         auto none = operand->type()->llvm_type();
+
         switch (op_type) {
             case PRE_ampersand: {
                 auto ptr = operand->assign_ptr(vars);
@@ -79,7 +80,16 @@ public:
                 return cast(ptr, expected);
             }
             case PRE_bang: ret(Not, _bool);
-            case PRE_minus:ret(Neg, none);
+            case PRE_minus:{
+                auto op_type = operand->type()->llvm_type();
+                if(op_type.is_signed()){
+                    ret(Neg, none)
+                }
+                else{
+                    except(E_BAD_OPERAND, "Cannot invert the sign of an unsigned primitive\n\t\tIn operation: " + this->str());
+                }
+
+            }
             case PRE_bitwise_not:ret(Not, none);
             case PRE_star: {
                 if (!operand->type()->get<Ptr>())except(E_BAD_OPERAND, "Cannot dereference non-ptr operand");
@@ -175,7 +185,6 @@ public:
 
 
 
-            Logger::debug("Traditional Assignment");
             auto assignment_type = LLVMType(assignee.type.qn_type->pointee());
 
             // Optimization for constructs like arrays and structs

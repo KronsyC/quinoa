@@ -98,10 +98,11 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
 }
 
 std::unique_ptr<ConstantValue> parse_const(Token tok){
+    Logger::debug("Const: " + tok.value);
     switch (tok.type)
     {
         case TT_literal_int:
-            return Integer::get(std::stoull(tok.value));
+            return Integer::get(std::stoll(tok.value));
         case TT_literal_str:
             return String::get(tok.value);
         case TT_literal_false:return Boolean::get(false);
@@ -151,7 +152,6 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
             fields[field_name] = field_type;
         }
         ret = StructType::get(fields, container);
-
     }
     else if(first.is(TT_enum)){
         if(!container)except(E_BAD_TYPE, "Enum types may only be declared as members of a container");
@@ -270,6 +270,7 @@ Param parse_param(std::vector<Token> toks)
 
 std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 {
+
     if (!toks.size())
         except(E_INTERNAL, "Cannot generate an expression from 0 tokens");
     if (toks.size() == 1)
@@ -406,19 +407,23 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 // function call
                 Vec<Expr> params;
                 auto params_block = read_block(toks, IND_parens);
-                auto params_cst = parse_cst(params_block);
-                for (const auto& param_toks : params_cst)
-                {
-                    auto param = parse_expr(param_toks, parent);
-                    params.push(std::move(param));
+
+                if(!toks.size()){
+                    auto params_cst = parse_cst(params_block);
+                    for (const auto& param_toks : params_cst)
+                    {
+                        auto param = parse_expr(param_toks, parent);
+                        params.push(std::move(param));
+                    }
+
+                    auto call = std::make_unique<MethodCall>();
+                    call->args = std::move(params);
+                    call->type_args = type_args;
+                    call->name = std::move(member_ref);
+                    call->scope = parent;
+                    return call;
                 }
 
-                auto call = std::make_unique<MethodCall>();
-                call->args = std::move(params);
-                call->type_args = type_args;
-                call->name = std::move(member_ref);
-                call->scope = parent;
-                return call;
             }
             else if(toks[0].is(TT_l_brace)){
                 // Struct initialization block

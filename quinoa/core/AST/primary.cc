@@ -21,12 +21,7 @@ bool LLVMType::is_signed() {
         X(PR_float32)
         X(PR_float64)
 
-        return false;
-
     }
-    if(qn_type->get<Ptr>())return false;
-
-//    except(E_INTERNAL, "(bug) Type " + qn_type->str() + " does not semantically have any signage");
     return false;
 }
 

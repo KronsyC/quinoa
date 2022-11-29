@@ -129,7 +129,6 @@ public:
                                 #undef f
                             }
 
-                            Logger::debug("parse bool from: " + lowered);
 
                         }
                         break;

@@ -29,7 +29,6 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
     if(!to)return val;
 
 
-    Logger::debug("$$$ Casting " + val.type.qn_type->str() + " -- to -- " + to.qn_type->str() + ", explicit? " + (is_explicit?"yes":"no"));
 
     auto val_ty = val.type;
 
@@ -60,7 +59,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
         }
         else if(!val_ty.is_signed() && to.is_signed()){
             // unsigned -> signed, perfectly legal
-            return LLVMValue{builder()->CreateIntCast(val, to, true), to};
+            return LLVMValue{builder()->CreateIntCast(val, to, false), to};
         }
         else{
             except(E_INTERNAL, "(bug) unhandled integer cast case from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
@@ -140,10 +139,17 @@ LLVMValue cast_explicit(LLVMValue val, LLVMType type){
 
 LLVMValue cast(LLVMValue val, LLVMType type)
 {
+
     auto cast_result = try_cast(val, type, false);
 
     try{
         auto result = std::get<LLVMValue>(cast_result);
+        if(type && val.type != type){
+            Logger::debug("-- $$$ Implicit Casting " + val.type.qn_type->str() + " -- to -- " + type.qn_type->str());
+            val.print();
+            result.print();
+        }
+
         return result;
     }
     catch(const std::bad_variant_access& ex){

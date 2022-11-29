@@ -27,16 +27,26 @@ void make_fn(
         return;
     }
 
-	auto ret = f.return_type->llvm_type();
+	llvm::Type* ret = f.return_type->llvm_type();
 	auto name = f.source_name();
 	std::vector<llvm::Type *> args;
 
+
+    int skip_count = 0;
+    if(f.must_parameterize_return_val()){
+        // func foo() -> int[] or other similar situation
+        // converts to
+        // func foo( __internal_arg__ : int[]* ) -> void;
+        skip_count++;
+        ret = builder()->getVoidTy();
+        args.push_back(f.return_type->llvm_type()->getPointerTo());
+    }
     if(f.acts_upon){
+        skip_count++;
         auto self_t = Ptr::get(f.acts_upon)->llvm_type();
         args.push_back(self_t);
 
     }
-
     for (auto a : f.parameters)
 	{
 		auto param_type = a->type->llvm_type();
@@ -48,15 +58,17 @@ void make_fn(
 
 	auto sig = llvm::FunctionType::get(ret, args, isVarArg);
 	auto fn = llvm::Function::Create(sig, linkage, name, mod);
-	Logger::debug("Created function " + name);
-	for (unsigned int i = 0; i < fn->arg_size() - (bool)f.acts_upon; i++)
+
+    // Prettify the parameter names
+#ifdef DEBUG
+	for (unsigned int i = skip_count; i < fn->arg_size(); i++)
 	{
-		auto &param = f.parameters[i];
+		auto &param = f.parameters[i-skip_count];
 		auto name = param.name.str();
 		auto arg = fn->getArg(i);
 		arg->setName(name);
 	}
-
+#endif
 }
 
 llvm::GlobalValue *make_global(
@@ -117,7 +129,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
     }
 
     if(auto ty = method->acts_upon){
-        auto arg = fn->getArg(0);
+        auto arg = fn->getArg( method->must_parameterize_return_val() ? 1 : 0);
         auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "self");
 
         builder()->CreateStore(arg, alloc);
@@ -125,10 +137,13 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
     }
 
 	// Inject the args as variables
-    int diff = (bool)method->acts_upon;
+
+    //TODO: add the get_parameter_offset function as doing this repeatedly is bound to create bugs if new features are added
+    int diff = method->acts_upon ? 1 : 0;
+    if(method->must_parameterize_return_val())diff++;
+
 	for (unsigned int i = 0; i < method->parameters.len(); i++)
 	{
-        Logger::debug("Get param: " + std::to_string(i));
 		auto& param = method->parameters[i];
 		auto arg = fn->getArg(i+diff);
 		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, arg->getName().str());

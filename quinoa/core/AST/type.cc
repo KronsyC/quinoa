@@ -1,6 +1,6 @@
 #include "./type.hh"
-
-
+#include "./container.hh"
+#include "./container_member.hh"
 
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
     if(t1 == t2)return t1;
@@ -48,3 +48,15 @@ LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
     }
     else except(E_NONEQUIVALENT_TYPES, "Failed to get a type common to " + q2->str() + " and " + q1->str());
 }
+
+std::string ParentAwareType::get_name(){
+    for(auto mem : this->parent->members){
+        if(auto ty = dynamic_cast<TypeMember*>(mem.ptr)){
+            if(ty->refers_to.get() == this){
+                return ty->name->str();
+            }
+        }
+    }
+    return "unknown";
+}
+

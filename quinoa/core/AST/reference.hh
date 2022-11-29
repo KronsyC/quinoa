@@ -94,7 +94,6 @@ public:
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
 
         auto ptr = assign_ptr(vars);
-        ptr.print();
         auto value = ptr.load();
         return cast(value, expected_type);
     }

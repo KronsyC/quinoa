@@ -106,6 +106,10 @@ public:
         return name;
     }
 
+    bool must_parameterize_return_val(){
+        return return_type->get<StructType>() || return_type->get<DynListType>() || return_type->get<ListType>();
+    }
+
     bool is_equivalent_to(Method *method) {
 
         // basic checks (extremely strict, possibly lax this in the future)
