@@ -6,8 +6,7 @@
 #include "../AST/symbol_operators.hh"
 #include "../AST/advanced_operators.hh"
 #include "../AST/control_flow.hh"
-#include "../AST/literal.hh"
-#include "../AST/container.hh"
+
 template <typename T, typename U = Statement>
 inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
 {
@@ -380,6 +379,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
     if (first.is(TT_identifier))
     {
+
         auto before = toks;
         if (toks.size() > 1 && (toks[1].is(TT_l_generic) || toks[1].is(TT_double_colon) || toks[1].is(TT_l_paren) || toks[1].is(TT_l_brace)))
         {

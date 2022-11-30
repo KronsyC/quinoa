@@ -360,4 +360,134 @@ const
 @alias pvt
 private
 
+# Define Intrinsic (Compiler-Implemented) Functions
+# All operations are just wrappers around a set of intrinsic calls
+# i.e (11 % 4) + 3
+# becomes:
+# @add(@mod(11, 4), 3)
+# Intrinsics are very strictly typed and will not perform any casting
+# on operands, they will instead error if a bad parameter is encountered
 
+# Binary Intrinsics
+
+@intrinsic 2 0
+@alias @add
+intr_add
+
+@intrinsic 2 0
+@alias @sub
+intr_sub
+
+@intrinsic 2 0
+@alias @mul
+intr_mul
+
+@intrinsic 2 0
+@alias @div
+intr_div
+
+@intrinsic 2 0
+@alias mod
+intr_mod
+
+@intrinsic 2 0
+@alias @bool_or
+intr_bool_or
+
+@intrinsic 2 0
+@alias @bool_and
+intr_bool_and
+
+@intrinsic 2 0
+@alias @member
+intr_get_member
+
+
+@intrinsic 2 0
+@alias @cmp_lesser
+intr_cmp_lesser
+
+@intrinsic 2 0
+@alias @cmp_greater
+intr_cmp_greater
+
+@intrinsic 2 0
+@alias @cmp_lesser_eq
+intr_cmp_lesser_eq
+
+@intrinsic 2 0
+@alias @cmp_greater_eq
+intr_cmp_greater_eq
+
+@intrinsic 2 0
+@alias @assign
+intr_assign
+
+@intrinsic 2 0
+@alias @cmp_eq
+intr_cmp_eq
+
+@intrinsic 2 0
+@alias @cmp_neq
+intr_neq
+
+@intrinsic 2 0
+@alias @bitwise_and
+intr_bitwise_and
+
+@intrinsic 2 0
+@alias @bitwise_or
+intr_bitwise_or
+
+@intrinsic 2 0
+@alias @bitwise_xor
+intr_bitwise_xor
+
+@intrinsic 2 0
+@alias @bitwise_shl
+intr_bitwise_shl
+
+@intrinsic 2 0
+@alias @bitwise_shr
+intr_bitwise_shr
+
+# Unary Intrinsics
+
+@intrinsic 1 0
+@alias @bitwise_not
+intr_bitwise_not
+
+@intrinsic 1 0
+@alias @bool_not
+intr_bool_not
+
+@intrinsic 1 0
+@alias @pointer_to
+intr_pointer_to
+
+@intrinsic 1 0
+@alias @deref
+intr_dereference
+
+@intrinsic 1 0
+@alias @negate
+intr_negate
+
+@intrinsic 1 0
+@alias @add_one
+intr_add_one
+
+@intrinsic 1 0
+@alias @sub_one
+intr_sub_one
+
+
+# Utility Intrinsics
+@intrinsic 0 1
+@alias @size_of
+intr_size_of
+
+
+@intrinsic 2 1
+@alias @make_slice
+intr_make_slice

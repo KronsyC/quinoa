@@ -1,6 +1,18 @@
 module Memory is Exported{
 
     #[link_extern "malloc"]
-    func alloc(unit_size : i64, length : i64) -> i8*;
+    func malloc(unit_size : u64, length : u64) -> byte*;
 
+
+    func alloc(<T>)() -> T*{
+
+        return malloc( @size_of(<T>)(), 1) as T*;
+    }
+    func alloc(<T>)(count : u64) -> T[]{
+
+        let ptr = malloc( @size_of(<T>)(), count ) as T*;
+
+        let slice = @make_slice(<T>)(ptr, count);
+        return slice;
+    }
 }
