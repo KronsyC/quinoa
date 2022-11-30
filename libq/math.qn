@@ -1,0 +1,44 @@
+module Math is Exported{
+
+    func sum(<T>)(items : T[]) -> i64{
+
+        let accum : i64 = 0;
+        let i : u64 = 0;
+
+        while(i < items.len){
+
+            accum = accum + (items[i]);
+            i++;
+        }
+
+        return accum;
+    }
+
+    func factorial(n : u64) -> u64{
+        let ret : u64 = 1;
+
+        if(n == 0){
+            return 1;
+        }
+
+        let i : u64 = 1;
+        while(i < n + 1){
+            ret = ret * i;
+            i++;
+        }
+
+        return ret;
+    }
+
+    func sum_n(count : u64) -> u64{
+        // (n+1)(n/2)
+        return ((count + 1) * count) / 2;
+    }
+
+    func sum_n(from : u64, to : u64) -> u64{
+
+        return sum_n(to) - sum_n(from);
+    }
+
+
+}

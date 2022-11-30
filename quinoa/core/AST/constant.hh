@@ -158,6 +158,7 @@ public:
 
 protected:
     std::shared_ptr <Type> get_type() {
+        Logger::debug("get_type for integer: " + std::to_string(value));
         if(value < 0){
 #define X(i)((long long)-(maxVal(i) >> 2))
             if (value >= X(8))
@@ -168,6 +169,8 @@ protected:
                 return Primitive::get(PR_int32);
             if (value >= X(64))
                 return Primitive::get(PR_int64);
+            except(E_BAD_EXPRESSION, "Cannot infer type for integer larger than 64 bits");
+#undef X
         }
         else{
             unsigned long long v = value;

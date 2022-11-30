@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "../token/token.h"
 #include "../../lib/logger.h"
 
@@ -19,17 +21,19 @@ std::string get_tt_name(TokenType t) {
     return "unknown";
 }
 
-void print_toks(std::vector <Token> toks) {
+void print_toks(const std::vector <Token>& toks) {
     std::string output;
-    int max_name_len = 0;
-    for (auto t: toks) {
-        if (get_tt_name(t.type).size() > max_name_len)max_name_len = get_tt_name(t.type).size();
+    unsigned int max_name_len = 0;
+    for (const auto& t: toks) {
+        if (  get_tt_name(t.type).size() > max_name_len) {
+            max_name_len = get_tt_name(t.type).size();
+        }
     }
-    for (auto t: toks) {
+    for (const auto& t: toks) {
         auto name = get_tt_name(t.type);
         output += "\t> ";
         output += name;
-        for (int i = 0; i < max_name_len - name.size(); i++) {
+        for (unsigned int i = 0; i < max_name_len - name.size(); i++) {
             output += " ";
         }
         output += " -> " + t.value;
@@ -64,7 +68,7 @@ void expects(Token tok, std::initializer_list <TokenType> expected_types) {
 }
 
 void expects(Token tok, TokenType expected_type) {
-    expects(tok, {expected_type});
+    expects(std::move(tok), {expected_type});
 }
 
 //
@@ -81,7 +85,7 @@ std::vector <Token> read_to(std::vector <Token> &toks, TokenType type) {
     auto initial = toks;
     std::vector <Token> ret;
     int ind = 0;
-    while (toks.size()) {
+    while (!toks.empty()) {
         if (toks[0].is(type) && ind == 0) {
             break;
         }
@@ -90,7 +94,7 @@ std::vector <Token> read_to(std::vector <Token> &toks, TokenType type) {
         ret.push_back(popf(toks));
 
     }
-    if (toks.size() == 0) {
+    if (toks.empty()) {
         toks = initial;
         ret = {};
     }
@@ -101,7 +105,7 @@ std::vector <Token> read_to_reverse(std::vector <Token> &toks, TokenType type) {
     auto initial = toks;
     std::vector <Token> ret;
     int ind = 0;
-    while (toks.size()) {
+    while (!toks.empty()) {
         auto end = toks[toks.size() - 1];
 
         if (end.is(type) && ind == 0) {
@@ -113,7 +117,7 @@ std::vector <Token> read_to_reverse(std::vector <Token> &toks, TokenType type) {
         else if (end.isIndentationTok())ind--;
         toks.pop_back();
     }
-    if (toks.size() == 0) {
+    if (toks.empty()) {
         toks = initial;
         ret = {};
     }
@@ -135,7 +139,7 @@ std::vector <Token> read_block(std::vector <Token> &toks, IndType typ) {
 
     int ind = 1;
     std::vector <Token> ret;
-    while (toks.size()) {
+    while (!toks.empty()) {
         auto t = popf(toks);
         if (t.is(i))
             ind++;

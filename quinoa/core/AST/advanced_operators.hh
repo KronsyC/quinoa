@@ -42,7 +42,7 @@ public:
             auto param = target->get_parameter(i);
 
             auto expected_type = param->type->llvm_type();
-            auto arg_val = arg.llvm_value(vars, expected_type);
+            auto arg_val = cast(arg.llvm_value(vars), expected_type);
             args.push_back(arg_val);
         }
 

@@ -24,15 +24,22 @@ LLVMValue Variable::as_value(){
     return {this->value, LLVMType(Ptr::get(this->type))};
 }
 
-std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool is_explicit){
+std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _to, bool is_explicit){
 
-    if(!to)return val;
+
+    if(!_to)return _val;
+
+    auto to = _to.qn_type->drill()->llvm_type();
+    LLVMValue val(_val.val, _val.type.qn_type->drill()->llvm_type());
 
 
 
     auto val_ty = val.type;
 
-    if(val_ty == to)return val;
+    if(val_ty == to){
+
+        return val;
+    }
 
     auto val_ref = val_ty.qn_type->get<ReferenceType>();
 
@@ -52,7 +59,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
         else if(to.is_signed() == val_ty.is_signed()){
             // same-signage conversion, only allow raising when explicit
             if(to->getPrimitiveSizeInBits() < val_ty->getPrimitiveSizeInBits() && !is_explicit){
-                return "Cannot implicitly downcast an integer, please use the explicit casting `as` operator";
+                return "Cannot implicitly downcast an integer, please use the explicit casting `as` operator\n\t\t in cast " + val_ty.qn_type->str() + " -> " + to.qn_type->str();
             }
             return LLVMValue{builder()->CreateIntCast(val, to, to.is_signed()), to};
 
@@ -119,7 +126,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue val, LLVMType to, bool i
     }
 
 
-
+    val.print();
     except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
 }
 

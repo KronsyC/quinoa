@@ -64,9 +64,9 @@ public:
 
 
     virtual std::pair<Type &, Type &> find_difference(Type &against) = 0;
+    std::shared_ptr<Type> self;
 
 protected:
-    std::shared_ptr<Type> self;
     /**
      * Helper method to instantiate a type onto the heap
      * types take heavy inspiration from llvms type system
@@ -221,7 +221,7 @@ protected:
 
 public:
     Ptr(std::shared_ptr <Type> type) {
-        this->of = type;
+        this->of = type->drill()->self;
     }
 
     std::vector<Type *> flatten() {
@@ -287,7 +287,7 @@ public:
     std::shared_ptr <Type> of;
 
     ReferenceType(std::shared_ptr <Type> of) {
-        this->of = of;
+        this->of = of->drill()->self;
     }
 
     static std::shared_ptr <ReferenceType> get(std::shared_ptr <Type> of) {
@@ -353,7 +353,11 @@ public:
 class DynListType : public Type {
 protected:
     Type *drill() {
-        return this;
+        // return this with a drilled `of` type (prevents bug with casting to generic slices)
+        auto drilled_of = of->drill();
+        if(drilled_of == of.get())return this;
+        auto new_ptr = DynListType::get(drilled_of->self).get();
+        return new_ptr;
     }
 
 public:
@@ -361,7 +365,7 @@ public:
     std::shared_ptr <Type> of;
 
     DynListType(std::shared_ptr <Type> type) {
-        this->of = type;
+        this->of = type->drill()->self;
     }
 
     std::vector<Type *> flatten() {
@@ -693,6 +697,7 @@ public:
 
     static std::shared_ptr <Generic> get(std::unique_ptr <Name> name, Method *parent) {
         auto gen = std::make_shared<Generic>(std::move(name), parent);
+        gen->self = gen;
         return gen;
     }
 
@@ -739,7 +744,11 @@ public:
 class ListType : public Type {
 protected:
     Type *drill() {
-        return this;
+        // return this with a drilled `of` type (prevents bug with casting to generic arrays)
+        auto drilled_of = of->drill();
+        if(drilled_of == of.get())return this;
+        auto new_ptr = ListType::get(drilled_of->self, Integer::get(size->value)).get();
+        return new_ptr;
     }
 
 public:
@@ -747,7 +756,7 @@ public:
     std::unique_ptr <Integer> size;
 
     ListType(std::shared_ptr <Type> type, std::unique_ptr <Integer> size) {
-        this->of = std::move(type);
+        this->of = type->drill()->self;
         this->size = std::move(size);
     }
 
