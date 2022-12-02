@@ -10,7 +10,8 @@
 #include "./reference.hh"
 #include "./literal.hh"
 #include "./allocating_expr.hh"
-
+#include "./intrinsic.hh"
+#include "./advanced_operators.hh"
 enum UnaryOpType {
     UNARY_ENUM_MEMBERS
 };
@@ -76,7 +77,6 @@ public:
                 // internally the exact same thing
                 ptr.type = LLVMType(ReferenceType::get(ptr_ty->of));
 
-                Logger::debug("Changed ref from: " + ptr_ty->str() + " to " + ptr.type.qn_type->str());
                 return cast(ptr, expected);
             }
             case PRE_bang: ret(Not, _bool);
@@ -144,24 +144,54 @@ protected:
 };
 
 class BinaryOperation : public Expr {
+private:
+    static IntrinsicType intrinsic_from_bot(BinaryOpType bot){
+#define C(x, y)case x: return intr_##y;
+        switch (bot) {
+
+            C(BIN_percent, mod)
+            C(BIN_star, mul)
+            C(BIN_plus, add)
+            C(BIN_minus, sub)
+            C(BIN_bool_or, bool_or)
+            C(BIN_bool_and, bool_and)
+            C(BIN_dot, get_member)
+            C(BIN_slash, div)
+            C(BIN_lesser, cmp_lesser)
+            C(BIN_greater, cmp_greater)
+            C(BIN_lesser_eq, cmp_lesser_eq)
+            C(BIN_greater_eq, cmp_greater_eq)
+            C(BIN_assignment, assign)
+            C(BIN_equals, cmp_eq)
+            C(BIN_not_equals, cmp_neq)
+            C(BIN_bitwise_and, bitwise_and)
+            C(BIN_bitwise_or, bitwise_or)
+            C(BIN_bitwise_xor, bitwise_xor)
+            C(BIN_bitwise_shl, bitwise_shl)
+            C(BIN_bitwise_shr, bitwise_shr)
+        }
+    }
 public:
-    std::unique_ptr <Expr> left_operand;
-    std::unique_ptr <Expr> right_operand;
+    std::unique_ptr<_Intrinsic> internal_intrinsic;
     BinaryOpType op_type;
 
-    // The name of the variable that this expression
-    // is responsible for initializing (if any)
-    bool initializes;
 
     BinaryOperation(std::unique_ptr <Expr> left, std::unique_ptr <Expr> right, BinaryOpType op_type) {
-        left_operand = std::move(left);
-        right_operand = std::move(right);
+        Vec<Expr> args;
+        args.push(std::move(left));
+        args.push(std::move(right));
+
+        auto int_ty = intrinsic_from_bot(op_type);
+        this->internal_intrinsic = Intrinsic<intr_mul>::create(int_ty, std::move(args), {});
         this->op_type = op_type;
     }
 
+    void set_initializing(){
+        this->internal_intrinsic->flags.push_back(FLAG_CONST_INIT_RIGHTS);
+    }
+
     std::string str() {
-        auto symbol = this->get_symbol_as_str();
-        return "( " + left_operand->str() + " " + symbol + " " + right_operand->str() + " )";
+        return this->internal_intrinsic->str();
     }
 
     LLVMValue assign_ptr(VariableTable &vars) {
@@ -170,50 +200,39 @@ public:
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         
-        if (op_type == BIN_assignment) {
-            auto assignee = left_operand->assign_ptr(vars);
-            // constant assignment check
-            if (auto var = dynamic_cast<SourceVariable *>(left_operand.get())) {
-                auto &va = vars[var->name->str()];
-                if (this->initializes && !va.is_initialized) {
-                    va.is_initialized = true;
-                } else {
-                    if (va.is_initialized && va.constant)
-                        except(E_BAD_ASSIGNMENT, "Cannot reassign a constant variable: " + var->name->str());
-                }
-            }
-
-
-
-            auto assignment_type = LLVMType(assignee.type.qn_type->pointee());
-
-            // Optimization for constructs like arrays and structs
-            // removes a copy instruction
-            if (auto allocating_expr = dynamic_cast<AllocatingExpr *>(right_operand.get())) {
-                allocating_expr->write_direct(assignee, vars, assignment_type);
-                return allocating_expr->llvm_value(vars, assignment_type);
-            }
-
-            auto value = right_operand->llvm_value(vars, assignment_type);
-            builder()->CreateStore(value, assignee);
-            return value;
-
-        }
-
-
-        auto left_val = left_operand->llvm_value(vars);
-        auto right_val = right_operand->llvm_value(vars);
-        auto op = get_op(left_val, right_val);
-        return cast(op, expected_type);
+        return internal_intrinsic->llvm_value(vars, expected_type);
     }
 
     std::vector<Statement *> flatten() {
         std::vector < Statement * > ret = {this};
-        for (auto m: left_operand->flatten())
-            ret.push_back(m);
-        for (auto m: right_operand->flatten())
-            ret.push_back(m);
+        for(auto n : internal_intrinsic->flatten())ret.push_back(n);
         return ret;
+    }
+
+    void normalize(){
+        Logger::debug("normalizing binop");
+        auto ret_ty = this->type();
+        auto rel = internal_intrinsic->args.release();
+        auto left = std::unique_ptr<Expr>(rel[0]);
+        auto right = std::unique_ptr<Expr>(rel[1]);
+
+
+        // Implicitly `as` both operands, then write back to the intrinsic
+
+        auto left_cast = std::make_unique<ExplicitCast>();
+        auto right_cast = std::make_unique<ExplicitCast>();
+
+        left_cast->value = std::move(left);
+        left_cast->cast_to = ret_ty;
+
+        right_cast->value = std::move(right);
+        right_cast->cast_to = ret_ty;
+
+        Vec<Expr> new_args;
+        new_args.push(std::unique_ptr<Expr>(left_cast.release()));
+        new_args.push(std::unique_ptr<Expr>(right_cast.release()));
+
+        internal_intrinsic->args = std::move(new_args);
     }
 
 private:
@@ -244,68 +263,9 @@ private:
 #undef r
         }
     }
-
-    LLVMValue get_op(LLVMValue l, LLVMValue r) {
-        auto mutual_type = get_common_type(l.type, r.type);
-        auto left = cast(l, mutual_type);
-        auto right = cast(r, mutual_type);
-        auto bool_ty = Primitive::get(PR_boolean)->llvm_type();
-        #define X(myop, opname, resultant_type)                            \
-            case BIN_##myop:                                               \
-                return {builder()->Create##opname(left, right), resultant_type};
-
-        switch (op_type) {
-            X(plus,         Add,         mutual_type)
-            X(minus,        Sub,         mutual_type)
-            X(star,         Mul,         mutual_type)
-            X(slash,        SDiv,        mutual_type)
-            X(percent,      SRem,        mutual_type)
-            X(lesser,       ICmpSLT,     bool_ty)
-            X(greater,      ICmpSGT,     bool_ty)
-            X(lesser_eq,    ICmpSLE,     bool_ty)
-            X(greater_eq,   ICmpSGE,     bool_ty)
-            X(not_equals,   ICmpNE,      bool_ty)
-            X(equals,       ICmpEQ,      bool_ty)
-            X(bitwise_or,   Or,          mutual_type)
-            X(bitwise_and,  And,         mutual_type)
-            X(bitwise_shl,  Shl,         mutual_type)
-            X(bitwise_shr,  AShr,        mutual_type)
-            X(bitwise_xor,  Xor,         mutual_type)
-            X(bool_and,     LogicalAnd, mutual_type)
-            X(bool_or,      LogicalOr,  mutual_type)
-            case BIN_dot: except(E_INTERNAL, "Unreachable code path detected");
-            case BIN_assignment: except(E_INTERNAL, "Unreachable code path detected");
-        }
-        #undef X
-    }
-
 protected:
     std::shared_ptr <Type> get_type() {
-        auto boo = Primitive::get(PR_boolean);
-        switch (op_type) {
-            case BIN_bool_and:
-            case BIN_bool_or:
-            case BIN_greater:
-            case BIN_greater_eq:
-            case BIN_equals:
-            case BIN_not_equals:
-            case BIN_lesser:
-            case BIN_lesser_eq:return boo;
-
-            case BIN_plus:
-            case BIN_minus:
-            case BIN_star:
-            case BIN_slash:
-            case BIN_percent:
-            case BIN_bitwise_or:
-            case BIN_bitwise_and:
-            case BIN_bitwise_shl:
-            case BIN_bitwise_shr:
-            case BIN_bitwise_xor:return left_operand->type();
-            case BIN_assignment:return right_operand->type();
-
-            default:except(E_INTERNAL, "Failed to get type for op: " + std::to_string(op_type));
-        }
+        return this->internal_intrinsic->type();
     }
 };
 

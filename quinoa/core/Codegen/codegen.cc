@@ -77,7 +77,6 @@ llvm::GlobalValue *make_global(
 	llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage
 	)
 {
-	Logger::debug("Create global " + prop->name->str());
 	auto type = prop->type->llvm_type();
 	llvm::Constant *const_initializer = nullptr;
 	if (prop->initializer) const_initializer = prop->initializer->const_value(type);
@@ -157,7 +156,6 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 
 void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, bool with_generic = true){
     if(!fn)except(E_INTERNAL, "(bug) no function");
-    Logger::debug("Generate Function: " + fn->source_name());
     if(fn->generic_params.size() && fn->generate_usages.len() == 0)return;
     if(fn->generate_usages.len() && with_generic){
         for(auto impl : fn->generate_usages){
@@ -178,14 +176,9 @@ void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, boo
 
     builder()->SetInsertPoint(entry_block);
     auto vars = generate_variable_table(ll_fn, ast, fn);
-    for(auto pair : vars){
-        Logger::debug(pair.first + " -> " + pair.second.type->str());
-    }
-    Logger::debug("generate content");
     fn->content->generate(fn, ll_fn, vars, {});
     if (ll_fn->getReturnType()->isVoidTy())
         builder()->CreateRetVoid();
-    Logger::debug("Generated");
 }
 std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &ast)
 {
@@ -220,7 +213,6 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 	// Generate all the modules, and link them into the root module
 	for(auto container : ast.get_containers()){
         if(container->type != CT_MODULE)continue;
-        Logger::debug("Generate Module: " + container->full_name().str());
         auto generated_mod = generate_module(*container, ast);
         llvm::Linker::linkModules(*rootmod, std::move(generated_mod));
 	}

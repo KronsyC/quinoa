@@ -10,7 +10,6 @@ void attempt_resolve_typeref(TypeRef &ref, Container *container) {
     auto locally_defined_type = container->get_type(ref.name->str());
     if (locally_defined_type) {
         ref.resolves_to = locally_defined_type;
-        Logger::debug("Resolved locally as: " + ref.resolves_to->str());
         return;
     }
 
@@ -18,14 +17,12 @@ void attempt_resolve_typeref(TypeRef &ref, Container *container) {
     for (auto type: container->parent->get_types()) {
         if (type->name->str() == ref.name->str()) {
             ref.resolves_to = type->refers_to;
-            Logger::debug("Resolved remotely as: " + ref.resolves_to->str());
             return;
         }
     }
 }
 
 void attempt_resolve_typeref(TypeRef &ref, Method *method) {
-    Logger::debug("Resolving ref: " + ref.name->str());
 
     for (auto generic: method->generic_params) {
         if (generic->name->str() == ref.name->str()) {

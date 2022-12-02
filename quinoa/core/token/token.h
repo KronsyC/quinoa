@@ -59,4 +59,12 @@ public:
     {
 	return "[" + std::to_string(line) + ":" + std::to_string(col + value.size()) + "]";
     }
+
+
+    bool is_intrinsic(){
+        for(auto d : defs){
+            if(!d->intrinsic.empty())return true;
+        }
+        return false;
+    }
 };

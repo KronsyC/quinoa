@@ -55,3 +55,6 @@ std::string ContainerRef::str(){
     if(this->refers_to)return refers_to->full_name().str();
     else return this->name->str();
 }
+bool LLVMType::operator==(LLVMType& other) const{
+    return other.qn_type->drill() == qn_type->drill();
+}

@@ -326,7 +326,6 @@ public:
 
         // ensure that all members are explicitly initialized
         for (auto [name, _]: type->members) {
-            Logger::debug("Member: " + name);
             auto &lookup = initializers[name];
             if (!lookup)
                 except(E_BAD_ASSIGNMENT,
@@ -379,7 +378,6 @@ public:
 
         auto idx = index->llvm_value(vars, Primitive::get(PR_uint64)->llvm_type());
 
-        Logger::debug("SUBSCRIPT: " + tgt_ty->str());
         auto ptr_to_element = LLVMType(Ptr::get(target->type()->pointee()));
 
         auto zero = Integer::get(0)->const_value(index->type()->llvm_type());

@@ -124,6 +124,24 @@ public:
         return this->kind == kind;
     }
 
+    bool is_signed_integer(){
+        return is(PR_int8) || is(PR_int16) || is(PR_int32) || is(PR_int64);
+    }
+    bool is_unsigned_integer(){
+        return is(PR_uint8) || is(PR_uint16) || is(PR_uint32) || is(PR_uint64);
+    }
+    bool is_integer(){
+        return is_signed_integer() || is_unsigned_integer();
+    }
+
+    bool is_bool(){
+        return is(PR_boolean);
+    }
+
+    bool is_float(){
+        return is(PR_float16) || is(PR_float32) || is(PR_float64);
+    }
+
     int distance_from(Type &target) {
         auto prim = target.get<Primitive>();
         if (!prim)return -1;

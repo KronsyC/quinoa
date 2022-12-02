@@ -158,7 +158,6 @@ public:
 
 protected:
     std::shared_ptr <Type> get_type() {
-        Logger::debug("get_type for integer: " + std::to_string(value));
         if(value < 0){
 #define X(i)((long long)-(maxVal(i) >> 2))
             if (value >= X(8))

@@ -151,11 +151,6 @@ LLVMValue cast(LLVMValue val, LLVMType type)
 
     try{
         auto result = std::get<LLVMValue>(cast_result);
-        if(type && val.type != type){
-            Logger::debug("-- $$$ Implicit Casting " + val.type.qn_type->str() + " -- to -- " + type.qn_type->str());
-            val.print();
-            result.print();
-        }
 
         return result;
     }

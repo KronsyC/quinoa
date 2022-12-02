@@ -6,6 +6,7 @@
 #include "../AST/symbol_operators.hh"
 #include "../AST/advanced_operators.hh"
 #include "../AST/control_flow.hh"
+#include "../AST/intrinsic.hh"
 
 template <typename T, typename U = Statement>
 inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
@@ -97,7 +98,6 @@ std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks)
 }
 
 std::unique_ptr<ConstantValue> parse_const(Token tok){
-    Logger::debug("Const: " + tok.value);
     switch (tok.type)
     {
         case TT_literal_int:
@@ -428,7 +428,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             else if(toks[0].is(TT_l_brace)){
                 // Struct initialization block
 
-                Logger::debug("struct of type: " + member_ref->str());
                 auto init_block = read_block(toks, IND_braces);
                 auto si = std::make_unique<StructInitialization>(std::move(member_ref));
                 if(!init_block.empty()){
@@ -508,7 +507,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
     if (splitPoint == -1 || splitPoint == 0 || splitPoint == (long long)toks.size() - 1)
     {
 
-        // Construct prefix ops
+        // Construct prefix operations info
         std::vector<TokenType> prefix_ops;
         std::vector<TokenType> postfix_ops;
         for (auto def : defs)
@@ -519,6 +518,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 postfix_ops.push_back(def->ttype);
         }
 
+        // Handle Prefix operators
         if (includes(prefix_ops, toks[0].type))
         {
             auto op = popf(toks);
@@ -528,6 +528,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             uo->scope = parent;
             return uo;
         }
+        // Handle postfix operators
         else if (includes(postfix_ops, toks[toks.size() - 1].type))
         {
             auto op = toks[toks.size() - 1];
@@ -538,7 +539,30 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             uo->scope = parent;
             return uo;
         }
+        else if(toks[0].is_intrinsic()){
+            auto intrinsic_type = intrinsic_mappings[popf(toks).value];
 
+            std::vector<std::shared_ptr<Type>> type_args;
+            if(toks[0].is(TT_l_generic)){
+                auto type_args_toks = read_block(toks, IND_generics);
+                auto type_args_entries = parse_cst(type_args_toks);
+            }
+            expects(toks[0], TT_l_paren);
+
+            auto params_toks = read_block(toks, IND_parens);
+            auto params_entries = parse_cst(params_toks);
+
+            Vec<Expr> params;
+            for(auto e : params_entries){
+                auto param = parse_expr(e, parent);
+                params.push(std::move(param));
+            }
+
+            assert(toks.size() == 0);
+
+            return Intrinsic<intr_mul>::create(intrinsic_type, std::move(params), type_args);
+
+        }
 
 
         print_toks(toks);

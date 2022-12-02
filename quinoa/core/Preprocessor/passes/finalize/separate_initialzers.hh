@@ -20,7 +20,7 @@ void split_initializers(CompilationUnit &unit) {
                             std::make_unique<SourceVariable>(init->var_name), std::move(init->initializer),
                             BIN_assignment);
                     assignment->scope = init->scope;
-                    assignment->initializes = true;
+                    assignment->set_initializing();
                     int idx = init->scope->content.indexof(init);
                     if (idx == -1)error("Failed to get index of " + init->str());
                     // push the assignment into the context

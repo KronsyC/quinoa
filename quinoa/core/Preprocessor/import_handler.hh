@@ -42,7 +42,6 @@ void add_prefixes(CompilationUnit &unit, std::string str_prefix) {
 
 void resolve_aliased_symbols(CompilationUnit &unit, LongName &alias, LongName &replace_with, bool change_state = true) {
 
-    Logger::debug("Switch out " + alias.str() + " for " + replace_with.str());
     for (auto fn: unit.get_methods()) {
         if (!fn->content || fn->aliases_resolved)continue;
 
@@ -73,13 +72,11 @@ ExportTable generate_export_table(CompilationUnit &unit) {
 static std::map <std::string, ExportTable> all_exports;
 
 CompilationUnit *construct_ast_from_path(std::string path) {
-    Logger::debug("Construct ast: " + path);
     static std::map <std::string, std::unique_ptr<CompilationUnit>> import_cache;
 
     auto &cached = import_cache[path];
 
     if (!cached) {
-        Logger::debug("Cache miss");
         auto file_content = read_file(path);
         auto imported_ast = make_ast(file_content, path, false);
         cached = std::move(imported_ast);

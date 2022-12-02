@@ -9,7 +9,6 @@ LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
     auto q2 = t2.qn_type;
 
     if(q1->get<Primitive>() && q2->get<Primitive>()){
-        Logger::debug("primitives");
         auto p1 = q1->get<Primitive>();
         auto p2 = q2->get<Primitive>();
 

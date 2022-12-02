@@ -17,6 +17,7 @@ void error(std::string reason, bool trace = false);
     X(BAD_CONTROL_FLOW)    \
     X(BAD_COMPOSITOR)      \
     X(BAD_INDEX)           \
+    X(BAD_INTRINSIC_CALL)  \
     X(BAD_METADATA)        \
     X(BAD_VAR)             \
     X(BAD_RETURN)          \

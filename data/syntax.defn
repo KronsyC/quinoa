@@ -404,19 +404,19 @@ intr_get_member
 
 
 @intrinsic 2 0
-@alias @cmp_lesser
+@alias @cmp_lt
 intr_cmp_lesser
 
 @intrinsic 2 0
-@alias @cmp_greater
+@alias @cmp_gt
 intr_cmp_greater
 
 @intrinsic 2 0
-@alias @cmp_lesser_eq
+@alias @cmp_lte
 intr_cmp_lesser_eq
 
 @intrinsic 2 0
-@alias @cmp_greater_eq
+@alias @cmp_gte
 intr_cmp_greater_eq
 
 @intrinsic 2 0
@@ -429,7 +429,7 @@ intr_cmp_eq
 
 @intrinsic 2 0
 @alias @cmp_neq
-intr_neq
+intr_cmp_neq
 
 @intrinsic 2 0
 @alias @bitwise_and
@@ -474,20 +474,28 @@ intr_dereference
 intr_negate
 
 @intrinsic 1 0
-@alias @add_one
+@alias @inc
 intr_add_one
 
 @intrinsic 1 0
-@alias @sub_one
+@alias @dec
 intr_sub_one
 
 
 # Utility Intrinsics
+
+# Get the size of a type (in bytes)
 @intrinsic 0 1
 @alias @size_of
 intr_size_of
 
-
+# Creates a slice with the specified element type, element pointer, and length
+# Useful for raw memory simplification
 @intrinsic 2 1
 @alias @make_slice
 intr_make_slice
+
+# Subscript (pointer, idx, max_idx?)
+@intrinsic 2 0
+@alias @subscript
+intr_subscript

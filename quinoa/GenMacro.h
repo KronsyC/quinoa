@@ -131,13 +131,13 @@
 	new TokenDefinition(TT_intr_bool_or, "intr_bool_or", {"@bool_or"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bool_and, "intr_bool_and", {"@bool_and"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_get_member, "intr_get_member", {"@member"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_cmp_lesser, "intr_cmp_lesser", {"@cmp_lesser"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_cmp_greater, "intr_cmp_greater", {"@cmp_greater"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_cmp_lesser_eq, "intr_cmp_lesser_eq", {"@cmp_lesser_eq"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_cmp_greater_eq, "intr_cmp_greater_eq", {"@cmp_greater_eq"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_cmp_lesser, "intr_cmp_lesser", {"@cmp_lt"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_cmp_greater, "intr_cmp_greater", {"@cmp_gt"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_cmp_lesser_eq, "intr_cmp_lesser_eq", {"@cmp_lte"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_cmp_greater_eq, "intr_cmp_greater_eq", {"@cmp_gte"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_assign, "intr_assign", {"@assign"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_cmp_eq, "intr_cmp_eq", {"@cmp_eq"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_neq, "intr_neq", {"@cmp_neq"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_cmp_neq, "intr_cmp_neq", {"@cmp_neq"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_and, "intr_bitwise_and", {"@bitwise_and"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_or, "intr_bitwise_or", {"@bitwise_or"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_xor, "intr_bitwise_xor", {"@bitwise_xor"}, "", false, false, 0, false, false, {2, 0}),\
@@ -148,10 +148,11 @@
 	new TokenDefinition(TT_intr_pointer_to, "intr_pointer_to", {"@pointer_to"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_dereference, "intr_dereference", {"@deref"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_negate, "intr_negate", {"@negate"}, "", false, false, 0, false, false, {1, 0}),\
-	new TokenDefinition(TT_intr_add_one, "intr_add_one", {"@add_one"}, "", false, false, 0, false, false, {1, 0}),\
-	new TokenDefinition(TT_intr_sub_one, "intr_sub_one", {"@sub_one"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_add_one, "intr_add_one", {"@inc"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_sub_one, "intr_sub_one", {"@dec"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_size_of, "intr_size_of", {"@size_of"}, "", false, false, 0, false, false, {0, 1}),\
 	new TokenDefinition(TT_intr_make_slice, "intr_make_slice", {"@make_slice"}, "", false, false, 0, false, false, {2, 1}),\
+	new TokenDefinition(TT_intr_subscript, "intr_subscript", {"@subscript"}, "", false, false, 0, false, false, {2, 0}),\
 	
 
 #define DEFINITIONS_ENUM_MEMBERS \
@@ -260,7 +261,7 @@
 	TT_intr_cmp_greater_eq,\
 	TT_intr_assign,\
 	TT_intr_cmp_eq,\
-	TT_intr_neq,\
+	TT_intr_cmp_neq,\
 	TT_intr_bitwise_and,\
 	TT_intr_bitwise_or,\
 	TT_intr_bitwise_xor,\
@@ -275,6 +276,7 @@
 	TT_intr_sub_one,\
 	TT_intr_size_of,\
 	TT_intr_make_slice,\
+	TT_intr_subscript,\
 	
 
 #define INDENTATION_TYPES \
@@ -447,7 +449,7 @@
 	intr_cmp_greater_eq,\
 	intr_assign,\
 	intr_cmp_eq,\
-	intr_neq,\
+	intr_cmp_neq,\
 	intr_bitwise_and,\
 	intr_bitwise_or,\
 	intr_bitwise_xor,\
@@ -462,6 +464,7 @@
 	intr_sub_one,\
 	intr_size_of,\
 	intr_make_slice,\
+	intr_subscript,\
 	
 
 #define INTRINSICS_ENUM_NAMES \
@@ -473,13 +476,13 @@
 	{ intr_bool_or, "@bool_or"},\
 	{ intr_bool_and, "@bool_and"},\
 	{ intr_get_member, "@member"},\
-	{ intr_cmp_lesser, "@cmp_lesser"},\
-	{ intr_cmp_greater, "@cmp_greater"},\
-	{ intr_cmp_lesser_eq, "@cmp_lesser_eq"},\
-	{ intr_cmp_greater_eq, "@cmp_greater_eq"},\
+	{ intr_cmp_lesser, "@cmp_lt"},\
+	{ intr_cmp_greater, "@cmp_gt"},\
+	{ intr_cmp_lesser_eq, "@cmp_lte"},\
+	{ intr_cmp_greater_eq, "@cmp_gte"},\
 	{ intr_assign, "@assign"},\
 	{ intr_cmp_eq, "@cmp_eq"},\
-	{ intr_neq, "@cmp_neq"},\
+	{ intr_cmp_neq, "@cmp_neq"},\
 	{ intr_bitwise_and, "@bitwise_and"},\
 	{ intr_bitwise_or, "@bitwise_or"},\
 	{ intr_bitwise_xor, "@bitwise_xor"},\
@@ -490,10 +493,11 @@
 	{ intr_pointer_to, "@pointer_to"},\
 	{ intr_dereference, "@deref"},\
 	{ intr_negate, "@negate"},\
-	{ intr_add_one, "@add_one"},\
-	{ intr_sub_one, "@sub_one"},\
+	{ intr_add_one, "@inc"},\
+	{ intr_sub_one, "@dec"},\
 	{ intr_size_of, "@size_of"},\
 	{ intr_make_slice, "@make_slice"},\
+	{ intr_subscript, "@subscript"},\
 	
 
 #define INTRINSICS_ENUM_MAPPINGS \
@@ -505,13 +509,13 @@
 	{ "@bool_or", intr_bool_or},\
 	{ "@bool_and", intr_bool_and},\
 	{ "@member", intr_get_member},\
-	{ "@cmp_lesser", intr_cmp_lesser},\
-	{ "@cmp_greater", intr_cmp_greater},\
-	{ "@cmp_lesser_eq", intr_cmp_lesser_eq},\
-	{ "@cmp_greater_eq", intr_cmp_greater_eq},\
+	{ "@cmp_lt", intr_cmp_lesser},\
+	{ "@cmp_gt", intr_cmp_greater},\
+	{ "@cmp_lte", intr_cmp_lesser_eq},\
+	{ "@cmp_gte", intr_cmp_greater_eq},\
 	{ "@assign", intr_assign},\
 	{ "@cmp_eq", intr_cmp_eq},\
-	{ "@cmp_neq", intr_neq},\
+	{ "@cmp_neq", intr_cmp_neq},\
 	{ "@bitwise_and", intr_bitwise_and},\
 	{ "@bitwise_or", intr_bitwise_or},\
 	{ "@bitwise_xor", intr_bitwise_xor},\
@@ -522,9 +526,10 @@
 	{ "@pointer_to", intr_pointer_to},\
 	{ "@deref", intr_dereference},\
 	{ "@negate", intr_negate},\
-	{ "@add_one", intr_add_one},\
-	{ "@sub_one", intr_sub_one},\
+	{ "@inc", intr_add_one},\
+	{ "@dec", intr_sub_one},\
 	{ "@size_of", intr_size_of},\
 	{ "@make_slice", intr_make_slice},\
+	{ "@subscript", intr_subscript},\
 	
 
