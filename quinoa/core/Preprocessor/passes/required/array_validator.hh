@@ -28,7 +28,7 @@ void validate_array_literals(CompilationUnit &unit) {
                 if(!arr_ty)except(E_BAD_ASSIGNMENT, "Array literals may only be assigned to a variable with an array type");
 
                 auto my_len = literal->members.len();
-                auto arr_len = arr_ty->size->value;
+                unsigned long arr_len = arr_ty->size->value;
 
                 if(my_len < arr_len)
                     except(E_BAD_ARRAY_LEN,

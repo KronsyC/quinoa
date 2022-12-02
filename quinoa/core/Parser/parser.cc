@@ -3,10 +3,7 @@
 #include "../Lexer/lexer.h"
 #include "./parser_utils.hh"
 #include "./parser.h"
-#include "../AST/symbol_operators.hh"
-#include "../AST/advanced_operators.hh"
-#include "../AST/control_flow.hh"
-#include "../AST/intrinsic.hh"
+
 
 template <typename T, typename U = Statement>
 inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
@@ -24,7 +21,7 @@ std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
     auto name = std::make_unique<LongName>();
 
     bool expects_split = false;
-    while (toks.size())
+    while (!toks.empty())
     {
         auto current = toks[0];
         if (expects_split)
@@ -106,8 +103,9 @@ std::unique_ptr<ConstantValue> parse_const(Token tok){
             return String::get(tok.value);
         case TT_literal_false:return Boolean::get(false);
         case TT_literal_true:return Boolean::get(true);
+        case TT_literal_float: return Float::get(std::stold(tok.value));
         default:
-            except(E_BAD_EXPRESSION, "Failed to generate literal for '" + tok.value + "'");
+            except(E_BAD_EXPRESSION, "Failed to generate literal for '" + tok.value + "' with an id of: "+ std::to_string(tok.type));
     }
 }
 

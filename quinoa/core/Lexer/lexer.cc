@@ -171,12 +171,18 @@ Token readNextToken(string& str)
     if(isNumber(str[0]) || (str.size() >= 2 && (str[0] == '-' && isNumber(str[1])))){
         std::string constructedNumber;
         if(str[0] == '-')constructedNumber+= popf(str);
-        while(isNumber(str[0])) {
+        bool has_encountered_decimal = false;
+        while(isNumber(str[0]) || str[0] == '.') {
+            if(str[0] == '.'){
+                if(has_encountered_decimal)except(E_UNEXPECTED_DECIMAL, "An unexpected decimal place has been encountered (i.e  123.456.7 < )");
+                has_encountered_decimal = true;
+            }
             constructedNumber += str[0];
+
             popf(str);
         }
         col += constructedNumber.size();
-        return make(TT_literal_int, constructedNumber);
+        return make(has_encountered_decimal ? TT_literal_float : TT_literal_int, constructedNumber);
     }
 
     static auto aliases = get_aliases();

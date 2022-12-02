@@ -229,7 +229,7 @@ MACRO_KVP = {
     "INTRINSICS_ENUM_NAMES" : intrinsics_enum_names,
     "INTRINSICS_ENUM_MAPPINGS" : intrinsics_enum_mappings,
 }
-CONTENTS = ""
+CONTENTS = "#pragma once\n\n"
 
 for entry in MACRO_KVP.keys():
     e = MACRO_KVP[entry].replace("\n", "\\\n\t")

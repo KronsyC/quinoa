@@ -1,7 +1,7 @@
 ############################
 ## This file defines the tokens and other related
 ## things about the quinoa programming language
-## Desgined to be ran by the custom generator
+## Designed to be ran by the custom generator
 ##
 ## To update the definitions used by the program
 ## run `./scripts/generateTokenDefinitions.py`

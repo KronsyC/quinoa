@@ -127,7 +127,7 @@ private:
             if(!entry->alias.empty() && entry->alias[0] == name){
 
                 std::size_t arg_count = entry->intrinsic[0];
-                auto type_arg_count = entry->intrinsic[1];
+                std::size_t type_arg_count = entry->intrinsic[1];
 
                 if(args.len() != arg_count){
                     except(

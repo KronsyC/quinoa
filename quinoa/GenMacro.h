@@ -1,3 +1,5 @@
+#pragma once
+
 #define DEFINITIONS_STR \
 	std::vector<std::string> alias = {};\
 	std::string type = "";\

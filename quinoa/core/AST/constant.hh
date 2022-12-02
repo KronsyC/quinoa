@@ -198,3 +198,32 @@ private:
         return ((long long) 1 << bits) - 1;
     }
 };
+
+
+class Float : public Constant<long double, Float> {
+public:
+    using Constant::Constant;
+
+    std::string str() {
+        return std::to_string(value);
+    }
+
+    llvm::Constant *const_value(LLVMType expected) {
+
+        if(!expected->isFloatingPointTy())except(E_ERR, "Cannot create a float with a non-float type");
+        auto val = llvm::ConstantFP::get(expected, value);
+        return val;
+
+    }
+
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected) {
+        if(!expected.qn_type)expected = this->type();
+        return {const_value(expected), expected};
+    }
+
+protected:
+    std::shared_ptr<Type> get_type() {
+        return Primitive::get(PR_float64);
+    }
+
+};
