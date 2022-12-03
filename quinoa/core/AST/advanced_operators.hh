@@ -275,10 +275,48 @@ public:
     }
 
     LLVMValue assign_ptr(VariableTable &vars) {
+
+
         except(E_BAD_ASSIGNMENT, "Cannot assign a value to an explicitly casted value");
     }
 };
 
+// Similar to the ExplicitCast instruction
+// but can only be used internally
+
+class ImplicitCast : public Expr {
+public:
+    std::unique_ptr <Expr> value;
+    std::shared_ptr <Type> cast_to;
+
+    std::vector<Statement *> flatten() {
+        std::vector < Statement * > ret = {this};
+        for (auto m: value->flatten())ret.push_back(m);
+        return ret;
+    }
+    ImplicitCast(std::unique_ptr<Expr> val, std::shared_ptr<Type> cast_to){
+        this->value = std::move(val);
+        this->cast_to = cast_to;
+        this->scope = this->value->scope;
+    }
+    LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+        return cast(cast(value->llvm_value(vars), cast_to), expected_type);
+    }
+
+    std::string str() {
+        return value->str() + " => " + cast_to->str();
+    }
+
+    std::shared_ptr <Type> get_type() {
+        return cast_to;
+    }
+
+    LLVMValue assign_ptr(VariableTable &vars) {
+
+
+        except(E_BAD_ASSIGNMENT, "Cannot assign a value to an implicitly casted value");
+    }
+};
 class StructInitialization : public AllocatingExpr {
 public:
     std::map <std::string, std::unique_ptr<Expr>> initializers;

@@ -50,7 +50,6 @@ void process_required(CompilationUnit *unit) {
     }
     Logger::clearQueue();
     Logger::enqueueMode(false);
-    normalize_types(*unit);
     build_type_table(*unit);
     validate_array_literals(*unit);
     check_types(*unit);

@@ -210,32 +210,72 @@ public:
     }
 
     void normalize(){
-        Logger::debug("normalizing binop");
-        auto ret_ty = this->type();
+        Logger::debug("normalizing binop: " + this->str());
         auto rel = internal_intrinsic->args.release();
         auto left = std::unique_ptr<Expr>(rel[0]);
         auto right = std::unique_ptr<Expr>(rel[1]);
 
+        left->scope = this->scope;
+        right->scope = this->scope;
 
-        // Implicitly `as` both operands, then write back to the intrinsic
+        // special casting rules for assignment
+        if(this->op_type == BIN_assignment){
+            auto var_ty = left->type();
+            auto val_ty = right->type();
 
-        auto left_cast = std::make_unique<ExplicitCast>();
-        auto right_cast = std::make_unique<ExplicitCast>();
+            // implicit cast the val_ty to the var_ty
+            right =  std::make_unique<ImplicitCast>(std::move(right), var_ty);
+            right->scope = this->scope;
 
-        left_cast->value = std::move(left);
-        left_cast->cast_to = ret_ty;
+        }
+        else{
+            auto casted_ty = get_operand_cast_type(left->type(), right->type());
+            // Implicitly cast both operands, then write back to the intrinsic
 
-        right_cast->value = std::move(right);
-        right_cast->cast_to = ret_ty;
+            left = std::make_unique<ImplicitCast>(std::move(left), casted_ty.qn_type);
+            right = std::make_unique<ImplicitCast>(std::move(right), casted_ty.qn_type);
+
+        }
 
         Vec<Expr> new_args;
-        new_args.push(std::unique_ptr<Expr>(left_cast.release()));
-        new_args.push(std::unique_ptr<Expr>(right_cast.release()));
+        new_args.push(std::unique_ptr<Expr>(left.release()));
+        new_args.push(std::unique_ptr<Expr>(right.release()));
 
         internal_intrinsic->args = std::move(new_args);
     }
 
 private:
+    LLVMType get_operand_cast_type(std::shared_ptr<Type> left, std::shared_ptr<Type> right){
+#define common return get_common_type(left->llvm_type(), right->llvm_type());
+#define boolean return Primitive::get(PR_boolean)->llvm_type();
+#define right_t  return right->llvm_type();
+        switch (op_type) {
+
+            case BIN_percent:common
+            case BIN_star:common
+            case BIN_plus:common
+            case BIN_minus:common
+            case BIN_bool_or:boolean
+            case BIN_bool_and:boolean
+            case BIN_dot:except(E_INTERNAL, "unreachable");
+            case BIN_slash:common
+            case BIN_lesser:boolean
+            case BIN_greater:boolean
+            case BIN_lesser_eq:boolean
+            case BIN_greater_eq:boolean
+            case BIN_assignment:right_t
+            case BIN_equals:boolean
+            case BIN_not_equals:boolean
+            case BIN_bitwise_and:common
+            case BIN_bitwise_or:common
+            case BIN_bitwise_xor:common
+            case BIN_bitwise_shl:common
+            case BIN_bitwise_shr:common
+        }
+#undef common
+#undef boolean
+#undef right_t
+    }
     std::string get_symbol_as_str() {
 #define r(x, y)case BIN_##x: return #y;
 

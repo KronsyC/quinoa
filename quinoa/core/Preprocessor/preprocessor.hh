@@ -14,12 +14,12 @@ namespace Preprocessor {
     void process_ast(CompilationUnit &unit, bool finalize) {
         apply_syntactic_sugar(unit);
         handle_imports(unit);
-        for (auto fn: unit.get_methods()) {
-            if (fn->content) {
-                Logger::debug("\nfunc " + fn->source_name() + "(){\n" + fn->content->str() + "\n}\n");
-            } else Logger::debug("\nfunc " + fn->source_name() + "();");
-
-        }
+//        for (auto fn: unit.get_methods()) {
+//            if (fn->content) {
+//                Logger::debug("\nfunc " + fn->source_name() + "(){\n" + fn->content->str() + "\n}\n");
+//            } else Logger::debug("\nfunc " + fn->source_name() + "();");
+//
+//        }
 //        except(E_INTERNAL, "early exit(test)");
 
         process_required(&unit);
