@@ -359,8 +359,15 @@ CodegenRule(intr_assign){
     return cast(llvm_value, expected);
 }
 
+MakesA(intr_size_of, Primitive::get(PR_uint64));
 CodegenRule(intr_size_of){
-    except(E_INTERNAL, "size_of not implemented");
+    auto type = this->type_args[0];
+    auto size = type->llvm_type()->getPrimitiveSizeInBits();
+    auto size_bytes = size / 8;
+
+    // if a type is less than 1 byte (booleans) round up to 1 as that is the size it will end up having
+    if(size_bytes == 0)size_bytes++;
+    return cast(LLVMValue(builder()->getInt64(size_bytes), this->type()), expected);
 }
 
 CodegenRule(intr_make_slice){

@@ -79,7 +79,7 @@ public:
         if(this->args.len() == 1)return args[0].type();
         else if(this->args.len() == 2)return args[0].type();
 
-        except(E_INTERNAL, "no default implementation for get_type; for intrinsic " + name);
+        except(E_INTERNAL, "no default implementation for get_type, for intrinsic " + name);
     }
     LLVMValue assign_ptr(VariableTable& vars){
         except(E_INTERNAL, "assign_ptr not implemented for intrinsics");
@@ -140,7 +140,7 @@ private:
                     except(
                             E_BAD_INTRINSIC_CALL,
                             "Bad type generic count for intrinsic function: '" + name + "'" \
-                            "\n\t\texpected: " + std::to_string(arg_count) + " generic args, but got: " + std::to_string(args.len())
+                            "\n\t\texpected: " + std::to_string(type_arg_count) + " generic args, but got: " + std::to_string(type_args.size())
                     );
                 }
                 return;

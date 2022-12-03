@@ -544,6 +544,11 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             if(toks[0].is(TT_l_generic)){
                 auto type_args_toks = read_block(toks, IND_generics);
                 auto type_args_entries = parse_cst(type_args_toks);
+
+                for(auto e : type_args_entries){
+                    auto type = parse_type(e);
+                    type_args.push_back(type);
+                }
             }
             expects(toks[0], TT_l_paren);
 
