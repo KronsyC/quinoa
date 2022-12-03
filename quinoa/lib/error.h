@@ -37,7 +37,8 @@ void error(std::string reason, bool trace = false);
     X(NO_ENTRYPOINT)       \
     X(MODULE_INHERITANCE)  \
     X(UNESCAPABLE)         \
-    X(UNEXPECTED_DECIMAL)                       \
+    X(UNEXPECTED_DECIMAL)  \
+    X(BAD_ESCAPE)          \
     X(UNREADABLE_CHAR)     \
     X(BAD_TYPE)            \
     X(BAD_EXPRESSION)      \

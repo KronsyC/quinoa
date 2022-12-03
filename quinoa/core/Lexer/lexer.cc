@@ -71,9 +71,61 @@ bool isSymbol(string str)
     }
     return true;
 }
+
+bool is_valid_octal_char(char c){
+    return c >= '0' && c < '8';
+}
+bool is_valid_hex_char(char c){
+    return (c >= '0' && c <= '9') || (c >= 'A' && c<= 'F');
+}
+int hex_to_int(char h){
+    if( h >= '0' && h <= '9')return h - '0';
+    else if(h >= 'A' && h <= 'F')return (h - 'A') + 10;
+    else except(E_INTERNAL, "bad hexadecimal character: " + std::string()+h);
+}
 string escapeNextVal(string& str)
 {
     auto first = popf(str);
+
+
+    if(first == 'u') {
+        // Unicode sequence parsing
+        except(E_INTERNAL, "unicode parser not implemented "  + str);
+    }
+    else if(first == 'x') {
+        // Hex parsing, expects a sequence of 2 valid chars
+        char codepoint = 0;
+        if(str.size() < 3)except(E_BAD_ESCAPE, "An octal requires at least 3 characters, but only " + std::to_string(str.size()) + " were found");
+
+        if(!is_valid_hex_char(str[0]))except(E_BAD_ESCAPE, "A hex must contain characters in the range 0-F (first character)");
+        if(!is_valid_hex_char(str[1]))except(E_BAD_ESCAPE, "A hex must contain characters in the range 0-F (second character)");
+
+        codepoint += hex_to_int(popf(str)) * 16;
+        codepoint += hex_to_int(popf(str)) * 1;
+
+        std::string str;
+        str.push_back(codepoint);
+        return str;
+    }
+    else if(first == 'o'){
+        // octal parsing, expects a sequence of 3 valid chars
+        char codepoint = 0;
+        if(str.size() < 3)except(E_BAD_ESCAPE, "An octal requires at least 3 characters, but only " + std::to_string(str.size()) + " were found");
+
+        if(!is_valid_octal_char(str[0]))except(E_BAD_ESCAPE, "An octal must contain characters in the range 0-8 (first character)");
+        if(!is_valid_octal_char(str[1]))except(E_BAD_ESCAPE, "An octal must contain characters in the range 0-8 (second character)");
+        if(!is_valid_octal_char(str[2]))except(E_BAD_ESCAPE, "An octal must contain characters in the range 0-8 (third character)");
+
+        codepoint += (popf(str) - '0') * 64;
+        codepoint += (popf(str) - '0') * 8;
+        codepoint += (popf(str) - '0') * 1;
+
+        std::string str;
+        str.push_back(codepoint);
+        return str;
+
+    }
+
 #define X(from, to)case from: return to
     switch(first) {
         X('"', "\"");
@@ -93,6 +145,7 @@ string escapeNextVal(string& str)
         X('5', "\5");
         X('6', "\6");
         X('7', "\7");
+        X('?', "\?");
     }
 #undef X
     except(E_UNESCAPABLE, "Failed To Escape string");

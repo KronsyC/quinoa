@@ -3,7 +3,7 @@ import @io;
 module Error is Exported{
 
     func panic(message : str){
-        io::print("panic: ");
+        io::print("\x1B[0;31mpanic: \x1B[0;0m");
         io::println(message);
     }
 
