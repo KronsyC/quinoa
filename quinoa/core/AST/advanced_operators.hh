@@ -106,7 +106,11 @@ public:
 protected:
     std::shared_ptr <Type> get_type() {
         if (!target)return std::shared_ptr<Type>(nullptr);
-        return target->return_type;
+
+        if (this->type_args.size())target->apply_generic_substitution(this->type_args);
+
+        // immediately drill in case it is swapped out (specifically for generics)
+        return target->return_type->drill()->self;
     }
 };
 

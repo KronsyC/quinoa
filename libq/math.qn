@@ -7,7 +7,7 @@ module Math is Exported{
 
         while(i < items.len){
 
-            accum = accum + (items[i]);
+            accum = accum + (items[i] as i64);
             i++;
         }
 

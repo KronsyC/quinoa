@@ -76,7 +76,12 @@ public:
         auto &last = parameters[parameters.len() - 1];
         return last.is_variadic;
     }
-
+    void apply_generic_substitution(std::vector<std::shared_ptr<Type>> types){
+        if(types.size() != generic_params.size())except(E_BAD_SUBSTITUTION, "Cannot substitute generics with mismatched counts");
+        for(unsigned int i = 0; i < types.size(); i++){
+            this->generic_params[i]->temporarily_resolves_to = types[i];
+        }
+    }
     // Get the parameter at a specific index
     // this method is smart and accounts for varargs
     // returns `nullptr` if there is no parameter at the given index

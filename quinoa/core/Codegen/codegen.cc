@@ -18,9 +18,7 @@ void make_fn(
         for(auto impl : f.generate_usages){
             Logger::debug("Found an impl for: " + f.name->str());
             if(impl->size() != f.generic_params.size())except(E_INTERNAL, "(bug) Number of implemented args does not match the number of expected args");
-            for(unsigned int i = 0; i<f.generic_params.size(); i++){
-                f.generic_params[i]->temporarily_resolves_to = impl->at(i);
-            }
+            f.apply_generic_substitution(*impl);
             // Generate
             make_fn(f, mod, llvm::Function::LinkageTypes::ExternalLinkage, false);
         }
@@ -159,9 +157,7 @@ void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, boo
     if(fn->generic_params.size() && fn->generate_usages.len() == 0)return;
     if(fn->generate_usages.len() && with_generic){
         for(auto impl : fn->generate_usages){
-            for(unsigned int i = 0; i < impl->size(); i++){
-                fn->generic_params[i]->temporarily_resolves_to = impl->at(i);
-            }
+            fn->apply_generic_substitution(*impl);
             generate_method(fn, ast, ll_mod, false);
         }
         return;

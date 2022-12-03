@@ -149,7 +149,6 @@ string escapeNextVal(string& str)
     }
 #undef X
     except(E_UNESCAPABLE, "Failed To Escape string");
-    return "";
 }
 bool compareLength(string s1, std::string s2)
 {

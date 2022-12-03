@@ -26,7 +26,9 @@ std::pair<bool, int> resolve_types(CompilationUnit &unit) {
             // Resolve implicitly-typed variables 'let x = 73'
             if (auto init = dynamic_cast<InitializeVar *>(code)) {
                 if (init->type)continue;
-                if (!init->initializer)continue;
+                if (!init->initializer){
+                    isGood = false;
+                }
                 init->type = init->initializer->type();
 
                 if (init->type) {
