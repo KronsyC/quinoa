@@ -197,19 +197,14 @@ public:
     LLVMValue assign_ptr(VariableTable &vars) {
         except(E_BAD_ASSIGNMENT, "Binary Operations are not assignable");
     }
-
+    bool has_normalized = false;
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        
-        return internal_intrinsic->llvm_value(vars, expected_type);
-    }
 
-    std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
-        for(auto n : internal_intrinsic->flatten())ret.push_back(n);
-        return ret;
-    }
+        // if it has already normalized
+        // assume it has been cast
+        // and unwrap the casts, before rewrapping
 
-    void normalize(){
+
         Logger::debug("normalizing binop: " + this->str());
         auto rel = internal_intrinsic->args.release();
         auto left = std::unique_ptr<Expr>(rel[0]);
@@ -222,14 +217,28 @@ public:
         if(this->op_type == BIN_assignment){
             auto var_ty = left->type();
             auto val_ty = right->type();
-
             // implicit cast the val_ty to the var_ty
-            right =  std::make_unique<ImplicitCast>(std::move(right), var_ty);
+            if(has_normalized){
+                static_cast<ImplicitCast*>(right.get())->cast_to = var_ty;
+            }
+            else{
+                right =  std::make_unique<ImplicitCast>(std::move(right), var_ty);
+
+            }
             right->scope = this->scope;
 
         }
         else{
             auto casted_ty = get_operand_cast_type(left->type(), right->type());
+
+            if(has_normalized){
+                static_cast<ImplicitCast*>(left.get())->cast_to = casted_ty.qn_type;
+                static_cast<ImplicitCast*>(right.get())->cast_to = casted_ty.qn_type;
+            }
+            else{
+
+            }
+
             // Implicitly cast both operands, then write back to the intrinsic
 
             left = std::make_unique<ImplicitCast>(std::move(left), casted_ty.qn_type);
@@ -242,7 +251,18 @@ public:
         new_args.push(std::unique_ptr<Expr>(right.release()));
 
         internal_intrinsic->args = std::move(new_args);
+        has_normalized = true;
+
+
+        return internal_intrinsic->llvm_value(vars, expected_type);
     }
+
+    std::vector<Statement *> flatten() {
+        std::vector < Statement * > ret = {this};
+        for(auto n : internal_intrinsic->flatten())ret.push_back(n);
+        return ret;
+    }
+
 
 private:
     LLVMType get_operand_cast_type(std::shared_ptr<Type> left, std::shared_ptr<Type> right){
@@ -259,13 +279,13 @@ private:
             case BIN_bool_and:boolean
             case BIN_dot:except(E_INTERNAL, "unreachable");
             case BIN_slash:common
-            case BIN_lesser:boolean
-            case BIN_greater:boolean
-            case BIN_lesser_eq:boolean
-            case BIN_greater_eq:boolean
+            case BIN_lesser:common
+            case BIN_greater:common
+            case BIN_lesser_eq:common
+            case BIN_greater_eq:common
             case BIN_assignment:right_t
-            case BIN_equals:boolean
-            case BIN_not_equals:boolean
+            case BIN_equals:common
+            case BIN_not_equals:common
             case BIN_bitwise_and:common
             case BIN_bitwise_or:common
             case BIN_bitwise_xor:common

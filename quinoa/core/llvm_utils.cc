@@ -125,6 +125,13 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
         }
     }
 
+    // pointer -> pointer, only allow when explicit
+    if(val_ty.qn_type->get<Ptr>() && to.qn_type->get<Ptr>()){
+        if(!is_explicit)return "Casting from a pointer to another pointer is an explicit operation (" + val_ty.qn_type->str() +" -> " + to.qn_type->str() + " )";
+
+        // simply bitcast
+        return LLVMValue{builder()->CreateBitCast(val, to), to};
+    }
 
     val.print();
     except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
@@ -155,7 +162,6 @@ LLVMValue cast(LLVMValue val, LLVMType type)
         return result;
     }
     catch(const std::bad_variant_access& ex){
-        val->print(llvm::outs());
         except(E_BAD_CAST, std::get<std::string>(cast_result));
     }
 }

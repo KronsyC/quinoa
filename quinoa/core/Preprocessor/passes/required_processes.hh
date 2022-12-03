@@ -12,7 +12,6 @@
 #include "./required/variable_usage_validator.hh"
 #include "./required/unreachable_code_warner.hh"
 #include "./required/type_ref_resolver.hh"
-#include "./required/type_normalizer.hh"
 
 void process_required(CompilationUnit *unit) {
     resolve_compositors(*unit);

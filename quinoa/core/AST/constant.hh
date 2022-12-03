@@ -11,7 +11,6 @@
 
 #include "./primary.hh"
 #include "./include.hh"
-#include "./type.hh"
 #include "./allocating_expr.hh"
 
 class ConstantValue : public Expr {

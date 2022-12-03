@@ -1,0 +1,10 @@
+import @io;
+
+module Error is Exported{
+
+    func panic(message : str){
+        io::print("panic: ");
+        io::println(message);
+    }
+
+}

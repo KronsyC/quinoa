@@ -5,6 +5,7 @@
  * i.e they never depend on inferrable data
 */
 #include "../include.h"
+#include "../../../AST/intrinsic.hh"
 
 void attempt_resolve_typeref(TypeRef &ref, Container *container) {
     auto locally_defined_type = container->get_type(ref.name->str());
@@ -88,6 +89,12 @@ void resolve_type_references(CompilationUnit &unit) {
 
             if (auto cast = dynamic_cast<ExplicitCast *>(code)) {
                 resolve_if_typeref(*cast->cast_to, method);
+            }
+
+            if(auto intr = dynamic_cast<_Intrinsic*>(code)){
+                for(auto arg : intr->type_args){
+                    resolve_if_typeref(*arg, method);
+                }
             }
         }
     }

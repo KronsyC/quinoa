@@ -138,12 +138,6 @@ public:
     virtual LLVMValue assign_ptr(VariableTable &vars) = 0;
 
 
-    //
-    // Normalize operands
-    // used primarily for intrinsic wrapping operations which need to be normalized
-    // after type resolution, but before code generation
-    //
-    virtual void normalize(){}
 protected:
     virtual std::shared_ptr <Type> get_type() = 0;
 

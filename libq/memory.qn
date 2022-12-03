@@ -1,18 +1,33 @@
+import @lang::internal::error as Err;
+import @io;
 module Memory is Exported{
 
     #[link_extern "malloc"]
-    func malloc(unit_size : u64, length : u64) -> byte*;
+    func malloc_unsafe(size : u64) -> byte*;
 
+    func malloc(unit_size : u64, length : u64) -> byte*{
+
+        let result = malloc_unsafe(unit_size * length);
+        if((result as u64) == 0){
+            Err::panic("Failed memory allocation");
+        }
+
+        return result;
+    }
 
     func alloc(<T>)() -> T*{
 
         return malloc( @size_of(<T>)(), 1) as T*;
     }
-    func alloc(<T>)(count : u64) -> T[]{
 
-        let ptr = malloc( @size_of(<T>)(), count ) as T*;
+    func alloc(<T>)(size : u64) -> T[]{
 
-        let slice = @make_slice(<T>)(ptr, count);
+        let allocation = malloc( @size_of(<T>)(), size ) as T*;
+
+
+        let slice = @make_slice(<T>)(allocation, size);
+
         return slice;
+
     }
 }

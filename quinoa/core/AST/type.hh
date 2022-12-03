@@ -234,7 +234,8 @@ private:
 class Ptr : public Type {
 protected:
     Type *drill() {
-        return this;
+        if(of->drill()->self == of)return this;
+        return Ptr::get(of->drill()->self).get();
     }
 
 public:
@@ -278,7 +279,7 @@ public:
         auto pt = target.get<Ptr>();
         if (!pt)
             return -1;
-        return this->of->distance_from(*pt->of);
+        return this->of->drill()->distance_from(*pt->of->drill());
     }
 
     llvm::Constant *default_value(LLVMType expected) {
@@ -342,7 +343,7 @@ public:
         auto pt = target.get<ReferenceType>();
         if (!pt)
             return -1;
-        return this->of->distance_from(*pt->of->drill());
+        return this->of->drill()->distance_from(*pt->of->drill());
     }
 
     llvm::Constant *default_value(LLVMType expected) {
@@ -700,7 +701,7 @@ public:
 
     llvm::Type *internal_llvm_type() {
         if (temporarily_resolves_to)return temporarily_resolves_to->internal_llvm_type();
-        else except(E_UNRESOLVED_TYPE, "Cannot get an llvm type for an unresolved generic");
+        else except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str());
     }
 
     std::unique_ptr <Name> name;
@@ -723,8 +724,7 @@ public:
         auto lt = target.get<Generic>();
         if (!lt)
             return -1;
-        return this->temporarily_resolves_to && (lt->temporarily_resolves_to == this->temporarily_resolves_to)
-               ? this->temporarily_resolves_to->distance_from(*lt) : -1;
+       return this == lt;
     }
 
     std::string str() {

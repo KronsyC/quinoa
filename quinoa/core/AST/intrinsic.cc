@@ -4,10 +4,11 @@
 
 // Override validation rules for scenarios such as optional args
 
+#define boolean Primitive::get(PR_boolean)
 
 #define MakesA(_for, _type)template<> std::shared_ptr<Type> Intrinsic<_for>::get_type(){return _type;}
 
-#define MakesBool(_for)MakesA(_for, Primitive::get(PR_boolean))
+#define MakesBool(_for)MakesA(_for, boolean)
 
 #define Impl(ret_type, _for) template<> ret_type Intrinsic<_for>
 
@@ -24,7 +25,7 @@
     CodegenRule(_for){          \
         LLVMValue left = this->args[0].llvm_value(vars); \
         LLVMValue right = this->args[1].llvm_value(vars);\
-        LLVMType op_type = left.type;                                             \
+        LLVMType op_type = this->type()->llvm_type();                                             \
         if(left.type != right.type)except(E_BAD_INTRINSIC_CALL, \
         "The operands of the intrinsic call: " + this->name + " must be of the same type" \
         "\n\t\tArguments were found to be of the types " + left.type.qn_type->str() + " and " + right.type.qn_type->str() + " respectively"                     \
@@ -37,8 +38,12 @@
     if(!left.type.qn_type->get<Primitive>())except(E_BAD_INTRINSIC_CALL, "Calls to " + name + " may only use primitive types"); \
     Primitive& prim_ty = *left.type.qn_type->get<Primitive>();
 
+
+
 #define Ret(val) \
     return cast(LLVMValue(val, op_type), expected);
+
+
 
 
 BinaryCodegenRule(intr_add, {
@@ -155,15 +160,18 @@ BinaryCodegenRule(intr_bool_or, {
         Ret(builder()->CreateLogicalOr(left, right))
 }, "You can only use @bool_or on booleans")
 
+MakesBool(intr_cmp_eq)
 BinaryCodegenRule(intr_cmp_eq, {
+    Logger::debug("icmpeq");
     BinaryAssertPrimitive;
-
+    Logger::debug("asssuc");
     if(prim_ty.is_integer())
         Ret(builder()->CreateICmpEQ(left, right))
     else if(prim_ty.is_float())
         Ret(builder()->CreateFCmpOEQ(left, right))
 }, "You can only use @cmp_eq on on float and integer operands")
 
+MakesBool(intr_cmp_neq)
 BinaryCodegenRule(intr_cmp_neq, {
     BinaryAssertPrimitive;
 
@@ -173,6 +181,7 @@ BinaryCodegenRule(intr_cmp_neq, {
         Ret(builder()->CreateFCmpONE(left, right))
 }, "You can only use @cmp_neq on on float and integer operands")
 
+MakesBool(intr_cmp_greater)
 BinaryCodegenRule(intr_cmp_greater, {
     BinaryAssertPrimitive;
 
@@ -184,6 +193,7 @@ BinaryCodegenRule(intr_cmp_greater, {
         Ret(builder()->CreateFCmpOGT(left, right))
 }, "You can only use @cmp_gt on on float and integer operands")
 
+MakesBool(intr_cmp_greater_eq)
 BinaryCodegenRule(intr_cmp_greater_eq, {
     BinaryAssertPrimitive;
 
@@ -195,6 +205,7 @@ BinaryCodegenRule(intr_cmp_greater_eq, {
         Ret(builder()->CreateFCmpOGE(left, right))
 }, "You can only use @cmp_gte on on float and integer operands")
 
+MakesBool(intr_cmp_lesser)
 BinaryCodegenRule(intr_cmp_lesser, {
     BinaryAssertPrimitive;
 
@@ -206,6 +217,7 @@ BinaryCodegenRule(intr_cmp_lesser, {
         Ret(builder()->CreateFCmpOLT(left, right))
 }, "You can only use @cmp_lt on on float and integer operands")
 
+MakesBool(intr_cmp_lesser_eq)
 BinaryCodegenRule(intr_cmp_lesser_eq, {
     BinaryAssertPrimitive;
 
@@ -370,8 +382,25 @@ CodegenRule(intr_size_of){
     return cast(LLVMValue(builder()->getInt64(size_bytes), this->type()), expected);
 }
 
+MakesA(intr_make_slice, DynListType::get(this->type_args[0]));
 CodegenRule(intr_make_slice){
-    except(E_INTERNAL, "make_slice not implemented");
+
+    auto internal_ptr  = this->args[0].llvm_value(vars, Ptr::get(this->type_args[0])->llvm_type());
+    auto element_count = this->args[1].llvm_value(vars, Primitive::get(PR_uint64)->llvm_type());
+
+    auto slice_ty = this->type();
+    auto slice_llty = slice_ty->llvm_type();
+    auto alloc = builder()->CreateAlloca(slice_llty);
+
+    auto len_ptr = builder()->CreateStructGEP(slice_llty, alloc, 0);
+    auto elements_ptr_raw = builder()->CreateStructGEP(slice_llty, alloc, 1);
+    auto elements_ptr = builder()->CreateBitCast(elements_ptr_raw, internal_ptr->getType()->getPointerTo());
+
+    builder()->CreateStore(element_count, len_ptr);
+    builder()->CreateStore(internal_ptr, elements_ptr);
+
+    auto load = builder()->CreateLoad(slice_llty, alloc);
+    return cast(LLVMValue(load, slice_ty), expected);
 }
 
 CodegenRule(intr_get_member){
