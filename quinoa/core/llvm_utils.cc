@@ -133,6 +133,21 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
         return LLVMValue{builder()->CreateBitCast(val, to), to};
     }
 
+    // int -> float, implicit is fine
+    if(isInt(val_ty) && to->isFloatTy()){
+        if(val_ty.is_signed()){
+            return LLVMValue{builder()->CreateSIToFP(val, to), to};
+        }
+        else return LLVMValue{builder()->CreateUIToFP(val, to), to};
+    }
+
+    // float -> int, explicit only
+    if(isInt(to) && val_ty.qn_type->get<Primitive>()){
+        if(!is_explicit)return "Casting from a float to an integer is an explicit operation";
+        if(to.is_signed())return LLVMValue{builder()->CreateFPToSI(val, to), to};
+        else return LLVMValue{builder()->CreateFPToUI(val, to), to};
+    }
+
     val.print();
     except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
 }
