@@ -2,9 +2,13 @@ import @io;
 
 module Error is Exported{
 
+    #[link_extern "exit"]
+    func exit(code : u8);
+
     func panic(message : str){
         io::print("\x1B[0;31mpanic: \x1B[0;0m");
         io::println(message);
+        exit(22);
     }
 
 }

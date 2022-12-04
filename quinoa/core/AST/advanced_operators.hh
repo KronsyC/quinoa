@@ -324,11 +324,10 @@ public:
 class StructInitialization : public AllocatingExpr {
 public:
     std::map <std::string, std::unique_ptr<Expr>> initializers;
-    std::unique_ptr <ContainerMemberRef> target;
-    std::shared_ptr <StructType> type;
+    std::shared_ptr<Type> type;
 
-    StructInitialization(std::unique_ptr <ContainerMemberRef> tgt) {
-        this->target = std::move(tgt);
+    StructInitialization(std::shared_ptr<Type> tgt) {
+        this->type = tgt;
     }
 
     std::vector<Statement *> flatten() {
@@ -338,41 +337,33 @@ public:
     }
 
     std::string str() {
-        std::string ret = target->str();
-        ret += "{\n";
-        bool first = true;
-        for (auto &init: initializers) {
-            if (!first)ret += ",\n";
-            ret += "\t" + init.first + " : " + init.second->str();
-            first = false;
-        }
-        ret += "\n}";
-        return ret;
+        except(E_INTERNAL, "str not impl for struct init");
     }
 
     void write_direct(LLVMValue alloc, VariableTable &vars, LLVMType expected_type = {}) {
-        if (!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
-        auto struct_ll_type = type->llvm_type();
-        for (auto &init: initializers) {
-            auto idx = type->member_idx(init.first);
-
-            if (idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
-
-            auto target_ty = type->members[init.first]->llvm_type();
-            Logger::debug("Cast " + init.second->type()->str() + " to " + target_ty.qn_type->str());
-            auto init_expr = init.second->llvm_value(vars, target_ty);
-
-            auto mem = builder()->CreateStructGEP(struct_ll_type, alloc, idx);
-            builder()->CreateStore(init_expr, mem);
-        }
-
-        // ensure that all members are explicitly initialized
-        for (auto [name, _]: type->members) {
-            auto &lookup = initializers[name];
-            if (!lookup)
-                except(E_BAD_ASSIGNMENT,
-                       "Initialization for struct '" + target->str() + "' is missing a member: '" + name + "'");
-        }
+    except(E_INTERNAL, "write_direct not impl for struct");
+//        if (!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
+//        auto struct_ll_type = type->llvm_type();
+//        for (auto &init: initializers) {
+//            auto idx = type->member_idx(init.first);
+//
+//            if (idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
+//
+//            auto target_ty = type->members[init.first]->llvm_type();
+//            Logger::debug("Cast " + init.second->type()->str() + " to " + target_ty.qn_type->str());
+//            auto init_expr = init.second->llvm_value(vars, target_ty);
+//
+//            auto mem = builder()->CreateStructGEP(struct_ll_type, alloc, idx);
+//            builder()->CreateStore(init_expr, mem);
+//        }
+//
+//        // ensure that all members are explicitly initialized
+//        for (auto [name, _]: type->members) {
+//            auto &lookup = initializers[name];
+//            if (!lookup)
+//                except(E_BAD_ASSIGNMENT,
+//                       "Initialization for struct '" + target->str() + "' is missing a member: '" + name + "'");
+//        }
 
     }
 

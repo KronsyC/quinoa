@@ -2,7 +2,7 @@
 
 #include "../include.h"
 #include "../../../AST/advanced_operators.hh"
-
+#include<optional>
 struct MatchRanking {
     Method *against = nullptr;
 
@@ -210,6 +210,7 @@ Method *get_best_target(MethodCall *call, CompilationUnit &unit) {
     std::vector <MatchRanking> ranks;
     for (auto method: methods) {
         auto rank = rank_method_against_call(method, call);
+        rank.print();
         ranks.push_back(rank);
     }
 
@@ -257,51 +258,43 @@ Method *get_best_target(MethodCallOnType *call, CompilationUnit &unit) {
     return best_method;
 }
 
-std::pair<bool, int> qualify_calls(Method &code, CompilationUnit &unit) {
-    int resolvedCount = 0;
-    bool success = true;
+proc_result qualify_calls(Method &code) {
+
+    std::vector<std::string> errors;
+    unsigned int res_count = 0;
     for (auto item: code.content->flatten()) {
+
         if (auto call = dynamic_cast<MethodCall *>(item)) {
+            // dont redo work
             if (call->target)continue;
-            auto best_fn = get_best_target(call, unit);
+
+            auto best_fn = get_best_target(call, *code.parent->parent);
+
             if (best_fn) {
                 call->target = best_fn;
-                resolvedCount++;
+                res_count++;
             } else {
-                Logger::error("Failed to resolve call " + call->str());
-                success = false;
+                errors.push_back("Failed to resolve function call: " + call->str());
             }
+            continue;
+
         }
-        if (auto inst_call = dynamic_cast<MethodCallOnType *>(item)) {
+        else if (auto inst_call = dynamic_cast<MethodCallOnType *>(item)) {
 
             if (inst_call->target)continue;
-            auto best_fn = get_best_target(inst_call, unit);
+            auto best_fn = get_best_target(inst_call, *code.parent->parent);
             if (best_fn) {
                 inst_call->target = best_fn;
-                resolvedCount++;
+                res_count++;
             } else {
-                Logger::error("Failed to resolve call " + inst_call->str());
-                success = false;
+                errors.push_back("Failed to resolve method call: " + inst_call->str());
             }
+            continue;
+
         }
     }
-    return {success, resolvedCount};
-}
-
-std::pair<bool, int> qualify_calls(CompilationUnit &unit) {
-
-    int count = 0;
-    bool success = true;
-    // Attempt to Qualify all Calls
-    for (auto method: unit.get_methods()) {
-
-        // skip out on signatures
-        if (!method->content)continue;
-
-
-        auto result = qualify_calls(*method, unit);
-        if (!result.first)success = false;
-        count += result.second;
+    if(errors.size()){
+        return {res_count, errors};
     }
-    return {success, count};
+    return {res_count, MaybeError()};
 }

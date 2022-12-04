@@ -78,7 +78,9 @@ llvm::GlobalValue *make_global(
 	auto type = prop->type->llvm_type();
 	llvm::Constant *const_initializer = nullptr;
 	if (prop->initializer) const_initializer = prop->initializer->const_value(type);
-	else const_initializer = prop->type->default_value(type);
+	else{
+        except(E_ERR, "Property " + prop->name->str() + " must have an initializer");
+    }
 	
 	auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->name->str());
 	return global;

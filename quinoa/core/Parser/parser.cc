@@ -425,24 +425,24 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             }
             else if(toks[0].is(TT_l_brace)){
                 // Struct initialization block
-
-                auto init_block = read_block(toks, IND_braces);
-                auto si = std::make_unique<StructInitialization>(std::move(member_ref));
-                if(!init_block.empty()){
-                    expects(init_block[init_block.size()-1], TT_semicolon);
-                    init_block.pop_back();
-
-                    auto prop_init_toks = parse_tst(init_block, TT_semicolon);
-                    for(auto init : prop_init_toks){
-                        auto prop_name = pope(init, TT_identifier).value;
-                        pope(init, TT_colon);
-                        auto prop_value = parse_expr(init, parent);
-
-                        si->initializers[prop_name] = std::move(prop_value);
-                    }
-                }
-
-                return si;
+                except(E_INTERNAL, "struct initializations are not implemented");
+//                auto init_block = read_block(toks, IND_braces);
+//                auto si = std::make_unique<StructInitialization>(std::move(member_ref));
+//                if(!init_block.empty()){
+//                    expects(init_block[init_block.size()-1], TT_semicolon);
+//                    init_block.pop_back();
+//
+//                    auto prop_init_toks = parse_tst(init_block, TT_semicolon);
+//                    for(auto init : prop_init_toks){
+//                        auto prop_name = pope(init, TT_identifier).value;
+//                        pope(init, TT_colon);
+//                        auto prop_value = parse_expr(init, parent);
+//
+//                        si->initializers[prop_name] = std::move(prop_value);
+//                    }
+//                }
+//
+//                return si;
             }
         }
 

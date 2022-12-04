@@ -58,8 +58,6 @@ public:
 
     virtual Type *drill() = 0;
 
-    virtual llvm::Constant *default_value(LLVMType expected) = 0;
-
     virtual std::vector<Type *> flatten() = 0;
 
 
@@ -204,28 +202,6 @@ public:
         return false;
     }
 
-    llvm::Constant *default_value(LLVMType expected) {
-        llvm::Constant *ret = nullptr;
-        switch (kind) {
-            case PR_int8:
-            case PR_uint8:ret = builder()->getInt8(0);
-                break;
-            case PR_int16:
-            case PR_uint16:ret = builder()->getInt16(0);
-                break;
-            case PR_int32:
-            case PR_uint32:ret = builder()->getInt32(0);
-                break;
-            case PR_int64:
-            case PR_uint64:ret = builder()->getInt64(0);
-                break;
-            default: except(E_INTERNAL, "Cannot get default value for type: " + str());
-        }
-
-        auto op = llvm::CastInst::getCastOpcode(ret, true, expected, true);
-        return llvm::ConstantExpr::getCast(op, ret, expected, false);
-    }
-
 private:
     static inline std::map <PrimitiveType, std::string> primitive_group_mappings{
             PRIMITIVES_ENUM_GROUPS};
@@ -280,10 +256,6 @@ public:
         if (!pt)
             return -1;
         return this->of->drill()->distance_from(*pt->of->drill());
-    }
-
-    llvm::Constant *default_value(LLVMType expected) {
-        return llvm::ConstantExpr::getIntToPtr(builder()->getInt64(0), expected, false);
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {
@@ -344,10 +316,6 @@ public:
         if (!pt)
             return -1;
         return this->of->drill()->distance_from(*pt->of->drill());
-    }
-
-    llvm::Constant *default_value(LLVMType expected) {
-        except(E_BAD_TYPE, "A Reference Type must be explicitly initialized");
     }
 
     llvm::Type *internal_llvm_type() {
@@ -427,10 +395,6 @@ public:
         if (!lt)
             return -1;
         return this->of->distance_from(*lt->of);
-    }
-
-    llvm::Constant *default_value(LLVMType expected) {
-        except(E_INTERNAL, "default value not implemented for list types");
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {
@@ -513,10 +477,6 @@ public:
         except(E_INTERNAL, "distance between: " + str() + " and " + target.str());
     }
 
-    llvm::Constant *default_value(LLVMType expected) {
-        except(E_INTERNAL, "default value not implemented for struct types");
-    }
-
     bool operator==(Type &against) {
         auto st = against.get<StructType>();
         if (!st)return false;
@@ -587,10 +547,6 @@ public:
         except(E_INTERNAL, "Type distance not implemented for enums");
     }
 
-    llvm::Constant *default_value(LLVMType expected) {
-        except(E_INTERNAL, "default value not implemented for enums");
-    }
-
     bool operator==(Type &against) {
         auto en = against.get<EnumType>();
         if (!en)return false;
@@ -634,9 +590,75 @@ public:
         return ret;
     }
 
-    llvm::Constant *default_value(LLVMType expected) {
-        if (resolves_to)return resolves_to->default_value(expected);
-        except(E_INTERNAL, "cannot get default value for unresolved type reference");
+    std::string str() {
+        if (resolves_to)
+            return resolves_to->str();
+        else
+            return "unresolved_t:" + name->str();
+    }
+
+    std::shared_ptr <Type> pointee() {
+        return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
+    }
+
+    static std::shared_ptr <TypeRef> get(std::unique_ptr <LongName> name) {
+        // do not cache TypeRefs, as multiple refs may share the same name
+        // but refer to an entirely different type depending on context
+
+        auto pt = std::make_shared<TypeRef>();
+        pt->name = std::move(name);
+        pt->self = pt;
+        return pt;
+    }
+
+    llvm::Type *internal_llvm_type() {
+        if (resolves_to)
+            return resolves_to->internal_llvm_type();
+        except(E_UNRESOLVED_TYPE, "Cannot generate llvm value for unresolved type reference: " + name->str());
+    }
+
+    bool operator==(Type &against) {
+        if (!resolves_to)
+            return false;
+        return *resolves_to == against;
+    }
+
+    std::pair<Type &, Type &> find_difference(Type &against) {
+        if (resolves_to)return resolves_to->find_difference(*against.drill());
+        return {*this, against};
+    }
+
+    int distance_from(Type &target) {
+        if (!resolves_to)
+            return -1;
+        return resolves_to->distance_from(target);
+    }
+};
+
+//
+// Essentially a reference to a custom type
+// such as structs, containing generic args
+// this type has a special bond with ModuleMember
+// as they work together to maintain a table
+// of parameterized typerefs -> Concrete Types
+//
+class ParameterizedTypeRef : public Type{
+    std::unique_ptr <LongName> name;
+    std::shared_ptr <Type> resolves_to;
+
+    std::vector<std::shared_ptr<Type>> params;
+
+    Type *drill() {
+        if (resolves_to)
+            return resolves_to->drill();
+        return this;
+    }
+
+    std::vector<Type *> flatten() {
+        std::vector < Type * > ret = {this};
+        if (resolves_to)for (auto m: resolves_to->flatten())ret.push_back(m);
+        for(auto p : params)for(auto t : p->flatten())ret.push_back(t);
+        return ret;
     }
 
     std::string str() {
@@ -750,11 +772,6 @@ public:
         else except(E_UNRESOLVED_TYPE, "Cannot get pointee of unresolved generic type");
     }
 
-    llvm::Constant *default_value(LLVMType expected) {
-        if (temporarily_resolves_to)return temporarily_resolves_to->default_value(expected);
-        else except(E_UNRESOLVED_TYPE, "Cannot get default value of unresolved generic type");
-    }
-
 };
 
 #include "./constant.hh"
@@ -820,10 +837,6 @@ public:
             return -1;
         if (lt->size->value != this->size->value)return -1;
         return this->of->distance_from(*lt->of);
-    }
-
-    llvm::Constant *default_value(LLVMType expected) {
-        except(E_INTERNAL, "default value not implemented for list types");
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {

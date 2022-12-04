@@ -96,6 +96,14 @@ void resolve_type_references(CompilationUnit &unit) {
                     resolve_if_typeref(*arg, method);
                 }
             }
+            if(auto call = dynamic_cast<CallLike*>(code)){
+                for(auto ta : call->type_args){
+                    resolve_if_typeref(*ta, method);
+                }
+            }
+            if(auto sa = dynamic_cast<StructInitialization*>(code)){
+                resolve_if_typeref(*sa->type, method);
+            }
         }
     }
 

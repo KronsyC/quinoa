@@ -5,6 +5,9 @@ module Memory is Exported{
     #[link_extern "malloc"]
     func malloc_unsafe(size : u64) -> byte*;
 
+    #[link_extern "realloc"]
+    func realloc_unsafe(ptr : byte*, new_size : u64) -> byte*;
+
     func malloc(unit_size : u64, length : u64) -> byte*{
 
         let result = malloc_unsafe(unit_size * length);
@@ -12,6 +15,17 @@ module Memory is Exported{
             Err::panic("Failed memory allocation");
         }
 
+        return result;
+    }
+
+    func realloc(<T>)(ptr : T*, new_size : u64) -> T*{
+
+
+        let result = realloc_unsafe(ptr as byte*, new_size * @size_of(<T>)()) as T*;
+
+        if((result as u64) == 0){
+            Err::panic("Failed memory reallocation");
+        }
         return result;
     }
 
@@ -26,6 +40,14 @@ module Memory is Exported{
         let slice = @make_slice(<T>)(allocation, size);
 
         return slice;
+    }
 
+    func resize(<T>)(current_slice : T[], new_len : u64) -> T[] {
+
+        T* new = realloc(<T>)(current_slice.ptr, new_len);
+
+//        let slc = @make_slice(<T>)( new, new_len );
+
+        return current_slice;
     }
 }

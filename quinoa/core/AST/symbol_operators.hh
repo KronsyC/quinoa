@@ -64,7 +64,9 @@ public:
         #define val(expected) operand->llvm_value(vars, expected)
 
         #define ret(LL_INST, cast_to) return cast({bld.Create##LL_INST(val(cast_to)), type()}, expected);
-        auto none = operand->type()->llvm_type();
+        auto op_t = operand->type();
+        if(!op_t)except(E_INTERNAL, "operand has no type: " + operand->str());
+        auto none = op_t->llvm_type();
 
         switch (op_type) {
             case PRE_ampersand: {

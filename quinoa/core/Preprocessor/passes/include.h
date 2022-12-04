@@ -1,6 +1,4 @@
 #pragma once
-#include<string>
-#include<vector>
 #include "../../../lib/logger.h"
 #include "../../../lib/list.h"
 
@@ -11,3 +9,11 @@
 #include "../../AST/container_member.hh"
 #include "../../AST/compilation_unit.hh"
 #include "../../AST/type.hh"
+
+#include<optional>
+#include<vector>
+#include<string>
+
+#define MaybeError std::optional<std::vector<std::string>>
+
+#define proc_result std::pair<unsigned int, MaybeError>

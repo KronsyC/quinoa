@@ -8,72 +8,43 @@
 #include "../include.h"
 #include "./type_table_builder.hh"
 
-
 // Returns True, if all types are resolved
-std::pair<bool, int> resolve_types(CompilationUnit &unit) {
+proc_result resolve_types(Method& fn) {
 
+    if(!fn.content)return {};
 
-    bool isGood = true;
-    int resolveCount = 0;
-    for (auto method: unit.get_methods()) {
-        build_method_type_table(method, unit);
+    build_method_type_table(&fn, *fn.parent->parent);
 
+    std::vector<std::string> errors;
+    unsigned int res_count = 0;
 
-        if (!method->content)continue;
+    for (auto code: fn.content->flatten()) {
 
-        for (auto code: method->content->flatten()) {
+        // Resolve implicitly-typed variables 'let x = 73'
+        if (auto init = dynamic_cast<InitializeVar *>(code)) {
+            if (init->type)continue;
 
-            // Resolve implicitly-typed variables 'let x = 73'
-            if (auto init = dynamic_cast<InitializeVar *>(code)) {
-                if (init->type)continue;
-                if (!init->initializer){
-                    isGood = false;
-                }
-                init->type = init->initializer->type();
-
-                if (init->type) {
-                    init->scope->set_type(init->var_name.str(), init->type);
-                    resolveCount++;
-                } else isGood = false;
+            if (!init->initializer){
+                //TODO: build out an inference engine to also take info from usage
+                errors.emplace_back("Types can only be inferred for variables with initializers");
+                continue;
             }
-            if (auto init = dynamic_cast<StructInitialization *>(code)) {
-                if (init->type)continue;
-                auto &name = init->target;
+            init->type = init->initializer->type();
 
-                std::shared_ptr <Type> resolves_to;
-                for (auto typ: unit.get_types()) {
-                    if (typ->name->member->str() == "_") {
-                        // Match module, direct exit route
-                        auto mod_name = typ->name->container->str();
-                        if (mod_name == name->str()) {
-                            resolves_to = typ->refers_to;
-                            break;
-                        }
-                    } else {
-                        if (typ->name->str() == name->str()) {
-                            resolves_to = typ->refers_to;
-                        }
-                    }
-                }
-
-                if (!resolves_to) {
-                    resolves_to = method->parent->get_type(name->str());
-                }
-                if (!resolves_to) {
-                    isGood = false;
-                    continue;
-                }
-                if (resolves_to->get<StructType>()) {
-                    init->type = std::static_pointer_cast<StructType>(resolves_to);
-                    resolveCount++;
-                } else except(E_BAD_TYPE,
-                              "Attempt to initialize " + name->str() + " as a struct, but it has the type: " +
-                              resolves_to->str());
+            if(!init->type){
+                errors.push_back("Failed to get the type of an unresolved expression: " + init->str());
             }
+            else{
+                res_count++;
+            }
+            continue;
 
         }
 
+
     }
 
-    return {isGood, resolveCount};
+
+    if(errors.size())return {res_count, errors};
+    return {res_count, MaybeError()};
 }
