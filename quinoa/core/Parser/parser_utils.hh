@@ -22,7 +22,10 @@ std::vector<Token> read_to_reverse(std::vector<Token> &toks, TokenType type);
 
 enum IndType {
     INDENTATION_TYPES
-};std::string get_tt_name(TokenType t);
+    IND_angles,
+    IND_generics,
+};
+std::string get_tt_name(TokenType t);
 void print_toks(const std::vector<Token> &toks);
 void expects(Token tok, std::initializer_list<TokenType> expected_types);
 void expects(Token tok, TokenType expected_type);

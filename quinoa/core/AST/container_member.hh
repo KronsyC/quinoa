@@ -40,7 +40,7 @@ public:
 class TypeMember : public ContainerMember {
 public:
     std::shared_ptr <Type> refers_to;
-
+    std::vector<std::shared_ptr<Generic>> generic_args;
     TypeMember(std::shared_ptr <Type> t) {
         this->refers_to = t;
     }
@@ -112,7 +112,7 @@ public:
     }
 
     bool must_parameterize_return_val(){
-        return return_type->get<StructType>() || return_type->get<DynListType>() || return_type->get<ListType>();
+        return return_type->get<StructType>() || return_type->get<DynListType>() || return_type->get<ListType>() || return_type->get<ParameterizedTypeRef>();
     }
 
     bool is_equivalent_to(Method *method) {

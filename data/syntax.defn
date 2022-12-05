@@ -124,13 +124,8 @@ l_paren
 @dind
 r_paren
 
-@alias (<
-@ind
-l_generic
-
-@alias >)
-@dind
-r_generic
+@alias ::<
+op_generic
 
 @alias {
 @ind
@@ -450,6 +445,14 @@ intr_bitwise_shl
 @intrinsic 2 0
 @alias @bitwise_shr
 intr_bitwise_shr
+
+@intrinsic 2 0
+@alias @pow
+intr_power
+
+@intrinsic 2 0
+@alias @sqrt
+intr_sqrt
 
 # Unary Intrinsics
 

@@ -1,6 +1,6 @@
 #include "intrinsic.hh"
 #include "../../lib/error.h"
-
+#include "llvm/IR/Intrinsics.h"
 
 // Override validation rules for scenarios such as optional args
 
@@ -106,6 +106,36 @@ BinaryCodegenRule(intr_mod, {
         Ret(builder()->CreateURem(left, right))
 
 }, "You can only use @mod on on float and integer operands")
+
+//BinaryCodegenRule(intr_power, {
+//    BinaryAssertPrimitive;
+//
+//    if(prim_ty.is_float()){
+//        llvm::Intrinsic::pow
+//    }
+//        Ret(builder()->CreateFRem(left, right))
+//
+//    else if(prim_ty.is_signed_integer())
+//        Ret(builder()->CreateSRem(left, right))
+//
+//    else if(prim_ty.is_unsigned_integer())
+//        Ret(builder()->CreateURem(left, right))
+//
+//}, "You can only use @mod on on float and integer operands")
+//
+//BinaryCodegenRule(intr_sqrt, {
+//    BinaryAssertPrimitive;
+//
+//    if(prim_ty.is_float())
+//        Ret(builder()->CreateFRem(left, right))
+//
+//    else if(prim_ty.is_signed_integer())
+//        Ret(builder()->CreateSRem(left, right))
+//
+//    else if(prim_ty.is_unsigned_integer())
+//        Ret(builder()->CreateURem(left, right))
+//
+//}, "You can only use @mod on on float and integer operands")
 
 BinaryCodegenRule(intr_bitwise_and, {
     BinaryAssertPrimitive;
@@ -348,7 +378,7 @@ CodegenRule(intr_assign){
         variable.is_initialized = true;
     }
 
-    LLVMType variable_type = assignee.type.qn_type->pointee();
+    auto variable_type = assignee.type.qn_type->drill()->pointee()->llvm_type();
 
     auto& value = args[1];
     // Assert that the variable type and value type are equal
@@ -364,7 +394,8 @@ CodegenRule(intr_assign){
         allocating_expr->write_direct(assignee, vars, variable_type);
         return allocating_expr->llvm_value(vars, variable_type);
     }
-
+    Logger::debug("Assigning: " + value.str());
+    Logger::debug("Type: " + value.type()->str());
     auto llvm_value = value.llvm_value(vars);
 
     builder()->CreateStore(llvm_value, assignee);
@@ -384,7 +415,6 @@ CodegenRule(intr_size_of){
 
 MakesA(intr_make_slice, DynListType::get(this->type_args[0]));
 CodegenRule(intr_make_slice){
-
     auto internal_ptr  = this->args[0].llvm_value(vars, Ptr::get(this->type_args[0])->llvm_type());
     auto element_count = this->args[1].llvm_value(vars, Primitive::get(PR_uint64)->llvm_type());
 

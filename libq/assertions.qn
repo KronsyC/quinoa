@@ -1,22 +1,6 @@
-import @io;
-import @syscall;
+
 module Assert is Exported{
 
-    func assert_error(message:c_str){
-        io::print("\nAssertion Error: ");
-        io::println(message);
-        syscall::exit(21);
-    }
 
-    pub func equals<T>(v1: T, v2:T){
-        if(v1 != v2){
-            assert_error("Equality Assertion Failed");
-        }
-    }
-    pub func truthy<T>(value:T){
-        syscall::exit(0);
-    }
-    pub func falsy<T>(value:T){
-        syscall::exit(0);
-    }
+
 }

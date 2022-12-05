@@ -168,12 +168,10 @@ LLVMValue cast_explicit(LLVMValue val, LLVMType type){
 
 LLVMValue cast(LLVMValue val, LLVMType type)
 {
-
     auto cast_result = try_cast(val, type, false);
 
     try{
         auto result = std::get<LLVMValue>(cast_result);
-
         return result;
     }
     catch(const std::bad_variant_access& ex){

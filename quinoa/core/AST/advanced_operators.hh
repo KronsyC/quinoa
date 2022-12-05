@@ -337,33 +337,75 @@ public:
     }
 
     std::string str() {
-        except(E_INTERNAL, "str not impl for struct init");
+        std::string ret = type->str() + " :: {";
+        for(auto& i : initializers){
+            ret+="\n\t"+i.first+" : " + i.second->str() + ";";
+        }
+        ret+="\n}";
+        return ret;
     }
 
     void write_direct(LLVMValue alloc, VariableTable &vars, LLVMType expected_type = {}) {
-    except(E_INTERNAL, "write_direct not impl for struct");
-//        if (!type)except(E_BAD_TYPE, "Cannot initialize struct with unresolved type: " + target->str());
-//        auto struct_ll_type = type->llvm_type();
-//        for (auto &init: initializers) {
-//            auto idx = type->member_idx(init.first);
-//
-//            if (idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
-//
-//            auto target_ty = type->members[init.first]->llvm_type();
-//            Logger::debug("Cast " + init.second->type()->str() + " to " + target_ty.qn_type->str());
-//            auto init_expr = init.second->llvm_value(vars, target_ty);
-//
-//            auto mem = builder()->CreateStructGEP(struct_ll_type, alloc, idx);
-//            builder()->CreateStore(init_expr, mem);
-//        }
-//
-//        // ensure that all members are explicitly initialized
-//        for (auto [name, _]: type->members) {
-//            auto &lookup = initializers[name];
-//            if (!lookup)
-//                except(E_BAD_ASSIGNMENT,
-//                       "Initialization for struct '" + target->str() + "' is missing a member: '" + name + "'");
-//        }
+
+        auto struct_ty = type->get<StructType>();
+        GenericTable generics;
+
+
+        if(auto pref_ty = type->get<ParameterizedTypeRef>()){
+
+            struct_ty = pref_ty->resolves_to->get<StructType>();
+
+            if(!struct_ty)except(E_BAD_TYPE, "Struct initialization expressions require either a struct, or parameterized struct type, but the type was found to be: " + pref_ty->str());
+
+            generics = pref_ty->get_mapped_params();
+
+        }
+
+        Logger::debug("== Generic Table ==");
+        for(auto pair : generics){
+            Logger::debug(pair.first + " => " + pair.second->str());
+        }
+
+        if(struct_ty){
+            auto lltype = type->llvm_type(generics);
+
+            // ensure that all members are explicitly initialized
+            for (auto [name, ty]: struct_ty->members) {
+                auto &lookup = initializers[name];
+                if (!lookup){
+                    except(E_BAD_ASSIGNMENT,
+                           "Initialization for struct '" + type->str() + "' is missing a member: '" + name + "' of type " + ty->str()
+                    );
+                }
+
+            }
+
+
+            for(const auto& init : initializers){
+                auto member_idx = struct_ty->member_idx(init.first);
+                if (member_idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
+
+                auto member_ty = struct_ty->members[init.first]->llvm_type(generics);
+
+                member_ty->print(llvm::outs());
+                Logger::debug(init.first + " is a " + member_ty.qn_type->str());
+
+                auto init_value = init.second->llvm_value(vars, member_ty);
+
+                alloc.type->print(llvm::outs());
+                lltype->print(llvm::outs());
+
+                auto member_ptr = builder()->CreateStructGEP(lltype, alloc, member_idx);
+
+                builder()->CreateStore(init_value, member_ptr);
+            }
+        }
+        else{
+            except(E_BAD_TYPE, "cannot use the struct initialisation expression on non-struct types");
+
+        }
+
+
 
     }
 

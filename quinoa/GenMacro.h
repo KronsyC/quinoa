@@ -63,8 +63,7 @@
 	new TokenDefinition(TT_quote, "quote", {"'"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_l_paren, "l_paren", {"("}, "", true, false, 0, false, false, {}),\
 	new TokenDefinition(TT_r_paren, "r_paren", {")"}, "", false, true, 0, false, false, {}),\
-	new TokenDefinition(TT_l_generic, "l_generic", {"(<"}, "", true, false, 0, false, false, {}),\
-	new TokenDefinition(TT_r_generic, "r_generic", {">)"}, "", false, true, 0, false, false, {}),\
+	new TokenDefinition(TT_op_generic, "op_generic", {"::<"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_l_brace, "l_brace", {"{"}, "", true, false, 0, false, false, {}),\
 	new TokenDefinition(TT_r_brace, "r_brace", {"}"}, "", false, true, 0, false, false, {}),\
 	new TokenDefinition(TT_l_square_bracket, "l_square_bracket", {"["}, "", true, false, 0, false, false, {}),\
@@ -145,6 +144,8 @@
 	new TokenDefinition(TT_intr_bitwise_xor, "intr_bitwise_xor", {"@bitwise_xor"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_shl, "intr_bitwise_shl", {"@bitwise_shl"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_shr, "intr_bitwise_shr", {"@bitwise_shr"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_power, "intr_power", {"@pow"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_sqrt, "intr_sqrt", {"@sqrt"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_not, "intr_bitwise_not", {"@bitwise_not"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_bool_not, "intr_bool_not", {"@bool_not"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_pointer_to, "intr_pointer_to", {"@pointer_to"}, "", false, false, 0, false, false, {1, 0}),\
@@ -187,8 +188,7 @@
 	TT_quote,\
 	TT_l_paren,\
 	TT_r_paren,\
-	TT_l_generic,\
-	TT_r_generic,\
+	TT_op_generic,\
 	TT_l_brace,\
 	TT_r_brace,\
 	TT_l_square_bracket,\
@@ -269,6 +269,8 @@
 	TT_intr_bitwise_xor,\
 	TT_intr_bitwise_shl,\
 	TT_intr_bitwise_shr,\
+	TT_intr_power,\
+	TT_intr_sqrt,\
 	TT_intr_bitwise_not,\
 	TT_intr_bool_not,\
 	TT_intr_pointer_to,\
@@ -283,14 +285,12 @@
 
 #define INDENTATION_TYPES \
 	IND_parens,\
-	 IND_generics,\
 	 IND_braces,\
 	 IND_square_brackets,\
 	 
 
 #define INDENTATION_MAPPINGS \
 	{IND_parens, {TT_l_paren, TT_r_paren}},\
-	{IND_generics, {TT_l_generic, TT_r_generic}},\
 	{IND_braces, {TT_l_brace, TT_r_brace}},\
 	{IND_square_brackets, {TT_l_square_bracket, TT_r_square_bracket}},\
 	
@@ -457,6 +457,8 @@
 	intr_bitwise_xor,\
 	intr_bitwise_shl,\
 	intr_bitwise_shr,\
+	intr_power,\
+	intr_sqrt,\
 	intr_bitwise_not,\
 	intr_bool_not,\
 	intr_pointer_to,\
@@ -490,6 +492,8 @@
 	{ intr_bitwise_xor, "@bitwise_xor"},\
 	{ intr_bitwise_shl, "@bitwise_shl"},\
 	{ intr_bitwise_shr, "@bitwise_shr"},\
+	{ intr_power, "@pow"},\
+	{ intr_sqrt, "@sqrt"},\
 	{ intr_bitwise_not, "@bitwise_not"},\
 	{ intr_bool_not, "@bool_not"},\
 	{ intr_pointer_to, "@pointer_to"},\
@@ -523,6 +527,8 @@
 	{ "@bitwise_xor", intr_bitwise_xor},\
 	{ "@bitwise_shl", intr_bitwise_shl},\
 	{ "@bitwise_shr", intr_bitwise_shr},\
+	{ "@pow", intr_power},\
+	{ "@sqrt", intr_sqrt},\
 	{ "@bitwise_not", intr_bitwise_not},\
 	{ "@bool_not", intr_bool_not},\
 	{ "@pointer_to", intr_pointer_to},\

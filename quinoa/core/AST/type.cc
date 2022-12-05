@@ -49,13 +49,90 @@ LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
 }
 
 std::string ParentAwareType::get_name(){
+    return this->as_member()->name->str();
+}
+
+TypeMember* ParentAwareType::as_member(){
     for(auto mem : this->parent->members){
         if(auto ty = dynamic_cast<TypeMember*>(mem.ptr)){
-            if(ty->refers_to.get() == this){
-                return ty->name->str();
+            if(ty->refers_to.get() ==  (self_ptr ? self_ptr : this))return ty;
+        }
+    }
+    except(E_INTERNAL, "ParentAwareType::as_member failed");
+}
+
+GenericTable ParameterizedTypeRef::get_mapped_params(){
+    // resolves_to has to be a ParentAwareType
+    auto paw = dynamic_cast<ParentAwareType*>(resolves_to->drill());
+    if(!paw)except(E_BAD_TYPE, "A Parameterized TypeRef must resolve to a ParentAwareType, but was found to resolve to " + resolves_to->str());
+
+    auto type_entry = paw->as_member();
+
+    auto expected_ga_len = type_entry->generic_args.size();
+    auto ga_len = this->params.size();
+
+    if(ga_len != expected_ga_len){
+        except(E_BAD_TYPE, "Error while constructing Parameterized Type Ref to " + paw->str() + "\n\t\texpected " + std::to_string(expected_ga_len) + " generic args, but got " + std::to_string(ga_len));
+    }
+
+    GenericTable table;
+    for(unsigned int i = 0; i < ga_len; i++){
+        auto arg_name = type_entry->generic_args[i]->name->str();
+        auto arg_type = params[i];
+
+        table[arg_name] = arg_type;
+    }
+    return table;
+}
+
+
+bool StructType::is_generic() {
+    for(auto m : this->members){
+        for(auto t : m.second->flatten()){
+            if(auto gen = dynamic_cast<Generic*>(t)){
+                return true;
             }
         }
     }
-    return "unknown";
+    return false;
 }
 
+static std::map<std::vector<llvm::Type*>, LLVMType> struct_cache;
+LLVMType StructType::llvm_type(GenericTable gen_table) {
+    std::vector < llvm::Type * > member_types;
+    for (auto member: members) {
+        member_types.push_back(member.second->llvm_type(gen_table));
+    }
+    if(auto st = struct_cache[member_types])return st;
+
+    auto ll_ty = llvm::StructType::create(*llctx(), member_types, "struct:"+this->get_name());
+
+    if(this->is_generic()){
+        std::map <std::string, std::shared_ptr<Type>> new_members;
+
+        for(auto pair : members){
+            auto name = pair.first;
+            auto ty = pair.second;
+
+            if(auto gen = ty->get<Generic>()){
+                if(auto nt = gen_table[gen->name->str()]){
+                    new_members[name] = nt->drill()->self;
+                    continue;
+                }
+
+            }
+            new_members[name] = ty->drill()->self;
+        }
+
+        auto new_t = StructType::get(new_members, this->parent);
+        new_t->self_ptr = this;
+        if(new_t->is_generic()){
+            except(E_INTERNAL, "newly monomorphized struct is still generic");
+        }
+        Logger::debug("Created monomorph type: " + new_t->str() + ", ref count: " + std::to_string(new_t.use_count()));
+        return new_t->llvm_type(gen_table);
+    }
+    LLVMType ret{ll_ty, self};
+    struct_cache[member_types] = ret;
+    return ret;
+}

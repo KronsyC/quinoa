@@ -39,6 +39,22 @@ void attempt_resolve_typeref(TypeRef &ref, Method *method) {
     if (!ref.resolves_to)except(E_UNRESOLVED_TYPE, "Failed to resolve type " + ref.name->str());
 }
 
+void attempt_resolve_typeref(TypeRef &ref, TypeMember *mem) {
+
+    for (auto generic: mem->generic_args) {
+        if (generic->name->str() == ref.name->str()) {
+            ref.resolves_to = generic;
+            return;
+        }
+    }
+
+    attempt_resolve_typeref(ref, mem->parent);
+
+    // Check the local container type definitions
+
+    if (!ref.resolves_to)except(E_UNRESOLVED_TYPE, "Failed to resolve type " + ref.name->str());
+}
+
 std::vector<TypeRef *> get_refs_from(Type &type) {
     std::vector < TypeRef * > ret;
     for (auto ty: type.flatten()) {
@@ -111,7 +127,10 @@ void resolve_type_references(CompilationUnit &unit) {
         for (auto mem: cont->members) {
             if (auto type = dynamic_cast<TypeMember *>(mem.ptr)) {
                 for (auto flat: type->refers_to->flatten()) {
-                    resolve_if_typeref(*flat, cont);
+                    if(auto tref = dynamic_cast<TypeRef*>(flat)){
+                        attempt_resolve_typeref(*tref, type);
+
+                    }
                 }
 
             }

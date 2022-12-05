@@ -9,6 +9,9 @@
 #include "../../lib/list.h"
 #include "./reference.hh"
 
+class Type;
+typedef std::map<std::string, std::shared_ptr<Type>> GenericTable;
+
 enum PrimitiveType {
     PRIMITIVES_ENUM_MEMBERS
 };
@@ -32,15 +35,11 @@ class Generic;
 
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat = true );
 
+
 class Type : public ANode {
 public:
-    LLVMType llvm_type() {
-        auto ll_type = internal_llvm_type();
-        if(!self)except(E_INTERNAL, "(bug) self property is null");
-        return LLVMType{ll_type, self};
-    }
+    virtual LLVMType llvm_type(GenericTable generics = {}) = 0;
 
-    virtual llvm::Type *internal_llvm_type() = 0;
 
     virtual std::shared_ptr <Type> pointee() = 0;
 
@@ -167,10 +166,10 @@ public:
         return {*this, against};
     }
 
-    llvm::Type *internal_llvm_type() {
+    LLVMType llvm_type(GenericTable gen_table = {}) {
 #define T(sw, name) \
     case PR_##sw:   \
-        return builder()->get##name##Ty();
+        return {builder()->get##name##Ty(), this->self};
         switch (kind) {
             T(int8, Int8)
             T(int16, Int16)
@@ -232,8 +231,8 @@ public:
         return of->str() + "*";
     }
 
-    llvm::Type *internal_llvm_type() {
-        return of->internal_llvm_type()->getPointerTo();
+    LLVMType llvm_type(GenericTable gen_table = {}) {
+        return {of->llvm_type()->getPointerTo(), self};
     }
 
     std::shared_ptr <Type> pointee() {
@@ -318,10 +317,10 @@ public:
         return this->of->drill()->distance_from(*pt->of->drill());
     }
 
-    llvm::Type *internal_llvm_type() {
-        auto of_ty = of->internal_llvm_type();
+    LLVMType llvm_type(GenericTable gen_table = {}) {
+        auto of_ty = of->llvm_type(gen_table);
         auto pointed_ty = of_ty->getPointerTo();
-        return pointed_ty;
+        return {pointed_ty, self};
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {
@@ -373,14 +372,14 @@ public:
         return create_heaped(DynListType(of));
     }
 
-    llvm::Type *internal_llvm_type() {
-        if (type)return type;
+    LLVMType llvm_type(GenericTable gen_table = {}) {
+        if (type)return {type, this->self};
         auto struct_ty = llvm::StructType::create(*llctx(), {
                 builder()->getInt64Ty(), // Size of the slice
-                llvm::ArrayType::get(this->of->internal_llvm_type(), 0)->getPointerTo() // Slice Elements
+                llvm::ArrayType::get(this->of->llvm_type(gen_table), 0)->getPointerTo() // Slice Elements
         }, "slice:" + this->of->str());
         type = struct_ty;
-        return struct_ty;
+        return {struct_ty, this->self};
     }
 
     bool operator==(Type &against) {
@@ -408,11 +407,15 @@ private:
     llvm::StructType *type = nullptr;
 
 };
+
+class TypeMember;
 class ParentAwareType : public Type {
 public:
     Container *parent = nullptr;
 
+    Type* self_ptr = nullptr;
     std::string get_name();
+    TypeMember* as_member();
 };
 
 class StructType : public ParentAwareType {
@@ -482,21 +485,17 @@ public:
         if (!st)return false;
         return st->members == members && parent == st->parent;
     }
-    llvm::StructType* cached_struct_ty = nullptr;
-    llvm::Type *internal_llvm_type() {
-        if(cached_struct_ty)return cached_struct_ty;
-        std::vector < llvm::Type * > member_types;
-        for (auto member: members) {
-            member_types.push_back(member.second->internal_llvm_type());
-        }
-        auto struct_ty = llvm::StructType::create(*llctx(), member_types, "struct:"+this->get_name());
-        cached_struct_ty = struct_ty;
-        return struct_ty;
-    }
+    std::map<std::vector<llvm::Type*>, llvm::StructType*> type_cache;
+
+    LLVMType llvm_type(GenericTable gen_table = {});
+
+
 
     std::pair<Type &, Type &> find_difference(Type &against) {
         except(E_INTERNAL, "find_difference not implemented for structs");
     }
+
+    bool is_generic();
 };
 
 class EnumType : public ParentAwareType {
@@ -553,8 +552,8 @@ public:
         return en->entries == entries && parent == en->parent;
     }
 
-    llvm::Type *internal_llvm_type() {
-        return builder()->getInt32Ty();
+    LLVMType llvm_type(GenericTable gen_table = {}) {
+        return {builder()->getInt32Ty(), self};
     }
 
     std::map<std::string, llvm::Constant *> get_members() {
@@ -611,10 +610,10 @@ public:
         return pt;
     }
 
-    llvm::Type *internal_llvm_type() {
-        if (resolves_to)
-            return resolves_to->internal_llvm_type();
+    LLVMType llvm_type(GenericTable generics = {}){
+        if(resolves_to)return resolves_to->llvm_type(generics);
         except(E_UNRESOLVED_TYPE, "Cannot generate llvm value for unresolved type reference: " + name->str());
+
     }
 
     bool operator==(Type &against) {
@@ -638,19 +637,20 @@ public:
 //
 // Essentially a reference to a custom type
 // such as structs, containing generic args
-// this type has a special bond with ModuleMember
-// as they work together to maintain a table
-// of parameterized typerefs -> Concrete Types
 //
 class ParameterizedTypeRef : public Type{
-    std::unique_ptr <LongName> name;
+public:
     std::shared_ptr <Type> resolves_to;
 
     std::vector<std::shared_ptr<Type>> params;
 
+    GenericTable get_mapped_params();
+    ParameterizedTypeRef(std::shared_ptr<Type> resolves_to, std::vector<std::shared_ptr<Type>> params){
+        this->resolves_to = resolves_to;
+        this->params = params;
+    }
+
     Type *drill() {
-        if (resolves_to)
-            return resolves_to->drill();
         return this;
     }
 
@@ -662,47 +662,57 @@ class ParameterizedTypeRef : public Type{
     }
 
     std::string str() {
-        if (resolves_to)
-            return resolves_to->str();
-        else
-            return "unresolved_t:" + name->str();
+        std::string name = (resolves_to ? resolves_to->str() : "unknown") + "<";
+
+        bool first = true;
+        for(auto g : this->params){
+            if(!first)name+=",";
+            name+=g->str();
+            first = false;
+        }
+        name+=">";
+        return name;
     }
 
     std::shared_ptr <Type> pointee() {
         return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
     }
 
-    static std::shared_ptr <TypeRef> get(std::unique_ptr <LongName> name) {
-        // do not cache TypeRefs, as multiple refs may share the same name
-        // but refer to an entirely different type depending on context
-
-        auto pt = std::make_shared<TypeRef>();
-        pt->name = std::move(name);
-        pt->self = pt;
-        return pt;
+    static std::shared_ptr <ParameterizedTypeRef> get(std::shared_ptr<Type> resolves_to, std::vector<std::shared_ptr<Type>> params) {
+        return create_heaped(ParameterizedTypeRef(resolves_to, params));
     }
-
-    llvm::Type *internal_llvm_type() {
-        if (resolves_to)
-            return resolves_to->internal_llvm_type();
-        except(E_UNRESOLVED_TYPE, "Cannot generate llvm value for unresolved type reference: " + name->str());
+    LLVMType llvm_type(GenericTable generics){
+        // return the substituted version of the child
+        auto mp = this->get_mapped_params();
+        return this->resolves_to->llvm_type(mp);
     }
 
     bool operator==(Type &against) {
-        if (!resolves_to)
-            return false;
-        return *resolves_to == against;
+        auto apt = against.get<ParameterizedTypeRef>();
+        if(!apt)return false;
+        if(apt->resolves_to != this->resolves_to)return false;
+        if(apt->params.size() != this->params.size())return false;
+
+        for(unsigned int i = 0; i < apt->params.size(); i++){
+            if(apt->params[i] != this->params[i])return false;
+        }
+        return true;
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {
+        except(E_INTERNAL, "find_difference not implemented for parameterized type ref");
         if (resolves_to)return resolves_to->find_difference(*against.drill());
         return {*this, against};
     }
 
     int distance_from(Type &target) {
-        if (!resolves_to)
-            return -1;
-        return resolves_to->distance_from(target);
+        auto tptr = target.get<ParameterizedTypeRef>();
+        if(!tptr)return -1;
+        if(resolves_to->distance_from(*tptr->resolves_to) == -1)return -1;
+        Logger::debug("Distance from: " + tptr->str() + " to " + str());
+        Logger::debug("distance from refs: " + std::to_string(this->resolves_to->distance_from(*tptr->resolves_to)));
+        return 0;
+        except(E_INTERNAL, "distance no impl");
     }
 };
 
@@ -721,23 +731,29 @@ public:
         return ret;
     }
 
-    llvm::Type *internal_llvm_type() {
-        if (temporarily_resolves_to)return temporarily_resolves_to->internal_llvm_type();
-        else except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str());
+    LLVMType llvm_type(GenericTable gen_table = {}) {
+        if (temporarily_resolves_to)return temporarily_resolves_to->llvm_type(gen_table);
+        else{
+
+            if(auto ret = gen_table[this->name->str()]){
+                Logger::debug("Load generic type from gen_table");
+                return ret->llvm_type(gen_table);
+            }
+
+            except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str());
+        }
     }
 
     std::unique_ptr <Name> name;
-    Method *parent;
-
+    std::shared_ptr<Type>  constraint;
     std::shared_ptr <Type> temporarily_resolves_to;
 
-    Generic(std::unique_ptr <Name> name, Method *parent) {
+    Generic(std::unique_ptr <Name> name) {
         this->name = std::move(name);
-        this->parent = parent;
     }
 
-    static std::shared_ptr <Generic> get(std::unique_ptr <Name> name, Method *parent) {
-        auto gen = std::make_shared<Generic>(std::move(name), parent);
+    static std::shared_ptr <Generic> get(std::unique_ptr <Name> name) {
+        auto gen = std::make_shared<Generic>(std::move(name));
         gen->self = gen;
         return gen;
     }
@@ -820,8 +836,8 @@ public:
         return create_heaped(ListType(of, std::move(size)));
     }
 
-    llvm::Type *internal_llvm_type() {
-        return llvm::ArrayType::get(of->internal_llvm_type(), size->value);
+    LLVMType llvm_type(GenericTable gen_table = {}) {
+        return {llvm::ArrayType::get(of->llvm_type(gen_table), size->value), self};
     }
 
     bool operator==(Type &against) {

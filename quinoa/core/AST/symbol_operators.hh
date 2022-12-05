@@ -346,16 +346,19 @@ public:
     }
 
     LLVMValue assign_ptr(VariableTable &vars) {
+        Logger::debug("Getting assign_ptr for subscript");
         auto strct = member_of->assign_ptr(vars);
-        auto retrv_t = member_of->type();
-
-        while(auto ref_t = retrv_t->get<ReferenceType>()){
+        auto retrv_t = member_of->type()->llvm_type();
+        Logger::debug("got ll_type of target: " + retrv_t.qn_type->str());
+        while(auto ref_t = retrv_t.qn_type->get<ReferenceType>()){
             // Implicitly de-reference the op for member access
             retrv_t = ref_t->of;
             strct = strct.load();
         }
-        auto strct_t = retrv_t->get<StructType>();
+        auto strct_t = retrv_t.qn_type->get<StructType>();
         if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
+
+        Logger::debug("Access member of: " + strct_t->str());
 
         auto idx = strct_t->member_idx(member_name->str());
 
@@ -391,20 +394,21 @@ public:
 
 protected:
     std::shared_ptr <Type> get_type() {
-        auto left_t = member_of->type();
-        if (!left_t)return std::shared_ptr<Type>(nullptr);
+        auto left_qn_t = member_of->type();
+        if (!left_qn_t)return std::shared_ptr<Type>(nullptr);
+        auto left_t = left_qn_t->llvm_type();
         auto member = member_name->str();
 
-        while(auto ref_t = left_t->get<ReferenceType>()){
+        while(auto ref_t = left_t.qn_type->get<ReferenceType>()){
             // Implicitly de-reference the op for member access
             left_t = ref_t->of;
         }
 
-        if (auto strct = left_t->get<StructType>()) {
+        if (auto strct = left_t.qn_type->get<StructType>()) {
             if (strct->member_idx(member) == -1)
                 except(E_BAD_MEMBER_ACCESS, "The struct: " + member_of->str() + " does not have a member: " + member);
             return strct->members[member];
-        } else if (auto slice = left_t->get<DynListType>()) {
+        } else if (auto slice = left_t.qn_type->get<DynListType>()) {
             if (member == "len") {
                 return Primitive::get(PR_uint64);
             } else if (member == "ptr") {
@@ -412,7 +416,7 @@ protected:
             } else except(E_BAD_MEMBER_ACCESS, "slices only have the properties 'len' and 'ptr'");
         }
 
-        except(E_BAD_MEMBER_ACCESS, "You may only access members of a container type (structs, slices, arrays), but the type was found to be: " + left_t->str());
+        except(E_BAD_MEMBER_ACCESS, "You may only access members of a container type (structs, slices, arrays), but the type was found to be: " + left_t.qn_type->str());
 
 
     }

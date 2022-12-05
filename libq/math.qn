@@ -1,6 +1,6 @@
 module Math is Exported{
 
-    func sum(<T>)(items : T[]) -> i64{
+    func sum<T>(items : T[]) -> i64{
 
         let accum : i64 = 0;
         let i : u64 = 0;
@@ -31,7 +31,9 @@ module Math is Exported{
     }
 
     func sum_n(count : u64) -> u64{
+
         // (n+1)(n/2)
+
         return ((count + 1) * count) / 2;
     }
 

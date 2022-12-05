@@ -125,8 +125,8 @@ std::vector<Token> read_to_reverse(std::vector<Token> &toks, TokenType type) {
 }
 
 
-
-std::map<IndType, std::pair<TokenType, TokenType>> mappings{INDENTATION_MAPPINGS};
+//                                                                                                 <            >                               ::<            >
+std::map<IndType, std::pair<TokenType, TokenType>> mappings{INDENTATION_MAPPINGS {IND_angles, {TT_lesser, TT_greater}}, {IND_generics, {TT_op_generic, TT_greater}} };
 
 std::vector<Token> read_block(std::vector<Token> &toks, IndType typ) {
     auto p = mappings[typ];

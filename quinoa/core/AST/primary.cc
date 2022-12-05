@@ -27,7 +27,6 @@ bool LLVMType::is_signed() {
 
 LLVMValue LLVMValue::load(){
     // must be a pointer
-
     if(auto ptr_ty = this->type.qn_type->get<Ptr>()){
         auto loaded_ty = ptr_ty->of->llvm_type();
         auto loaded_val = builder()->CreateLoad(loaded_ty, val);

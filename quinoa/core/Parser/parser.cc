@@ -108,6 +108,7 @@ std::unique_ptr<ConstantValue> parse_const(Token tok){
             except(E_BAD_EXPRESSION, "Failed to generate literal for '" + tok.value + "' with an id of: "+ std::to_string(tok.type));
     }
 }
+std::vector<std::shared_ptr<Type>> parse_type_args(std::vector<Token>& toks, bool is_fish);
 
 std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container = nullptr)
 {
@@ -127,8 +128,12 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
     {
         pushf(toks, first);
         auto name = parse_long_name(toks);
-        auto rt = TypeRef::get(std::move(name));
-        ret = rt;
+        ret = TypeRef::get(std::move(name));
+        if(toks[0].is(TT_lesser)){
+            auto type_args = parse_type_args(toks, false);
+            ret = ParameterizedTypeRef::get(ret, type_args);
+        }
+
     }
     else if(first.is(TT_struct)){
         if(!container)except(E_BAD_TYPE, "Struct types may only be declared as members of a container");
@@ -208,6 +213,41 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container 
 
     return ret;
 }
+
+std::vector<std::shared_ptr<Generic>> parse_generics(std::vector<Token>& toks){
+    auto gen_toks = read_block(toks, IND_angles);
+    auto gen_entries = parse_cst(gen_toks);
+
+    std::vector<std::shared_ptr<Generic>> generics;
+
+    for(auto ge : gen_entries){
+        auto gen_name = pope(ge, TT_identifier).value;
+
+        auto gen = Generic::get(std::make_unique<Name>(gen_name));
+        if(ge.size()){
+            pope(ge, TT_colon);
+            auto constraint = parse_type(ge);
+            gen->constraint = constraint;
+        }
+
+        generics.push_back(gen);
+    }
+
+    return generics;
+}
+
+std::vector<std::shared_ptr<Type>> parse_type_args(std::vector<Token>& toks, bool is_fish = true){
+    auto ta_block = is_fish ? read_block(toks, IND_generics) : read_block(toks, IND_angles);
+    auto entries = parse_cst(ta_block);
+
+    std::vector<std::shared_ptr<Type>> type_args;
+    for(auto e : entries){
+        auto ty = parse_type(e);
+        type_args.push_back(ty);
+    }
+    return type_args;
+}
+
 Import parse_import(std::vector<Token> toks)
 {
 
@@ -374,25 +414,21 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         toks = before;
     }
 
+    // function call
 
     if (first.is(TT_identifier))
     {
 
         auto before = toks;
-        if (toks.size() > 1 && (toks[1].is(TT_l_generic) || toks[1].is(TT_double_colon) || toks[1].is(TT_l_paren) || toks[1].is(TT_l_brace)))
+        if (toks.size() > 1 && (toks[1].is(TT_op_generic) || toks[1].is(TT_double_colon) || toks[1].is(TT_l_paren)))
         {
             auto container_name = parse_long_name(toks);
             auto member_name = container_name->parts.pop();
             auto member_ref = std::make_unique<ContainerMemberRef>();
 
             std::vector<std::shared_ptr<Type>> type_args;
-            if(toks[0].is(TT_l_generic)){
-                auto gen_block = read_block(toks, IND_generics);
-                auto entries = parse_cst(gen_block);
-                for(auto e : entries){
-                    auto ty = parse_type(e);
-                    type_args.push_back(ty);
-                }
+            if(toks[0].is(TT_op_generic)){
+                type_args = parse_type_args(toks);
             }
             member_ref->member = std::make_unique<Name>(member_name);
             if(container_name->parts.len()){
@@ -402,7 +438,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             }
             if (toks[0].is(TT_l_paren))
             {
-                // function call
                 Vec<Expr> params;
                 auto params_block = read_block(toks, IND_parens);
 
@@ -423,26 +458,48 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
                 }
 
             }
-            else if(toks[0].is(TT_l_brace)){
-                // Struct initialization block
-                except(E_INTERNAL, "struct initializations are not implemented");
-//                auto init_block = read_block(toks, IND_braces);
-//                auto si = std::make_unique<StructInitialization>(std::move(member_ref));
-//                if(!init_block.empty()){
-//                    expects(init_block[init_block.size()-1], TT_semicolon);
-//                    init_block.pop_back();
-//
-//                    auto prop_init_toks = parse_tst(init_block, TT_semicolon);
-//                    for(auto init : prop_init_toks){
-//                        auto prop_name = pope(init, TT_identifier).value;
-//                        pope(init, TT_colon);
-//                        auto prop_value = parse_expr(init, parent);
-//
-//                        si->initializers[prop_name] = std::move(prop_value);
-//                    }
-//                }
-//
-//                return si;
+        }
+
+        toks = before;
+    }
+
+    // struct initializations
+    if(first.is(TT_identifier)){
+        auto before = toks;
+
+        if(toks.size() && (toks[1].is(TT_double_colon) || toks[1].is(TT_lesser) || toks[1].is(TT_l_brace))){
+            auto name = parse_long_name(toks);
+            std::vector<std::shared_ptr<Type>> generic_args;
+            if(toks[0].is(TT_lesser)){
+                generic_args = parse_type_args(toks, false);
+            }
+
+            if(toks[0].is(TT_l_brace)){
+                std::shared_ptr<Type> typ = TypeRef::get(std::move(name));
+
+                if(generic_args.size())typ = ParameterizedTypeRef::get(typ, generic_args);
+
+                auto si = std::make_unique<StructInitialization>(typ);
+
+                auto init_block = read_block(toks, IND_braces);
+                if(init_block.size()){
+                    expects(init_block[init_block.size() - 1], TT_semicolon);
+                    init_block.pop_back();
+
+                    auto entries = parse_tst(init_block, TT_semicolon);
+
+
+                    for(auto e : entries){
+                        auto name = pope(e, TT_identifier);
+                        pope(e, TT_colon);
+                        auto init = parse_expr(e, parent);
+                        init->scope = parent;
+                        si->initializers[name.value] = std::move(init);
+                    }
+                }
+
+                si->scope = parent;
+                return si;
             }
         }
 
@@ -541,14 +598,8 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             auto intrinsic_type = intrinsic_mappings[popf(toks).value];
 
             std::vector<std::shared_ptr<Type>> type_args;
-            if(toks[0].is(TT_l_generic)){
-                auto type_args_toks = read_block(toks, IND_generics);
-                auto type_args_entries = parse_cst(type_args_toks);
-
-                for(auto e : type_args_entries){
-                    auto type = parse_type(e);
-                    type_args.push_back(type);
-                }
+            if(toks[0].is(TT_op_generic)){
+                type_args = parse_type_args(toks);
             }
             expects(toks[0], TT_l_paren);
 
@@ -789,7 +840,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             expects(toks[0], {
                 TT_l_paren,
                 TT_dot,
-                TT_l_generic
+                TT_lesser
             });
 
             // Acts on specific type
@@ -805,19 +856,11 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             }
 
             // Generic Parameters
-            if (toks[0].is(TT_l_generic))
+            if (toks[0].is(TT_lesser))
             {
-                auto gp_block = read_block(toks, IND_generics);
-                auto gp_sets = parse_cst(gp_block);
-
-                for(auto ty : gp_sets){
-                    assert(ty.size() == 1);
-                    expects(ty[0], TT_identifier);
-                    method->generic_params.push_back(Generic::get(std::make_unique<Name>(ty[0].value), method.get()));
-                }
-                print_toks(gp_block);
+                auto generics = parse_generics(toks);
+                method->generic_params = generics;
             }
-
             // Value Parameters
             expects(toks[0], TT_l_paren);
             auto params_block = read_block(toks, IND_parens);
@@ -857,11 +900,19 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
         }
         else if(current.is(TT_type)){
             auto type_name = popf(toks).value;
+            expects(toks[0], {TT_assignment, TT_lesser});
+
+            std::vector<std::shared_ptr<Generic>> generic_args;
+            if(toks[0].is(TT_lesser)){
+                generic_args = parse_generics(toks);
+            }
+
             pope(toks, TT_assignment);
             auto type_toks = read_to(toks, TT_semicolon);
             popf(toks);
             auto type = parse_type(type_toks, parent);
             auto member = std::make_unique<TypeMember>(type);
+            member->generic_args = generic_args;
             member->parent = parent;
             member->name = std::make_unique<ContainerMemberRef>();
             member->name->container = parent->get_ref();
