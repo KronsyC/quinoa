@@ -130,7 +130,7 @@ llvm::Value* raise_to_power(LLVMValue target, LLVMValue exponent){
 
     auto mod = builder()->GetInsertBlock()->getModule();
 
-    LLVMValue targ = cast(exponent, Primitive::get(PR_float64)->llvm_type());
+    LLVMValue targ = cast(target, Primitive::get(PR_float64)->llvm_type());
     
 
     if(exp_t->is_integer()){

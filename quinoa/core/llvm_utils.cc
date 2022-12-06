@@ -134,7 +134,8 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
     }
 
     // int -> float, implicit is fine
-    if(isInt(val_ty) && to->isFloatTy()){
+    if(isInt(val_ty) && to->isFloatingPointTy()){
+        Logger::debug("int to float");
         if(val_ty.is_signed()){
             return LLVMValue{builder()->CreateSIToFP(val, to), to};
         }
@@ -142,7 +143,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
     }
 
     // float -> int, explicit only
-    if(isInt(to) && val_ty.qn_type->get<Primitive>()){
+    if(isInt(to) && val_ty->isFloatingPointTy()){
         if(!is_explicit)return "Casting from a float to an integer is an explicit operation";
         if(to.is_signed())return LLVMValue{builder()->CreateFPToSI(val, to), to};
         else return LLVMValue{builder()->CreateFPToUI(val, to), to};
