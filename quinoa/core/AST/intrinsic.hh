@@ -66,6 +66,9 @@ public:
             C(intr_size_of)
             C(intr_make_slice)
             C(intr_subscript)
+            C(intr_power)
+            C(intr_sqrt)
+            C(intr_nth_root)
         }
 #undef C
     }

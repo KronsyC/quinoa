@@ -382,7 +382,7 @@ intr_mul
 intr_div
 
 @intrinsic 2 0
-@alias mod
+@alias @mod
 intr_mod
 
 @intrinsic 2 0
@@ -450,9 +450,13 @@ intr_bitwise_shr
 @alias @pow
 intr_power
 
-@intrinsic 2 0
+@intrinsic 1 0
 @alias @sqrt
 intr_sqrt
+
+@intrinsic 2 0
+@alias @nth_root
+intr_nth_root
 
 # Unary Intrinsics
 

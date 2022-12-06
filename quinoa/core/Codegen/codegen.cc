@@ -212,6 +212,7 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 	for(auto container : ast.get_containers()){
         if(container->type != CT_MODULE)continue;
         auto generated_mod = generate_module(*container, ast);
+        generated_mod->print(llvm::outs(), nullptr);
         llvm::Linker::linkModules(*rootmod, std::move(generated_mod));
 	}
 	return rootmod;

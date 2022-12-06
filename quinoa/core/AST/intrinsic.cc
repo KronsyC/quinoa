@@ -1,4 +1,7 @@
 #include "intrinsic.hh"
+#include "./include.hh"
+#include "../llvm_utils.h"
+#include "./primary.hh"
 #include "../../lib/error.h"
 #include "llvm/IR/Intrinsics.h"
 
@@ -10,44 +13,54 @@
 
 #define MakesBool(_for)MakesA(_for, boolean)
 
-#define Impl(ret_type, _for) template<> ret_type Intrinsic<_for>
-
-//TODO: properly implement this
-#define ArgsRule(_for, min_args, min_type_args, max_args, max_type_args) Impl(void, _for)::validate(){ \
-    auto call_name = intrinsic_names[_for];                                                                  \
-}
-
 
 #define CodegenRule(_for) \
     template<> LLVMValue Intrinsic<_for>::llvm_value(VariableTable& vars, LLVMType expected)
 
 #define BinaryCodegenRule(_for, content, error_text) \
-    CodegenRule(_for){          \
-        LLVMValue left = this->args[0].llvm_value(vars); \
-        LLVMValue right = this->args[1].llvm_value(vars);\
-        LLVMType op_type = this->type()->llvm_type();                                             \
-        if(left.type != right.type)except(E_BAD_INTRINSIC_CALL, \
-        "The operands of the intrinsic call: " + this->name + " must be of the same type" \
-        "\n\t\tArguments were found to be of the types " + left.type.qn_type->str() + " and " + right.type.qn_type->str() + " respectively"                     \
-        );   \
-        content                                      \
-        except(E_BAD_INTRINSIC_CALL, error_text);                                               \
+    CodegenRule(_for){ \
+        [[maybe_unused]] \
+        auto this_mod = builder()->GetInsertBlock()->getModule(); \
+        LLVMValue left = args[0].llvm_value(vars);  \
+        LLVMValue right = args[1].llvm_value(vars); \
+        LLVMType op_type = type()->llvm_type();     \
+        content                                     \
+        except(E_BAD_INTRINSIC_CALL, std::string(error_text) + "\n\t\tLeft operand type: " + left.type.qn_type->str() + "; Right operand type: " + right.type.qn_type->str() );   \
     }
 
+#define BinaryCodegenRuleSameT(_for, content, error_text) \
+        BinaryCodegenRule(_for, { \
+            if(left.type != right.type){ \
+                except(E_BAD_INTRINSIC_CALL, \
+                "The operands of the intrinsic call: " + this->name + " must be of the same type"  \
+                "\n\t\tArguments were found to be of the types " + left.type.qn_type->str() + " and " + right.type.qn_type->str() + " respectively"); \
+            } \
+            \
+            content \
+            }, \
+            error_text)
+
 #define BinaryAssertPrimitive \
-    if(!left.type.qn_type->get<Primitive>())except(E_BAD_INTRINSIC_CALL, "Calls to " + name + " may only use primitive types"); \
-    Primitive& prim_ty = *left.type.qn_type->get<Primitive>();
+    auto right_t = right.type.qn_type->get<Primitive>();                          \
+    auto left_t = left.type.qn_type->get<Primitive>();                          \
+    \
+    if(!left_t || !right_t)except(E_BAD_INTRINSIC_CALL, "Calls to " + name + " may only use primitive types"); \
+    auto& prim_ty = *left_t;
 
 
 
 #define Ret(val) \
-    return cast(LLVMValue(val, op_type), expected);
+{ \
+    auto llval = LLVMValue(val, op_type); \
+    auto result = cast(llval, expected); \
+    return result; \
+} 
 
 
 
 
-BinaryCodegenRule(intr_add, {
-    BinaryAssertPrimitive;
+BinaryCodegenRuleSameT(intr_add, {
+    BinaryAssertPrimitive
 
     if(prim_ty.is_float())
         Ret(builder()->CreateFAdd(left, right))
@@ -57,7 +70,7 @@ BinaryCodegenRule(intr_add, {
 
 }, "You can only use @add on on float and integer operands");
 
-BinaryCodegenRule(intr_sub, {
+BinaryCodegenRuleSameT(intr_sub, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_float())
@@ -68,7 +81,7 @@ BinaryCodegenRule(intr_sub, {
 
 }, "You can only use @sub on on float and integer operands")
 
-BinaryCodegenRule(intr_mul, {
+BinaryCodegenRuleSameT(intr_mul, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_float()){
@@ -79,7 +92,7 @@ BinaryCodegenRule(intr_mul, {
     }
 }, "You can only use @mul on on float and integer operands")
 
-BinaryCodegenRule(intr_div, {
+BinaryCodegenRuleSameT(intr_div, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_float())
@@ -93,7 +106,7 @@ BinaryCodegenRule(intr_div, {
 
 }, "You can only use @div on on float and integer operands")
 
-BinaryCodegenRule(intr_mod, {
+BinaryCodegenRuleSameT(intr_mod, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_float())
@@ -107,58 +120,86 @@ BinaryCodegenRule(intr_mod, {
 
 }, "You can only use @mod on on float and integer operands")
 
-//BinaryCodegenRule(intr_power, {
-//    BinaryAssertPrimitive;
-//
-//    if(prim_ty.is_float()){
-//        llvm::Intrinsic::pow
-//    }
-//        Ret(builder()->CreateFRem(left, right))
-//
-//    else if(prim_ty.is_signed_integer())
-//        Ret(builder()->CreateSRem(left, right))
-//
-//    else if(prim_ty.is_unsigned_integer())
-//        Ret(builder()->CreateURem(left, right))
-//
-//}, "You can only use @mod on on float and integer operands")
-//
-//BinaryCodegenRule(intr_sqrt, {
-//    BinaryAssertPrimitive;
-//
-//    if(prim_ty.is_float())
-//        Ret(builder()->CreateFRem(left, right))
-//
-//    else if(prim_ty.is_signed_integer())
-//        Ret(builder()->CreateSRem(left, right))
-//
-//    else if(prim_ty.is_unsigned_integer())
-//        Ret(builder()->CreateURem(left, right))
-//
-//}, "You can only use @mod on on float and integer operands")
+llvm::Value* raise_to_power(LLVMValue target, LLVMValue exponent){
 
-BinaryCodegenRule(intr_bitwise_and, {
+    // assume target and exponent are primitives
+
+
+    auto targ_t = target.type.qn_type->get<Primitive>();
+    auto exp_t = exponent.type.qn_type->get<Primitive>();
+
+    auto mod = builder()->GetInsertBlock()->getModule();
+
+    LLVMValue targ = cast(exponent, Primitive::get(PR_float64)->llvm_type());
+    
+
+    if(exp_t->is_integer()){
+        auto powi = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::powi, {targ->getType(), exp_t->llvm_type()});
+        return cast_explicit(LLVMValue{builder()->CreateCall(powi, {targ, exponent}), targ.type}, target.type);
+    }
+    else if(exp_t->is_float()){
+        auto pow = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::pow, {targ->getType(), exp_t->llvm_type()});
+        return cast_explicit(LLVMValue{builder()->CreateCall(pow, {targ, exponent}), targ.type}, target.type);
+    }
+    else except(E_BAD_INTRINSIC_CALL, "Only floats and integers may be used as exponents for exponent intrinsics");
+}
+
+MakesA(intr_power, this->args[0].type())
+BinaryCodegenRule(intr_power, {
+   
+    Ret(raise_to_power(left, right));
+
+}, "Failed to generate an @pow intrinsic, the exponent must be an integer or float, and the operand must be a float")
+
+BinaryCodegenRule(intr_nth_root, {
+    BinaryAssertPrimitive;
+
+
+    // Raise the operand to the power of 1/exp
+
+
+    if(right_t->is_float()){
+        LLVMValue exp(builder()->CreateFDiv( llvm::ConstantFP::get(right_t->llvm_type(), 1.0), right), right_t->self);
+        Ret(raise_to_power(left, exp));
+    }
+    else if(right_t->is_signed_integer()){
+        auto fp = builder()->CreateSIToFP(right, builder()->getDoubleTy());
+        LLVMValue exp( builder()->CreateFDiv(llvm::ConstantFP::get(fp->getType(), 1.0), fp), Primitive::get(PR_float64)->self);
+        Ret(raise_to_power(left, exp));
+    }
+    else if(right_t->is_unsigned_integer()){
+        auto fp = builder()->CreateUIToFP(right, builder()->getDoubleTy());
+        LLVMValue exp(builder()->CreateFDiv(llvm::ConstantFP::get(fp->getType(), 1.0), fp), Primitive::get(PR_float64)->self);
+        Ret(raise_to_power(left, exp));
+    }
+    else except(E_BAD_INTRINSIC_CALL, "The root of the @nth_root intrinsic must be either a float or integer, but was found to be of type: " + right_t->str());
+
+
+
+}, "You can only use @nth_root on on float and integer operands")
+
+BinaryCodegenRuleSameT(intr_bitwise_and, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_integer())
         Ret(builder()->CreateAnd(left, right))
 }, "You can only use @bitwise_and on integers")
 
-BinaryCodegenRule(intr_bitwise_xor, {
+BinaryCodegenRuleSameT(intr_bitwise_xor, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_integer())
         Ret(builder()->CreateXor(left, right))
 }, "You can only use @bitwise_xor on integers")
 
-BinaryCodegenRule(intr_bitwise_or, {
+BinaryCodegenRuleSameT(intr_bitwise_or, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_integer())
         Ret(builder()->CreateOr(left, right))
 }, "You can only use @bitwise_or on integers")
 
-BinaryCodegenRule(intr_bitwise_shl, {
+BinaryCodegenRuleSameT(intr_bitwise_shl, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_integer())
@@ -166,7 +207,7 @@ BinaryCodegenRule(intr_bitwise_shl, {
 
 }, "You can only use @bitwise_shl on integers")
 
-BinaryCodegenRule(intr_bitwise_shr, {
+BinaryCodegenRuleSameT(intr_bitwise_shr, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_signed_integer())
@@ -176,7 +217,7 @@ BinaryCodegenRule(intr_bitwise_shr, {
 }, "You can only use @bitwise_shr on integers")
 
 MakesBool(intr_bool_and)
-BinaryCodegenRule(intr_bool_and, {
+BinaryCodegenRuleSameT(intr_bool_and, {
     BinaryAssertPrimitive;
     if(prim_ty.is_bool())
         Ret(builder()->CreateLogicalAnd(left, right))
@@ -184,14 +225,14 @@ BinaryCodegenRule(intr_bool_and, {
 }, "You can only use @bool_and on booleans")
 
 MakesBool(intr_bool_or)
-BinaryCodegenRule(intr_bool_or, {
+BinaryCodegenRuleSameT(intr_bool_or, {
     BinaryAssertPrimitive;
     if(prim_ty.is_bool())
         Ret(builder()->CreateLogicalOr(left, right))
 }, "You can only use @bool_or on booleans")
 
 MakesBool(intr_cmp_eq)
-BinaryCodegenRule(intr_cmp_eq, {
+BinaryCodegenRuleSameT(intr_cmp_eq, {
     Logger::debug("icmpeq");
     BinaryAssertPrimitive;
     Logger::debug("asssuc");
@@ -202,7 +243,7 @@ BinaryCodegenRule(intr_cmp_eq, {
 }, "You can only use @cmp_eq on on float and integer operands")
 
 MakesBool(intr_cmp_neq)
-BinaryCodegenRule(intr_cmp_neq, {
+BinaryCodegenRuleSameT(intr_cmp_neq, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_integer())
@@ -212,7 +253,7 @@ BinaryCodegenRule(intr_cmp_neq, {
 }, "You can only use @cmp_neq on on float and integer operands")
 
 MakesBool(intr_cmp_greater)
-BinaryCodegenRule(intr_cmp_greater, {
+BinaryCodegenRuleSameT(intr_cmp_greater, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_signed_integer())
@@ -224,7 +265,7 @@ BinaryCodegenRule(intr_cmp_greater, {
 }, "You can only use @cmp_gt on on float and integer operands")
 
 MakesBool(intr_cmp_greater_eq)
-BinaryCodegenRule(intr_cmp_greater_eq, {
+BinaryCodegenRuleSameT(intr_cmp_greater_eq, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_signed_integer())
@@ -236,7 +277,7 @@ BinaryCodegenRule(intr_cmp_greater_eq, {
 }, "You can only use @cmp_gte on on float and integer operands")
 
 MakesBool(intr_cmp_lesser)
-BinaryCodegenRule(intr_cmp_lesser, {
+BinaryCodegenRuleSameT(intr_cmp_lesser, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_signed_integer())
@@ -248,7 +289,7 @@ BinaryCodegenRule(intr_cmp_lesser, {
 }, "You can only use @cmp_lt on on float and integer operands")
 
 MakesBool(intr_cmp_lesser_eq)
-BinaryCodegenRule(intr_cmp_lesser_eq, {
+BinaryCodegenRuleSameT(intr_cmp_lesser_eq, {
     BinaryAssertPrimitive;
 
     if(prim_ty.is_signed_integer())
@@ -341,6 +382,29 @@ UnaryCodegenRule(intr_dereference, {
 
 }, "You can only use @deref on a pointer operand")
 
+
+UnaryCodegenRule(intr_sqrt, {
+        UnaryAssertPrimitive;
+        auto mod = builder()->GetInsertBlock()->getModule();
+        if(prim_ty.is_float()){
+            auto sqrt = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::sqrt, {operand.type});
+            Ret(builder()->CreateCall(sqrt, {operand}))
+        }
+        else if(prim_ty.is_signed_integer()){
+            // Cast to f64 first
+            auto ty = builder()->getDoubleTy();
+            auto op = builder()->CreateSIToFP(operand, ty);
+            auto sqrt = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::sqrt, {ty});
+            Ret(builder()->CreateFPToSI(builder()->CreateCall(sqrt, {op}), prim_ty.llvm_type()))
+        }
+        else if(prim_ty.is_unsigned_integer()){
+            // Cast to f64 first
+            auto ty = builder()->getDoubleTy();
+            auto op = builder()->CreateUIToFP(operand, ty);
+            auto sqrt = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::sqrt, {ty});
+            Ret(builder()->CreateFPToUI( builder()->CreateCall(sqrt, {op}), prim_ty.llvm_type()))
+        }
+}, "You can only use @sqrt on an integer or float operand")
 
 UnaryCodegenRule(intr_pointer_to, {
 

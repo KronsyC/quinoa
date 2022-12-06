@@ -128,7 +128,7 @@
 	new TokenDefinition(TT_intr_sub, "intr_sub", {"@sub"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_mul, "intr_mul", {"@mul"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_div, "intr_div", {"@div"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_mod, "intr_mod", {"mod"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_mod, "intr_mod", {"@mod"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bool_or, "intr_bool_or", {"@bool_or"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bool_and, "intr_bool_and", {"@bool_and"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_get_member, "intr_get_member", {"@member"}, "", false, false, 0, false, false, {2, 0}),\
@@ -145,7 +145,8 @@
 	new TokenDefinition(TT_intr_bitwise_shl, "intr_bitwise_shl", {"@bitwise_shl"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_shr, "intr_bitwise_shr", {"@bitwise_shr"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_power, "intr_power", {"@pow"}, "", false, false, 0, false, false, {2, 0}),\
-	new TokenDefinition(TT_intr_sqrt, "intr_sqrt", {"@sqrt"}, "", false, false, 0, false, false, {2, 0}),\
+	new TokenDefinition(TT_intr_sqrt, "intr_sqrt", {"@sqrt"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_nth_root, "intr_nth_root", {"@nth_root"}, "", false, false, 0, false, false, {2, 0}),\
 	new TokenDefinition(TT_intr_bitwise_not, "intr_bitwise_not", {"@bitwise_not"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_bool_not, "intr_bool_not", {"@bool_not"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_pointer_to, "intr_pointer_to", {"@pointer_to"}, "", false, false, 0, false, false, {1, 0}),\
@@ -271,6 +272,7 @@
 	TT_intr_bitwise_shr,\
 	TT_intr_power,\
 	TT_intr_sqrt,\
+	TT_intr_nth_root,\
 	TT_intr_bitwise_not,\
 	TT_intr_bool_not,\
 	TT_intr_pointer_to,\
@@ -459,6 +461,7 @@
 	intr_bitwise_shr,\
 	intr_power,\
 	intr_sqrt,\
+	intr_nth_root,\
 	intr_bitwise_not,\
 	intr_bool_not,\
 	intr_pointer_to,\
@@ -476,7 +479,7 @@
 	{ intr_sub, "@sub"},\
 	{ intr_mul, "@mul"},\
 	{ intr_div, "@div"},\
-	{ intr_mod, "mod"},\
+	{ intr_mod, "@mod"},\
 	{ intr_bool_or, "@bool_or"},\
 	{ intr_bool_and, "@bool_and"},\
 	{ intr_get_member, "@member"},\
@@ -494,6 +497,7 @@
 	{ intr_bitwise_shr, "@bitwise_shr"},\
 	{ intr_power, "@pow"},\
 	{ intr_sqrt, "@sqrt"},\
+	{ intr_nth_root, "@nth_root"},\
 	{ intr_bitwise_not, "@bitwise_not"},\
 	{ intr_bool_not, "@bool_not"},\
 	{ intr_pointer_to, "@pointer_to"},\
@@ -511,7 +515,7 @@
 	{ "@sub", intr_sub},\
 	{ "@mul", intr_mul},\
 	{ "@div", intr_div},\
-	{ "mod", intr_mod},\
+	{ "@mod", intr_mod},\
 	{ "@bool_or", intr_bool_or},\
 	{ "@bool_and", intr_bool_and},\
 	{ "@member", intr_get_member},\
@@ -529,6 +533,7 @@
 	{ "@bitwise_shr", intr_bitwise_shr},\
 	{ "@pow", intr_power},\
 	{ "@sqrt", intr_sqrt},\
+	{ "@nth_root", intr_nth_root},\
 	{ "@bitwise_not", intr_bitwise_not},\
 	{ "@bool_not", intr_bool_not},\
 	{ "@pointer_to", intr_pointer_to},\
