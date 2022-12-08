@@ -8,19 +8,49 @@
 #include "../../../AST/intrinsic.hh"
 
 void attempt_resolve_typeref(TypeRef &ref, Container *container) {
-    auto locally_defined_type = container->get_type(ref.name->str());
-    if (locally_defined_type) {
-        ref.resolves_to = locally_defined_type;
-        return;
+  Logger::debug("artr: " + ref.name->str() + " in " + container->full_name().str());
+
+  // case: local type
+  //       OR aliased module type 
+  if(ref.name->parts.len() == 1){
+    auto type_name = ref.name->str();
+
+    auto maybe_local = container->get_type(type_name);
+
+    if(maybe_local){
+      ref.resolves_to = maybe_local;
+      return;
     }
 
-    // Check other modules
-    for (auto type: container->parent->get_types()) {
-        if (type->name->str() == ref.name->str()) {
-            ref.resolves_to = type->refers_to;
-            return;
-        }
+    auto resolved_mod_name = container->aliases[type_name];
+
+    if(!resolved_mod_name.parts.len())return;
+
+    Container* target_container = nullptr;
+    for(auto cont : container->parent->get_containers()){
+      if(cont->full_name().str() == resolved_mod_name.str()){
+        target_container = cont;
+        break;
+      }
     }
+    if(!target_container)except(E_INTERNAL, "search for target container failed");
+
+    // the container has to have an `_` member
+
+    auto type_member = target_container->get_type();
+
+    if(!type_member)except(E_BAD_TYPE, "A type was found to refer to the module " + type_name + ", however the module does not contain a default '_' type member\n\t\t");
+
+    ref.resolves_to = type_member;
+    return;
+  }
+
+  else{
+    except(E_INTERNAL, "Multipart type refs not implemented");
+  }
+
+  except(E_INTERNAL, "attempt_resolve_typeref not implemented for containers");
+
 }
 
 void attempt_resolve_typeref(TypeRef &ref, Method *method) {

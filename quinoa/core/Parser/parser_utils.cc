@@ -21,6 +21,83 @@ std::string get_tt_name(TokenType t) {
     return "unknown";
 }
 
+std::vector<std::vector<Token>> parse_tst(std::vector<Token> &toks, TokenType at)
+{
+    if (toks.size() == 0)
+        return {};
+
+    static std::vector<TokenType> indt, dindt;
+    if(!indt.size()){
+        for (auto d : defs)
+        {
+            if (d->ind)
+                indt.push_back(d->ttype);
+            else if (d->dind)
+                dindt.push_back(d->ttype);
+        }
+    }
+
+    std::vector<std::vector<Token>> retVal;
+    std::vector<Token> temp;
+    int ind = 0;
+    while (toks.size())
+    {
+        auto t = popf(toks);
+        if (includes(indt, t.type))
+            ind++;
+        if (includes(dindt, t.type))
+            ind--;
+
+        if (ind == 0 && t.is(at))
+        {
+            retVal.push_back(temp);
+            temp.clear();
+        }
+        else
+        {
+            temp.push_back(t);
+        }
+    }
+    retVal.push_back(temp);
+    return retVal;
+}
+
+
+std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks){
+  return parse_tst(toks, TT_comma);
+}
+
+std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks)
+{
+    auto name = std::make_unique<LongName>();
+
+    bool expects_split = false;
+    while (!toks.empty())
+    {
+        auto current = toks[0];
+        if (expects_split)
+        {
+            if (current.is(TT_double_colon))
+            {
+                expects_split = false;
+                popf(toks);
+                continue;
+            }
+            else
+                break;
+        }
+        else
+        {
+            popf(toks);
+            // 100% has to be an identifier
+            expects(current, TT_identifier);
+            Name segment(current.value);
+            name->parts.push(segment);
+            expects_split = true;
+        }
+    }
+    return name;
+}
 void print_toks(const std::vector<Token> &toks) {
     std::string output;
     unsigned int max_name_len = 0;
@@ -125,10 +202,11 @@ std::vector<Token> read_to_reverse(std::vector<Token> &toks, TokenType type) {
 }
 
 
-//                                                                                                 <            >                               ::<            >
 std::map<IndType, std::pair<TokenType, TokenType>> mappings{INDENTATION_MAPPINGS {IND_angles, {TT_lesser, TT_greater}}, {IND_generics, {TT_op_generic, TT_greater}} };
 
-std::vector<Token> read_block(std::vector<Token> &toks, IndType typ) {
+#include<variant>
+
+std::variant<std::vector<Token>, std::string> parse_block(std::vector<Token> &toks, IndType typ){
     auto p = mappings[typ];
     auto i = p.first;
     auto u = p.second;
@@ -147,7 +225,14 @@ std::vector<Token> read_block(std::vector<Token> &toks, IndType typ) {
         ret.push_back(t);
     }
     if (ind != 0)
-        error("Expected corresponding '" + get_tt_name(u) + "' to " + get_tt_name(first_tok.type) + " at " +
-              first_tok.afterpos());
+        return "Expected corresponding '" + get_tt_name(u) + "' to " + get_tt_name(first_tok.type) + " at " +
+              first_tok.afterpos();
     return ret;
+}
+
+std::vector<Token> read_block(std::vector<Token> &toks, IndType typ) {
+  auto result = parse_block(toks, typ);
+  
+  if(auto err = std::get_if<std::string>(&result))except(E_INTERNAL, *err);
+  return *std::get_if<std::vector<Token>>(&result);
 }

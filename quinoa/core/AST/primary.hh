@@ -18,30 +18,34 @@ class Type;
  */
 class LLVMType {
 public:
-    llvm::Type *ll_type = nullptr;
     std::shared_ptr<Type> qn_type;
 
-    llvm::Type *operator->() {
-        return this->ll_type;
-    }
+    llvm::Type *operator->();
 
     LLVMType(std::shared_ptr<Type> qn_type);
-    LLVMType() = default;
-
+    LLVMType(){
+    this->is_explicitly_constructed = false;
+  }
     LLVMType(llvm::Type *ll, std::shared_ptr<Type> qn) {
         if(!qn)except(E_INTERNAL, "(bug) cannot construct an LLVMType without the corresponding quinoa type");
-        this->ll_type = ll;
+        this->cached_type = ll;
         this->qn_type = qn;
     }
 
-    operator llvm::Type *() const {
-        return ll_type;
-    }
 
     bool operator==(LLVMType& other) const;
 
     bool is_signed();
 
+    operator bool() const{
+      return is_explicitly_constructed;
+    }
+
+    operator llvm::Type*() const;
+    llvm::Type* get_type() const;
+private:
+    bool is_explicitly_constructed = true;
+    llvm::Type* cached_type = nullptr;
 };
 
 class LLVMValue{
@@ -84,7 +88,7 @@ public:
     virtual std::vector<Statement *> flatten() = 0;
 
     virtual ReturnChance returns() = 0;
-
+    virtual std::vector<Type*> flatten_types() = 0;
     Scope *scope = nullptr;
 
 };
@@ -170,7 +174,7 @@ public:
     ControlFlowJump(JumpType type) {
         this->type = type;
     }
-
+    std::vector<Type*> flatten_types(){return {};}
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
         switch (type) {
             case JumpType::BREAK: {
@@ -220,6 +224,8 @@ public:
 class Scope : public Statement {
 public:
     Vec<Statement> content;
+    
+    std::vector<Type*> flatten_types();
 
     std::string str() {
         std::string output = "{\n";

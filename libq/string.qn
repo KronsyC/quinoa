@@ -1,0 +1,65 @@
+import @memory;
+import @lang::internal::error as Err;
+import @io;
+module String is Exported{
+
+    type _ = struct{
+        allocation : u8[];
+        length     : u64;
+    };
+
+    func from(data : str) -> String{
+      return from_bytes(data); 
+    }
+
+    func from_bytes(data : u8[]) -> String{
+      let raw_bytes = memory::alloc::<u8>(data.len); 
+
+      let idx : u64 = 0;
+      while(idx < data.len){
+        raw_bytes[idx] = data[idx];
+        idx++;
+      }
+
+      let S = String{
+        allocation : raw_bytes;
+        length     : data.len;
+      };
+
+      return S;
+    }
+
+
+    func to_cstr.String() -> u8[]{
+      // Allocate a slice with one byte more than the string's
+      // copy the string content into the slice
+      // write a 0 into the last slot of the slice
+
+      let allocation : u8[] = memory::alloc::<u8>(self.length + 1);
+    
+      self.copy_bytes_into(allocation);
+      allocation[allocation.len - 1] = 0;
+
+      return allocation;
+    }
+
+
+    func copy_bytes_into.String(slice : u8[]){
+      if(slice.len < self.length){
+        Err::panic("Failed to copy bytes from string: target slice smaller than string content");
+      }
+
+      let idx : u64 = 0;
+      while(idx < self.length){
+        slice[idx] = self.allocation[idx];
+        idx++;
+      }
+
+    }
+
+    func len.String() -> u64{
+        return self.length;
+    }
+
+}
+

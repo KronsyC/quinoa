@@ -2,13 +2,21 @@
 
 #include "./include.hh"
 #include "./primary.hh"
-
+#include "type.hh"
 
 class Conditional : public Statement {
 public:
     std::unique_ptr <Expr> condition;
     std::unique_ptr <Scope> if_true;
     std::unique_ptr <Scope> if_false;
+
+    std::vector<Type*> flatten_types(){
+        auto ret = condition->flatten_types();
+        for(auto t : if_true->flatten_types())ret.push_back(t);
+        if(if_false)for(auto t : if_false->flatten_types())ret.push_back(t);
+
+        return ret;
+    }
 
 
     std::vector<Statement *> flatten() {
@@ -92,6 +100,14 @@ class While : public Statement {
 public:
     std::unique_ptr <Expr> condition;
     std::unique_ptr <Scope> execute;
+
+    
+    std::vector<Type*> flatten_types(){
+        auto ret = condition->flatten_types();
+        for(auto t : execute->flatten_types())ret.push_back(t);
+
+        return ret;
+    }
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
 

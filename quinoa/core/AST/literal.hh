@@ -8,6 +8,18 @@ class ArrayLiteral : public Expr {
 public:
     Vec<Expr> members;
 
+
+    std::vector<Type*> flatten_types(){
+      std::vector<Type*> ret;
+  
+      for(const auto& m : members){
+        for(auto t : m->flatten_types()){
+          ret.push_back(t);
+        }
+
+      }
+      return ret;
+    }
     void write_to(LLVMValue alloc, VariableTable &vars) {
         if (!alloc->getType()->getPointerElementType()->isArrayTy())
             except(E_BAD_ASSIGNMENT, "You can only write an array literal to a list typed variable");

@@ -1,0 +1,13 @@
+import @sys::file as File;
+
+module FS is Exported{
+
+    func open_file(path : str) -> File{
+        return File::from_descriptor(1);
+    }
+
+
+    #[link_extern "open"]
+    func glibc_open_descriptor_to_file(name : i8*, mode : int);
+
+}

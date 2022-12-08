@@ -11,6 +11,7 @@
 #include "./container.hh"
 #include "./include.hh"
 #include "./allocating_expr.hh"
+#include <llvm/IR/DerivedTypes.h>
 
 
 class CallLike : public Expr {
@@ -19,6 +20,25 @@ public:
     std::vector <std::shared_ptr<Type>> type_args;
     std::shared_ptr <Type> return_type;
     Method *target = nullptr;
+
+    std::vector<Type*> flatten_types(){
+        std::vector<Type*> ret;
+    
+        for(const auto& ta : type_args){
+            for(const auto& t : ta->flatten()){
+                ret.push_back(t);
+            }
+        }
+        if(return_type)for(const auto& t : return_type->flatten())ret.push_back(t);
+
+        for(const auto& val : args){
+            for(const auto& t : val->flatten_types()){
+                ret.push_back(t);
+            }
+        }
+
+        return ret;
+    }
 
     LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args) {
 
@@ -33,7 +53,14 @@ public:
         auto mod = builder()->GetInsertBlock()->getModule();
         auto fn = mod->getFunction(target->source_name());
 
-        if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
+        if(!fn && type_args.size()){
+
+          target->apply_generic_substitution(this->type_args);
+          fn = make_fn(*target, mod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true) ;
+          Logger::debug("Generated from within generic call");
+          target->generate_usages.push(this->type_args);
+        }
+        else if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
 
 
 
@@ -119,6 +146,30 @@ public:
     std::unique_ptr <Name> method_name;
     std::unique_ptr <Expr> call_on;
 
+
+    unsigned deref_count = 0;
+    std::vector<Type*> flatten_types(){
+        std::vector<Type*> ret;
+    
+        for(const auto& ta : type_args){
+            for(const auto& t : ta->flatten()){
+                ret.push_back(t);
+            }
+        }
+        for(const auto& t : return_type->flatten())ret.push_back(t);
+
+        for(const auto& val : args){
+            for(const auto& t : val->flatten_types()){
+                ret.push_back(t);
+            }
+        }
+
+        for(const auto& t : call_on->flatten_types())ret.push_back(t);
+
+        return ret;
+    }
+
+
     std::string str() {
         std::string ret = call_on->str() + "." + method_name->str();
         if (type_args.size()) {
@@ -146,7 +197,13 @@ public:
     }
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        auto call = create_call(vars, {call_on->assign_ptr(vars)});
+        auto ptr = call_on->assign_ptr(vars);
+        auto tmp_ref_count = deref_count;
+        while(tmp_ref_count){
+          ptr = ptr.load();
+          tmp_ref_count--;
+        }
+        auto call = create_call(vars, {ptr});
         return cast(call, expected_type);
     }
 
@@ -210,6 +267,10 @@ public:
         if (value)for (auto m: value->flatten())ret.push_back(m);
         return ret;
     }
+    
+    std::vector<Type*> flatten_types(){
+        return value ? value->flatten_types() : std::vector<Type*>();
+    }
 
     ReturnChance returns() {
         return ReturnChance::DEFINITE;
@@ -227,6 +288,12 @@ public:
         std::vector < Statement * > ret = {this};
         if (initializer)for (auto m: initializer->flatten())ret.push_back(m);
         return ret;
+    }
+
+    std::vector<Type*> flatten_types(){
+      auto ret = type->flatten();
+      if(initializer)for(auto t : initializer->flatten_types())ret.push_back(t);
+     return ret;
     }
 
     std::string str() {
@@ -266,6 +333,14 @@ public:
         return ret;
     }
 
+    std::vector<Type*> flatten_types(){
+        auto ret = value->flatten_types();
+
+        for(auto t : cast_to->flatten())ret.push_back(t);
+
+        return ret;
+    }
+
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         return cast(cast_explicit(value->llvm_value(vars), cast_to), expected_type);
     }
@@ -292,6 +367,14 @@ class ImplicitCast : public Expr {
 public:
     std::unique_ptr <Expr> value;
     std::shared_ptr <Type> cast_to;
+
+    std::vector<Type*> flatten_types(){
+        auto ret = value->flatten_types();
+
+        for(auto t : cast_to->flatten())ret.push_back(t);
+
+        return ret;
+    }
 
     std::vector<Statement *> flatten() {
         std::vector < Statement * > ret = {this};
@@ -325,6 +408,18 @@ class StructInitialization : public AllocatingExpr {
 public:
     std::map <std::string, std::unique_ptr<Expr>> initializers;
     std::shared_ptr<Type> type;
+
+
+    std::vector<Type*> flatten_types(){
+        auto ret = type->flatten();
+
+        for(auto& [_, v] : initializers){
+            for(auto t : v->flatten_types() )ret.push_back(t);
+        }
+
+
+        return ret;
+    }
 
     StructInitialization(std::shared_ptr<Type> tgt) {
         this->type = tgt;
@@ -426,6 +521,13 @@ public:
     Subscript(std::unique_ptr <Expr> tgt, std::unique_ptr <Expr> idx) {
         this->target = std::move(tgt);
         this->index = std::move(idx);
+    }
+
+    std::vector<Type*> flatten_types(){
+        auto ret = target->flatten_types();
+        for(auto t : index->flatten_types())ret.push_back(t);
+
+        return ret;
     }
 
     std::vector<Statement *> flatten() {

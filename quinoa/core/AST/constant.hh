@@ -12,7 +12,7 @@
 #include "./primary.hh"
 #include "./include.hh"
 #include "./allocating_expr.hh"
-
+#include "./type.hh"
 class ConstantValue : public Expr {
 public:
     virtual llvm::Constant *const_value(LLVMType expected) = 0;
@@ -22,6 +22,9 @@ public:
 template<typename T, typename U>
 class Constant : public ConstantValue {
 public:
+    std::vector<Type*> flatten_types(){
+        return {};
+    }
     T value;
 
     Constant(T value) {
@@ -48,6 +51,7 @@ public:
     using Constant::Constant;
     using AllocatingExpr::llvm_value;
 
+    std::vector<Type*> flatten_types(){return {};}
     std::vector<Statement *> flatten() {
         return Constant::flatten();
     }
@@ -90,7 +94,7 @@ public:
     }
 
     std::shared_ptr <Type> get_type() {
-        return DynListType::get(Primitive::get(PR_int8));
+        return DynListType::get(Primitive::get(PR_uint8));
     }
 
     llvm::Constant *const_value(LLVMType expected) {

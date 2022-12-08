@@ -33,6 +33,10 @@ public:
     std::string str() {
         return "Some Unary op";
     }
+    
+    std::vector<Type*> flatten_types(){
+        return {};
+    }
 
     UnaryOperation(std::unique_ptr <Expr> operand, UnaryOpType kind) {
         this->operand = std::move(operand);
@@ -176,7 +180,11 @@ private:
 public:
     std::unique_ptr<_Intrinsic> internal_intrinsic;
     BinaryOpType op_type;
+    
 
+    std::vector<Type*> flatten_types(){
+        return {};
+    }
 
     BinaryOperation(std::unique_ptr <Expr> left, std::unique_ptr <Expr> right, BinaryOpType op_type) {
         Vec<Expr> args;
@@ -207,7 +215,6 @@ public:
         // and unwrap the casts, before rewrapping
 
 
-        Logger::debug("normalizing binop: " + this->str());
         auto rel = internal_intrinsic->args.release();
         auto left = std::unique_ptr<Expr>(rel[0]);
         auto right = std::unique_ptr<Expr>(rel[1]);
@@ -231,7 +238,12 @@ public:
 
         }
         else{
-            auto casted_ty = get_operand_cast_type(left->type(), right->type());
+            auto left_t = left->type();
+            auto right_t = right->type();
+
+            if(!left_t)except(E_INTERNAL, "left operand: " + left->str() + " in operation: " + str() + " has no type");
+            if(!right_t)except(E_INTERNAL, "right operand: " + left->str() + " in operation: " + str() + " has no type");
+            auto casted_ty = get_operand_cast_type(left_t, right_t);
 
             if(has_normalized){
                 static_cast<ImplicitCast*>(left.get())->cast_to = casted_ty.qn_type;
@@ -341,15 +353,16 @@ public:
         this->member_name = std::move(member_name);
     }
 
+    std::vector<Type*> flatten_types(){
+        return {};
+    }
     std::string str() {
         return member_of->str() + "." + member_name->str();
     }
 
     LLVMValue assign_ptr(VariableTable &vars) {
-        Logger::debug("Getting assign_ptr for subscript");
         auto strct = member_of->assign_ptr(vars);
         auto retrv_t = member_of->type()->llvm_type();
-        Logger::debug("got ll_type of target: " + retrv_t.qn_type->str());
         while(auto ref_t = retrv_t.qn_type->get<ReferenceType>()){
             // Implicitly de-reference the op for member access
             retrv_t = ref_t->of;
@@ -358,7 +371,6 @@ public:
         auto strct_t = retrv_t.qn_type->get<StructType>();
         if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
 
-        Logger::debug("Access member of: " + strct_t->str());
 
         auto idx = strct_t->member_idx(member_name->str());
 
@@ -369,7 +381,7 @@ public:
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
 
         // Special case for slices (len and ptr properties)
-        if (this->member_of->type()->get<DynListType>()) {
+        if (auto dlt = this->member_of->type()->get<DynListType>()) {
             auto slice_val = member_of->assign_ptr(vars);
             if (member_name->str() == "len") {
                 auto len_ptr = builder()->CreateStructGEP(slice_val->getType()->getPointerElementType(), slice_val, 0);
@@ -378,7 +390,8 @@ public:
             } else if (member_name->str() == "ptr") {
                 auto ref_ptr = builder()->CreateStructGEP(slice_val->getType()->getPointerElementType(), slice_val, 1);
                 auto ref = builder()->CreateLoad(ref_ptr->getType()->getPointerElementType(), ref_ptr);
-                return cast({ref, type()}, expected_type);
+                auto ptr = builder()->CreateBitCast(ref, Ptr::get(dlt->of)->llvm_type());
+                return cast({ptr, type()}, expected_type);
             } else except(E_BAD_MEMBER_ACCESS, "slices only have the 'ptr' and 'len' properties");
         }
         auto ptr = this->assign_ptr(vars);
@@ -394,21 +407,24 @@ public:
 
 protected:
     std::shared_ptr <Type> get_type() {
-        auto left_qn_t = member_of->type();
-        if (!left_qn_t)return std::shared_ptr<Type>(nullptr);
-        auto left_t = left_qn_t->llvm_type();
+        auto left_t = member_of->type();
+        if (!left_t)return std::shared_ptr<Type>(nullptr);
         auto member = member_name->str();
 
-        while(auto ref_t = left_t.qn_type->get<ReferenceType>()){
+        while(auto ref_t = left_t->get<ReferenceType>()){
             // Implicitly de-reference the op for member access
             left_t = ref_t->of;
         }
 
-        if (auto strct = left_t.qn_type->get<StructType>()) {
+        while(auto pref = left_t->get<ParameterizedTypeRef>()){
+          left_t = pref->copy_with_substitutions({});
+        }
+
+        if (auto strct = left_t->get<StructType>()) {
             if (strct->member_idx(member) == -1)
                 except(E_BAD_MEMBER_ACCESS, "The struct: " + member_of->str() + " does not have a member: " + member);
             return strct->members[member];
-        } else if (auto slice = left_t.qn_type->get<DynListType>()) {
+        } else if (auto slice = left_t->get<DynListType>()) {
             if (member == "len") {
                 return Primitive::get(PR_uint64);
             } else if (member == "ptr") {
@@ -416,7 +432,7 @@ protected:
             } else except(E_BAD_MEMBER_ACCESS, "slices only have the properties 'len' and 'ptr'");
         }
 
-        except(E_BAD_MEMBER_ACCESS, "You may only access members of a container type (structs, slices, arrays), but the type was found to be: " + left_t.qn_type->str());
+        except(E_INTERNAL, "You may only access members of a container type (structs, slices, arrays), but the type was found to be: " + left_t->str());
 
 
     }

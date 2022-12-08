@@ -59,6 +59,7 @@ public:
 
     virtual std::vector<Type *> flatten() = 0;
 
+    virtual std::shared_ptr<Type> copy_with_substitutions(GenericTable gt) = 0;
 
     virtual std::pair<Type &, Type &> find_difference(Type &against) = 0;
     std::shared_ptr<Type> self;
@@ -108,7 +109,9 @@ public:
     std::vector<Type *> flatten() {
         return {this};
     }
-
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return self;
+    }
     Primitive(PrimitiveType kind) {
         this->kind = kind;
     }
@@ -218,6 +221,10 @@ public:
         this->of = type->drill()->self;
     }
 
+    
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return Ptr::get(this->of->copy_with_substitutions(gt));
+    }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
         for (auto m: of->flatten())ret.push_back(m);
@@ -280,6 +287,9 @@ public:
         this->of = of->drill()->self;
     }
 
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return ReferenceType::get(of->copy_with_substitutions(gt));    
+    }
     static std::shared_ptr <ReferenceType> get(std::shared_ptr <Type> of) {
         return create_heaped(ReferenceType(of));
     }
@@ -360,6 +370,9 @@ public:
         return ret;
     }
 
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return DynListType::get(of->copy_with_substitutions(gt));
+    }
     std::shared_ptr <Type> pointee() {
         return of;
     }
@@ -427,6 +440,19 @@ public:
         this->members = members;
         this->parent = cont;
 
+    }
+
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      std::map<std::string, std::shared_ptr<Type>> new_members;
+
+      for(auto [name, typ] : members){
+
+        auto new_typ = typ->copy_with_substitutions(gt);
+        new_members[name] = new_typ;
+      }
+      auto new_struct = StructType::get(new_members, parent);
+      new_struct->self_ptr = this;
+      return new_struct;
     }
 
     Type *drill() {
@@ -534,6 +560,9 @@ public:
         return std::shared_ptr<Type>(nullptr);
     }
 
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return self;
+    }
     static std::shared_ptr <EnumType> get(std::vector <std::string> entries, Container *cont) {
         return create_heaped(EnumType(entries, cont));
     }
@@ -600,6 +629,10 @@ public:
         return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
     }
 
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return resolves_to ? resolves_to->copy_with_substitutions(gt) : self;
+    }
+
     static std::shared_ptr <TypeRef> get(std::unique_ptr <LongName> name) {
         // do not cache TypeRefs, as multiple refs may share the same name
         // but refer to an entirely different type depending on context
@@ -654,6 +687,9 @@ public:
         return this;
     }
 
+    std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
+      return resolves_to ? resolves_to->copy_with_substitutions(get_mapped_params())->copy_with_substitutions(gt) : self;
+    }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
         if (resolves_to)for (auto m: resolves_to->flatten())ret.push_back(m);
@@ -725,6 +761,11 @@ private:
     }
 
 public:
+
+
+    std::shared_ptr <Type> copy_with_substitutions(GenericTable gt) {
+        return temporarily_resolves_to ? temporarily_resolves_to->copy_with_substitutions(gt) : gt[name->str()] ? gt[name->str()] : self;
+    }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
         if (temporarily_resolves_to)ret.push_back(temporarily_resolves_to.get());
@@ -762,7 +803,9 @@ public:
         auto lt = target.get<Generic>();
         if (!lt)
             return -1;
-       return this == lt;
+
+      // TODO: once constraints are implemented, check if this type has a constraint which conforms to the target type
+      return 0;
     }
 
     std::string str() {
@@ -805,6 +848,10 @@ protected:
 public:
     std::shared_ptr <Type> of;
     std::unique_ptr <Integer> size;
+
+    std::shared_ptr <Type> copy_with_substitutions(GenericTable gt) {
+        return ListType::get(of->copy_with_substitutions(gt), Integer::get(size->value));
+    }
 
     ListType(std::shared_ptr <Type> type, std::unique_ptr <Integer> size) {
         this->of = type->drill()->self;

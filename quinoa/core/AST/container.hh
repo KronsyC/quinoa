@@ -50,6 +50,9 @@ public:
     Vec<ContainerRef> compositors;
     ContainerType type = CT_NOTYPE;
 
+    // Map all aliases
+    std::map<std::string, LongName> aliases;
+
     Vec<ContainerMember *> inherited_members;
 
     std::shared_ptr <ContainerRef> get_ref() {

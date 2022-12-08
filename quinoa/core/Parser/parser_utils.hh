@@ -14,6 +14,8 @@
 //
 std::unique_ptr<LongName> parse_long_name(std::vector<Token> &toks);
 std::vector<std::vector<Token>> parse_tst(std::vector<Token> &toks, TokenType at);
+
+std::vector<std::vector<Token>> parse_cst(std::vector<Token> &toks);
 Token pope(std::vector<Token> &toks, TokenType typ);
 std::vector<Token> read_to(std::vector<Token> &toks, TokenType type);
 

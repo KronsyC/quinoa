@@ -12,6 +12,7 @@ add_definitions(${LLVM_DEFINITIONS})
 
 set(CMAKE_BUILD_TYPE DEBUG)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if(DEBUG)
     message(STATUS "Debug Mode Active")

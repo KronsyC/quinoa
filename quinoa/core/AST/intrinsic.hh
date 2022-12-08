@@ -19,6 +19,17 @@ public:
 
     // Help keep track of certain attributes, such as const assignment rights
     std::vector<std::string> flags;
+
+    std::vector<Type*> flatten_types(){
+        std::vector<Type*> ret;
+        for(const auto& t : type_args){
+            for(const auto& f : t->flatten()){
+                ret.push_back(f);
+            }
+        }
+        return ret;
+    }
+    
 };
 
 template< IntrinsicType IT >

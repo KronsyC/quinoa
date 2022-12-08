@@ -39,7 +39,7 @@ public:
 class LongName : public Reference {
 public:
     Vec<Name> parts;
-
+    bool is_valid = false;
     std::string str() {
         std::string ret;
         bool first = true;
@@ -55,9 +55,19 @@ public:
     Name &last() {
         return parts[parts.len() - 1];
     }
+    
+    std::unique_ptr<LongName> all_but_last(){
+      auto ret = std::make_unique<LongName>();
+      ret->is_valid = true;
+      for(unsigned i = 0; i < parts.len() - 1; i++){
+          ret->parts.push(parts[i]);
+      }
+      return ret;
+    }
 
     LongName(LongName &copy_from) {
-        for (auto p: copy_from.parts) {
+      is_valid = true;
+        for (const auto& p: copy_from.parts) {
             parts.push(*p.ptr);
         }
     }
@@ -68,12 +78,18 @@ public:
 
     LongName() = default;
 
+    operator bool(){
+      return is_valid;
+    }
 };
 
 class SourceVariable : public Name, public Expr {
 public:
     std::unique_ptr <LongName> name;
 
+    std::vector<Type*> flatten_types(){
+      return {};
+    }
     SourceVariable(LongName name) {
         this->name = std::make_unique<LongName>(name);
     }
@@ -123,6 +139,7 @@ public:
     std::unique_ptr <LongName> name;
 
     std::string str();
+    std::string mangle_str();
 };
 
 class ContainerMemberRef : public Reference {
@@ -135,6 +152,12 @@ public:
         auto mem_name = member->str();
         if (trunc || !container)return mem_name;
         auto con_name = container->str();
+        return con_name + "::" + mem_name;
+    }
+    std::string mangle_str(){
+        auto mem_name = member->str();
+        if (trunc || !container)return mem_name;
+        auto con_name = container->mangle_str();
         return con_name + "::" + mem_name;
     }
 };

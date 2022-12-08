@@ -99,40 +99,24 @@ bool StructType::is_generic() {
 
 static std::map<std::vector<llvm::Type*>, LLVMType> struct_cache;
 LLVMType StructType::llvm_type(GenericTable gen_table) {
+
+    auto substituted_struct = this->copy_with_substitutions(gen_table)->get<StructType>();
+
+    if(!substituted_struct)except(E_INTERNAL, "(bug) substituted variant of a struct was found to NOT be a struct");
+
     std::vector < llvm::Type * > member_types;
-    for (auto member: members) {
-        member_types.push_back(member.second->llvm_type(gen_table));
+    for (auto member: substituted_struct->members) {
+        auto ll_ty = member.second->llvm_type(gen_table);
+        member_types.push_back(ll_ty);
     }
-    if(auto st = struct_cache[member_types])return st;
 
-    auto ll_ty = llvm::StructType::create(*llctx(), member_types, "struct:"+this->get_name());
+    
 
-    if(this->is_generic()){
-        std::map <std::string, std::shared_ptr<Type>> new_members;
+    if(auto& st = struct_cache[member_types])return st;
 
-        for(auto pair : members){
-            auto name = pair.first;
-            auto ty = pair.second;
+    auto ll_ty = llvm::StructType::create(*llctx(), member_types, "struct:"+substituted_struct->get_name());
 
-            if(auto gen = ty->get<Generic>()){
-                if(auto nt = gen_table[gen->name->str()]){
-                    new_members[name] = nt->drill()->self;
-                    continue;
-                }
-
-            }
-            new_members[name] = ty->drill()->self;
-        }
-
-        auto new_t = StructType::get(new_members, this->parent);
-        new_t->self_ptr = this;
-        if(new_t->is_generic()){
-            except(E_INTERNAL, "newly monomorphized struct is still generic");
-        }
-        Logger::debug("Created monomorph type: " + new_t->str() + ", ref count: " + std::to_string(new_t.use_count()));
-        return new_t->llvm_type(gen_table);
-    }
-    LLVMType ret{ll_ty, self};
+    LLVMType ret{ll_ty, substituted_struct->self};
     struct_cache[member_types] = ret;
     return ret;
 }

@@ -94,7 +94,7 @@ public:
     std::string source_name() {
         if (this->name->trunc)return this->name->str();
         std::string name;
-        name += this->name->str();
+        name += this->name->mangle_str();
         if (this->generic_params.size()) {
             name += "<";
             bool first = true;

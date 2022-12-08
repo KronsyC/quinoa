@@ -6,68 +6,7 @@
 #include "llvm/Linker/Linker.h"
 
 
-void make_fn(
-	Method &f,
-	llvm::Module *mod,
-	llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage,
-	bool with_generic = true)
-{
 
-    if(f.generic_params.size() && with_generic){
-        // Generate each required implementation of the function
-        for(auto impl : f.generate_usages){
-            Logger::debug("Found an impl for: " + f.name->str());
-            if(impl->size() != f.generic_params.size())except(E_INTERNAL, "(bug) Number of implemented args does not match the number of expected args");
-            f.apply_generic_substitution(*impl);
-            // Generate
-            make_fn(f, mod, llvm::Function::LinkageTypes::ExternalLinkage, false);
-        }
-        return;
-    }
-
-	llvm::Type* ret = f.return_type->llvm_type();
-	auto name = f.source_name();
-	std::vector<llvm::Type *> args;
-
-
-    int skip_count = 0;
-    if(f.must_parameterize_return_val()){
-        // func foo() -> int[] or other similar situation
-        // converts to
-        // func foo( __internal_arg__ : int[]* ) -> void;
-        skip_count++;
-        ret = builder()->getVoidTy();
-        args.push_back(f.return_type->llvm_type()->getPointerTo());
-    }
-    if(f.acts_upon){
-        skip_count++;
-        auto self_t = Ptr::get(f.acts_upon)->llvm_type();
-        args.push_back(self_t);
-
-    }
-    for (auto a : f.parameters)
-	{
-		auto param_type = a->type->llvm_type();
-		args.push_back(param_type);
-	}
-
-    bool isVarArg = false;
-
-
-	auto sig = llvm::FunctionType::get(ret, args, isVarArg);
-	auto fn = llvm::Function::Create(sig, linkage, name, mod);
-
-    // Prettify the parameter names
-#ifdef DEBUG
-	for (unsigned int i = skip_count; i < fn->arg_size(); i++)
-	{
-		auto &param = f.parameters[i-skip_count];
-		auto name = param.name.str();
-		auto arg = fn->getArg(i);
-		arg->setName(name);
-	}
-#endif
-}
 
 llvm::GlobalValue *make_global(
 	Property *prop,						   
@@ -154,32 +93,31 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 	return vars;
 }
 
-void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, bool with_generic = true){
+void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod){
     if(!fn)except(E_INTERNAL, "(bug) no function");
     if(fn->generic_params.size() && fn->generate_usages.len() == 0)return;
-    if(fn->generate_usages.len() && with_generic){
-        for(auto impl : fn->generate_usages){
-            fn->apply_generic_substitution(*impl);
-            generate_method(fn, ast, ll_mod, false);
-        }
-        return;
-    }
+
+
     auto fname = fn->source_name();
     auto ll_fn = ll_mod->getFunction(fname);
     if (ll_fn == nullptr)
     {
+    ll_mod->print(llvm::outs(), nullptr);
         except(E_MISSING_FUNCTION, "Function " + fname + " could not be found");
     }
+    if(ll_fn->size())return;
     auto entry_block = llvm::BasicBlock::Create(*llctx(), "entry_block", ll_fn);
 
     builder()->SetInsertPoint(entry_block);
     auto vars = generate_variable_table(ll_fn, ast, fn);
     fn->content->generate(fn, ll_fn, vars, {});
-    if (ll_fn->getReturnType()->isVoidTy())
+    auto retc = fn->content->returns();
+    if (ll_fn->getReturnType()->isVoidTy() && (retc == ReturnChance::NEVER || retc == ReturnChance::MAYBE || fn->must_parameterize_return_val()))
         builder()->CreateRetVoid();
 }
 std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &ast)
 {
+  Logger::debug("GENERATE MODULE: " + mod.full_name().str());
 	if(mod.type != CT_MODULE)except(E_INTERNAL, "cannot generate non-module container");
 	auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
 
@@ -193,10 +131,38 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 		}
 		else except(E_INTERNAL, "Attempt to hoist unrecognized node");
 	}
+
+  // Pass one: concrete functions
 	for(auto method : mod.get_methods()){
+        if(method->generic_params.size())continue;
         if(!method->content || !method->content->content.len())continue;
         generate_method(method, ast, llmod.get());
 	}
+
+  // Pass two: generic functions
+  std::size_t generated_impl_count = 0;
+  while(1){
+
+    std::size_t total_impl_count = 0;
+    for(auto m : mod.get_methods()){
+      total_impl_count+=m->generate_usages.len();
+    }
+
+    if(generated_impl_count >= total_impl_count)break;
+
+    for(auto method : mod.get_methods()){
+      if(!method->generate_usages.len())continue;
+      if(!method->content)continue;
+
+      for(auto impl : method->generate_usages){
+        method->apply_generic_substitution(*impl);
+        generated_impl_count++;
+        make_fn(*method, llmod.get(), llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
+        generate_method(method, ast, llmod.get());
+    }
+  }
+
+  }
 
 	return llmod;
 }
@@ -212,7 +178,6 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 	for(auto container : ast.get_containers()){
         if(container->type != CT_MODULE)continue;
         auto generated_mod = generate_module(*container, ast);
-        generated_mod->print(llvm::outs(), nullptr);
         llvm::Linker::linkModules(*rootmod, std::move(generated_mod));
 	}
 	return rootmod;

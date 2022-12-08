@@ -40,20 +40,12 @@ void add_prefixes(CompilationUnit &unit, std::string str_prefix) {
     }
 }
 
-void resolve_aliased_symbols(CompilationUnit &unit, LongName &alias, LongName &replace_with, bool change_state = true) {
+void resolve_aliased_symbols(CompilationUnit &unit, LongName &alias, LongName &replace_with) {
 
-    for (auto fn: unit.get_methods()) {
-        if (!fn->content || fn->aliases_resolved)continue;
-
-        for (auto code: fn->content->flatten()) {
-            if (auto call = dynamic_cast<MethodCall *>(code)) {
-                if (call->name->container->name->str() == alias.str()) {
-                    call->name->container->name = std::make_unique<LongName>(replace_with);
-                }
-            }
-        }
-    }
-
+  for(const auto& cont : unit.get_containers()){
+    if(cont->is_imported)continue;
+    cont->aliases[alias.str()] = LongName(replace_with);
+  }
 }
 
 void handle_imports(CompilationUnit &unit);
@@ -85,14 +77,6 @@ CompilationUnit *construct_ast_from_path(std::string path) {
         auto prefix_hash = gen_rand_unique_str(4);
         add_prefixes(*cached, prefix_hash);
 
-        for (auto container: cached->get_containers()) {
-            // Fix self-references to refer to the new symbol
-            auto alias = LongName();
-            alias.parts.push(*container->name);
-            auto new_name = container->full_name();
-            resolve_aliased_symbols(*cached, alias, new_name, false);
-        }
-
         auto exports = generate_export_table(*cached);
         all_exports[path] = exports;
 
@@ -121,6 +105,8 @@ void handle_imports(CompilationUnit &unit) {
 
 
     int removals = 0;
+
+
     for (unsigned int i = 0; i < unit.members.len(); i++) {
         auto &item = unit.members[i - removals];
         if (auto import = dynamic_cast<Import *>(&item)) {
@@ -150,7 +136,16 @@ void handle_imports(CompilationUnit &unit) {
 
                 auto full_name = target_module->full_name();
 
+                
                 resolve_aliased_symbols(unit, alias, full_name);
+
+                // Inject identities into the aliases table (this is a little bit of a hack, but works)
+                for(auto cont : unit.get_containers()){
+                  if(cont->is_imported)continue;
+                  for(auto icont : unit.get_containers()){
+                    icont->aliases[cont->name->str()] = cont->full_name();
+                  }
+                }
 
                 merge_units(unit, std::move(*ast));
 

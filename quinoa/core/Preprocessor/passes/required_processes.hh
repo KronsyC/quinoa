@@ -71,7 +71,7 @@ MaybeError apply_method_processes(Method& fn){
 void process_required(CompilationUnit *unit) {
     resolve_compositors(*unit);
     resolve_type_references(*unit);
-
+    build_type_table(*unit);
     std::vector<std::string> error_messages;
 
     for(auto method : unit->get_methods()){

@@ -168,20 +168,24 @@ Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionSt
             auto call_name = suitors[0].against->name->str();
             if (suitors.size() > 1)except(E_BAD_CALL, "Call to " + call_name + " is ambiguous");
 
-            if (suitors[0].generate_with.size()) {
-                suitors[0].against->generate_usages.push(suitors[0].generate_with);
-
-            }
             return suitors[0].against;
         }
         default: except(E_INTERNAL, "bad selection stage");
     }
 }
 
-Method *get_best_target(MethodCall *call, CompilationUnit &unit) {
+Method *get_best_target(MethodCall *call, Container* cont) {
+    auto& unit = *cont->parent;
     // Find the module that the call targets
+  
     Container *target = nullptr;
-    auto call_mod_name = call->name->container->name->str();
+    auto call_mod_name_aliased = call->name->container->name->str();
+    auto& call_mod_name_obj = cont->aliases[call_mod_name_aliased];
+
+
+    if(!call_mod_name_obj.parts.len())except(E_BAD_CALL, "Failed to locate module: " + call_mod_name_aliased + " for call: " + call->str());
+
+    auto call_mod_name = call_mod_name_obj.str();
     for (auto cont: unit.get_containers()) {
         if (cont->type != CT_MODULE)continue;
         if (call_mod_name == cont->full_name().str()) {
@@ -210,7 +214,6 @@ Method *get_best_target(MethodCall *call, CompilationUnit &unit) {
     std::vector <MatchRanking> ranks;
     for (auto method: methods) {
         auto rank = rank_method_against_call(method, call);
-        rank.print();
         ranks.push_back(rank);
     }
 
@@ -218,15 +221,25 @@ Method *get_best_target(MethodCall *call, CompilationUnit &unit) {
     return best_method;
 }
 
-Method *get_best_target(MethodCallOnType *call, CompilationUnit &unit) {
+Method *get_best_target(MethodCallOnType *call, Container* cont) {
     // Find the module that the call targets
     auto target_ty = call->call_on->type();
     if (!target_ty)return nullptr;
+
+    Logger::debug("Call on type: " + target_ty->str());
+    // Implicit reference unwrapping
+    while(auto ref = target_ty->get<ReferenceType>()){
+      Logger::debug("deref");
+      call->deref_count++;
+      target_ty = ref->of;
+    }
+
+    Logger::debug("Call is now: " + call->call_on->type()->str());
     auto target_paw_ty = target_ty->get<ParentAwareType>();
     if (!target_paw_ty) {
 
 
-        Logger::error("You may only define methods for structs and enums");
+        Logger::error("You may only define methods for structs and enums, but the call target was found to be of type: " + target_ty->str());
         return nullptr;
     }
 
@@ -238,7 +251,7 @@ Method *get_best_target(MethodCallOnType *call, CompilationUnit &unit) {
     for (auto method: target_mod->get_methods()) {
         if (
                 method->name->member->str() == call->method_name->str()
-                && call->call_on->type()->distance_from(*method->acts_upon) >= 0
+                && target_ty->distance_from(*method->acts_upon) >= 0
                 ) {
             methods.push_back(method);
         }
@@ -268,7 +281,7 @@ proc_result qualify_calls(Method &code) {
             // dont redo work
             if (call->target)continue;
 
-            auto best_fn = get_best_target(call, *code.parent->parent);
+            auto best_fn = get_best_target(call, code.parent);
 
             if (best_fn) {
                 call->target = best_fn;
@@ -282,7 +295,7 @@ proc_result qualify_calls(Method &code) {
         else if (auto inst_call = dynamic_cast<MethodCallOnType *>(item)) {
 
             if (inst_call->target)continue;
-            auto best_fn = get_best_target(inst_call, *code.parent->parent);
+            auto best_fn = get_best_target(inst_call, code.parent);
             if (best_fn) {
                 inst_call->target = best_fn;
                 res_count++;

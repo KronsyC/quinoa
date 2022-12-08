@@ -4,6 +4,7 @@
 #include "./AST/type.hh"
 #include <optional>
 #include <variant>
+#include "./AST/container_member.hh"
 static llvm::LLVMContext _ctx;
 static llvm::IRBuilder<> _builder(_ctx);
 
@@ -24,10 +25,65 @@ LLVMValue Variable::as_value(){
     return {this->value, LLVMType(Ptr::get(this->type))};
 }
 
+llvm::Function* make_fn(
+	Method &f,
+	llvm::Module *mod,
+	llvm::Function::LinkageTypes linkage, bool as_resolved_generic)
+{
+    if(f.generic_params.size() && !as_resolved_generic)return nullptr;
+
+	llvm::Type* ret = f.return_type->llvm_type();
+	auto name = f.source_name();
+
+  Logger::debug("Make function signature: "  + name);
+	std::vector<llvm::Type *> args;
+
+
+    int skip_count = 0;
+    if(f.must_parameterize_return_val()){
+        // func foo() -> int[] or other similar situation
+        // converts to
+        // func foo( __internal_arg__ : int[]* ) -> void;
+        skip_count++;
+        ret = builder()->getVoidTy();
+        args.push_back(f.return_type->llvm_type()->getPointerTo());
+    }
+    if(f.acts_upon){
+        skip_count++;
+        auto self_t = Ptr::get(f.acts_upon)->llvm_type();
+        args.push_back(self_t);
+
+    }
+    for (auto a : f.parameters)
+	{
+		auto param_type = a->type->llvm_type();
+		args.push_back(param_type);
+	}
+
+    bool isVarArg = false;
+
+
+	auto sig = llvm::FunctionType::get(ret, args, isVarArg);
+	auto fn = llvm::Function::Create(sig, linkage, name, mod);
+
+    // Prettify the parameter names
+#ifdef DEBUG
+	for (unsigned int i = skip_count; i < fn->arg_size(); i++)
+	{
+		auto &param = f.parameters[i-skip_count];
+		auto name = param.name.str();
+		auto arg = fn->getArg(i);
+		arg->setName(name);
+	}
+#endif
+  return fn;
+}
+
+
 std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _to, bool is_explicit){
 
 
-    if(!_to)return _val;
+    if(!bool(_to))return _val;
 
     auto to = _to.qn_type->drill()->llvm_type();
     LLVMValue val(_val.val, _val.type.qn_type->drill()->llvm_type());

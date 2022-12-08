@@ -4,6 +4,15 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+class Method;
+
+llvm::Function* make_fn(
+	Method &f,
+	llvm::Module *mod,
+	llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage,
+	bool explicitly_generic = false);
+
+
 class Type;
 class BinaryOperation;
 class LLVMValue;
