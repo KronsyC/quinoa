@@ -61,10 +61,10 @@ module Memory is Exported{
 
     func resize<T>(current_slice : T[], new_len : u64) -> T[] {
 
-        let new = realloc::<T>(current_slice.ptr, new_len);
+        /* let new = realloc::<T>(current_slice.ptr, new_len); */
 
-        let slc = @make_slice::<T>( new, new_len );
+        /* let slc = @make_slice::<T>( new, new_len ); */
 
-        return slc;
+        /* return current_slice; */
     }
 }

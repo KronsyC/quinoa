@@ -6,6 +6,7 @@
 */
 #include "../include.h"
 #include "../../../AST/intrinsic.hh"
+#include <memory>
 
 void attempt_resolve_typeref(TypeRef &ref, Container *container) {
   Logger::debug("artr: " + ref.name->str() + " in " + container->full_name().str());
@@ -62,6 +63,15 @@ void attempt_resolve_typeref(TypeRef &ref, Method *method) {
         }
     }
 
+    if(method->acts_upon){
+      for(auto generic : method->acts_upon_generic_args){
+        if(generic->name->str() == ref.name->str()){
+          ref.resolves_to = generic;
+          return;
+        }
+      }
+    }
+    
     attempt_resolve_typeref(ref, method->parent);
 
     // Check the local container type definitions
@@ -111,8 +121,10 @@ void resolve_type_references(CompilationUnit &unit) {
 
     for (auto method: unit.get_methods()) {
 
+        // Resolves methods defined on types 
+        // i.e func foo.T
         if (auto au = method->acts_upon) {
-            attempt_resolve_typeref(*au, method);
+          attempt_resolve_typeref(*au, method->parent);
         }
 
 

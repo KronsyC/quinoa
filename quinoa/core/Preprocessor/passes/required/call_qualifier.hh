@@ -2,6 +2,7 @@
 
 #include "../include.h"
 #include "../../../AST/advanced_operators.hh"
+#include <iterator>
 #include<optional>
 struct MatchRanking {
     Method *against = nullptr;
@@ -226,16 +227,17 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
     auto target_ty = call->call_on->type();
     if (!target_ty)return nullptr;
 
-    Logger::debug("Call on type: " + target_ty->str());
     // Implicit reference unwrapping
     call->deref_count = 0;
     while(auto ref = target_ty->get<ReferenceType>()){
-      Logger::debug("deref");
       call->deref_count++;
       target_ty = ref->of;
     }
 
-    Logger::debug("Call is now: " + call->call_on->type()->str());
+    if(auto ptref = target_ty->get<ParameterizedTypeRef>()){
+      target_ty = ptref->resolves_to;
+    }
+
     auto target_paw_ty = target_ty->get<ParentAwareType>();
     if (!target_paw_ty) {
 
@@ -246,16 +248,20 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
 
     auto target_mod = target_paw_ty->parent;
 
-    // Find all methods with the name and compatible actionable type
+
+    Logger::debug("Call on type: " + target_paw_ty->str());
+    // Find all methods with the name and same actionable type
     std::vector < Method * > methods;
 
     for (auto method: target_mod->get_methods()) {
         if(!method->acts_upon)continue;
-        if (
-                method->name->member->str() == call->method_name->str()
-                && target_ty->distance_from(*method->acts_upon) >= 0
-                ) {
-            methods.push_back(method);
+        if (method->name->member->str() == call->method_name->str()) {
+            auto aopaw = method->acts_upon->resolves_to->get<ParentAwareType>();
+            Logger::debug("acts upon: " + aopaw->str());
+            if(!aopaw)except(E_INTERNAL, "actsupon is not a ParentAwareType");
+            if(aopaw->getself() == target_paw_ty->getself()){
+              methods.push_back(method);
+            }      
         }
     }
     if (methods.size() == 0)

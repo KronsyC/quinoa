@@ -1,6 +1,7 @@
 #include "./type.hh"
 #include "./container.hh"
 #include "./container_member.hh"
+#include <memory>
 
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
     if(t1 == t2)return t1;
@@ -55,7 +56,7 @@ std::string ParentAwareType::get_name(){
 TypeMember* ParentAwareType::as_member(){
     for(auto mem : this->parent->members){
         if(auto ty = dynamic_cast<TypeMember*>(mem.ptr)){
-            if(ty->refers_to.get() ==  (self_ptr ? self_ptr : this))return ty;
+            if(ty->refers_to.get() == this->getself())return ty;
         }
     }
     except(E_INTERNAL, "ParentAwareType::as_member failed");
@@ -82,19 +83,11 @@ GenericTable ParameterizedTypeRef::get_mapped_params(){
 
         table[arg_name] = arg_type;
     }
+
+    for(auto entry : table){
+      Logger::debug(entry.first + " => " + entry.second->str());
+  }
     return table;
-}
-
-
-bool StructType::is_generic() {
-    for(auto m : this->members){
-        for(auto t : m.second->flatten()){
-            if(auto gen = dynamic_cast<Generic*>(t)){
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 static std::map<std::vector<llvm::Type*>, LLVMType> struct_cache;

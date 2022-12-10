@@ -8,12 +8,12 @@ module IO is Exported{
     
 
     func putc(ch:char){
-        syscall::write(stdout, &ch as u8* as u64, stdout);
+        syscall::write(stdout, &ch as byte*, 1);
     }
     func print(message : str) -> i64{
         let len = syscall::write(
             stdout,
-            message.ptr as u64,
+            message.ptr,
             message.len
         );
         return len;

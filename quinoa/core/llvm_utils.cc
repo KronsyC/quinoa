@@ -44,7 +44,7 @@ llvm::Function* make_fn(
 	llvm::Module *mod,
 	llvm::Function::LinkageTypes linkage, bool as_resolved_generic)
 {
-    if(f.generic_params.size() && !as_resolved_generic)return nullptr;
+  if(f.is_generic() && !as_resolved_generic)return nullptr;
 
 	llvm::Type* ret = f.return_type->llvm_type();
 	auto name = f.source_name();
@@ -64,7 +64,8 @@ llvm::Function* make_fn(
     }
     if(f.acts_upon){
         skip_count++;
-        auto self_t = Ptr::get(f.acts_upon)->llvm_type();
+        Logger::debug("acts upon: " + f.acts_upon->str());
+        auto self_t = Ptr::get(f.get_target_type())->llvm_type();
         args.push_back(self_t);
 
     }
@@ -96,9 +97,9 @@ llvm::Function* make_fn(
 
 std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _to, bool is_explicit){
 
-
     if(!bool(_to))return _val;
 
+    Logger::debug("Cast: " + _val.type.qn_type->str() + " to " + _to.qn_type->str());
     auto to = _to.qn_type->drill()->llvm_type();
     LLVMValue val(_val.val, _val.type.qn_type->drill()->llvm_type());
 
@@ -219,6 +220,15 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
         else return LLVMValue{builder()->CreateFPToUI(val, to), to};
     }
 
+
+    // float -> float, implicit grow, explicit shrink
+    if(to->isFloatingPointTy() && val_ty->isFloatingPointTy()){
+      if(to->getPrimitiveSizeInBits() < val_ty->getPrimitiveSizeInBits() && !is_explicit){
+        return "Cannot implicitly downcast a float, please use the explicit casting `as` operator\n\t\t in cast " + val_ty.qn_type->str() + " -> " + to.qn_type->str();
+      }
+      return LLVMValue{builder()->CreateFPCast(val, to), to};
+
+    }
     val.print();
     except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
 }

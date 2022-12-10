@@ -21,6 +21,17 @@ std::string get_tt_name(TokenType t) {
     return "unknown";
 }
 
+std::string get_tt_source_rep(TokenType t){
+
+  for(auto d : defs){
+    if(d->ttype ==t){
+      if(d->alias.size())return d->alias[0];
+    }
+
+  }
+  return "??";
+}
+
 std::vector<std::vector<Token>> parse_tst(std::vector<Token> &toks, TokenType at)
 {
     if (toks.size() == 0)
@@ -135,9 +146,9 @@ void expects(Token tok, std::initializer_list<TokenType> expected_types) {
         bool first = true;
         for (auto t: expected_types) {
             if (!first)
-                message += " | ";
+                message += " \033[0;2m|\033[0;0m ";
 
-            message += "'" + get_tt_name(t) + "'";
+            message += "'\033[0;1m" + get_tt_source_rep(t) + "\033[0;0m'";
             first = false;
         }
         except(E_NOPREFIX, message);

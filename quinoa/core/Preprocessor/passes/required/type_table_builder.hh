@@ -39,7 +39,7 @@ void build_method_type_table(Method *method, CompilationUnit &unit) {
     }
     // Inject self (if applicable)
     if (method->acts_upon) {
-        method->content->set_type("self", ReferenceType::get(method->acts_upon));
+        method->content->set_type("self", ReferenceType::get(method->get_target_type()));
     }
     // Inject local variables
     for (auto node: method->content->flatten()) {

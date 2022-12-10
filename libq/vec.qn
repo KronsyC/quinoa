@@ -1,0 +1,48 @@
+import @memory;
+/* import @strconv; */
+module Vector is Exported{
+
+  type _<T> = struct{
+    length     : u64;
+    allocation : T[];
+  };
+
+    func new<T>(size : u64) -> Vector<T>{
+
+      let alloc = memory::alloc::<u32>(size);
+
+      Vector::<T>{
+        length : size;
+        allocation: alloc;
+      };
+    }
+
+
+    func resize.Vector<T>(size : u64){
+      if(size > self.allocation.len){
+        self.resize_grow(size - self.allocation.len);
+      }
+      else{
+        if(size < self.allocation.len){
+          self.resize_shrink(self.allocation.len - size);
+        }
+      }
+    }
+
+    func resize_grow.Vector<T>(by : u64){
+      // Grow at a rate of 2n 
+      let new_size = self.allocation.len + by;
+      let new_alloc_size = new_size * 2;
+
+      /* let ns_str = strconv::from_int(new_alloc_size); */
+      /* io::println(ns_str.allocation); */
+
+      let new_alloc = memory::resize::<T>(self.allocation, new_alloc_size);
+      self.allocation = new_alloc;
+      self.length = new_size;
+    }
+    func resize_shrink.Vector<T>(by : u64){
+
+    }
+
+}

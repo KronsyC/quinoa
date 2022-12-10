@@ -37,6 +37,7 @@ public:
         static_assert(std::is_base_of<Type, T>(), "You can only convert a type to a subtype");
         return dynamic_cast<T *>(this->drill());
     }
+    virtual bool is_generic() = 0;
 
     virtual bool operator==(Type &compare) = 0;
 
@@ -47,7 +48,7 @@ public:
     virtual std::vector<Type *> flatten() = 0;
 
     virtual std::shared_ptr<Type> copy_with_substitutions(GenericTable gt) = 0;
-
+    virtual std::shared_ptr<Type> clone_persist() = 0;
     virtual std::pair<Type &, Type &> find_difference(Type &against) = 0;
     std::shared_ptr<Type> self;
 
@@ -91,6 +92,10 @@ protected:
 
 
 public:
+   std::shared_ptr<Type> clone_persist(){
+      return self;
+    }
+    bool is_generic(){return false;}
     PrimitiveType kind;
 
     std::vector<Type *> flatten() {
@@ -210,6 +215,11 @@ public:
     }
 
     
+    bool is_generic(){return of->is_generic();}
+
+   std::shared_ptr<Type> clone_persist(){
+      return Ptr::get(of->clone_persist());
+    }
     std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
       return Ptr::get(this->of->copy_with_substitutions(gt));
     }
@@ -227,7 +237,7 @@ public:
     }
 
     LLVMType llvm_type(GenericTable gen_table = {}) {
-        return {of->llvm_type()->getPointerTo(), self};
+        return {of->llvm_type(gen_table)->getPointerTo(), self};
     }
 
     std::shared_ptr <Type> pointee() {
@@ -275,8 +285,14 @@ public:
         this->of = of->drill()->self;
     }
 
+    bool is_generic(){return of->is_generic();}
     std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
       return ReferenceType::get(of->copy_with_substitutions(gt));    
+    }
+
+
+   std::shared_ptr<Type> clone_persist(){
+      return ReferenceType::get(of->clone_persist());
     }
     static std::shared_ptr <ReferenceType> get(std::shared_ptr <Type> of) {
         return create_heaped(ReferenceType(of));
@@ -346,8 +362,12 @@ protected:
 
 public:
 
+    bool is_generic(){return of->is_generic();}
     std::shared_ptr <Type> of;
 
+    std::shared_ptr<Type> clone_persist(){
+      return DynListType::get(of->clone_persist());   
+    }
     DynListType(std::shared_ptr <Type> type) {
         this->of = type->drill()->self;
     }
@@ -374,12 +394,10 @@ public:
     }
 
     LLVMType llvm_type(GenericTable gen_table = {}) {
-        if (type)return {type, this->self};
-        auto struct_ty = llvm::StructType::create(*llctx(), {
+        auto struct_ty = llvm::StructType::get(*llctx(), {
                 builder()->getInt64Ty(), // Size of the slice
                 llvm::ArrayType::get(this->of->llvm_type(gen_table), 0)->getPointerTo() // Slice Elements
-        }, "slice:" + this->of->str());
-        type = struct_ty;
+        });
         return {struct_ty, this->self};
     }
 
@@ -404,8 +422,6 @@ public:
         return {*this, against};
     }
 
-private:
-    llvm::StructType *type = nullptr;
 
 };
 
@@ -417,6 +433,10 @@ public:
     Type* self_ptr = nullptr;
     std::string get_name();
     TypeMember* as_member();
+
+    Type* getself(){
+      return self_ptr ? self_ptr : this;
+    }
 };
 
 class StructType : public ParentAwareType {
@@ -439,10 +459,30 @@ public:
         new_members[name] = new_typ;
       }
       auto new_struct = StructType::get(new_members, parent);
-      new_struct->self_ptr = this;
+      new_struct->self_ptr = this->getself();
       return new_struct;
     }
 
+    std::shared_ptr<Type> clone_persist(){
+      
+      std::map<std::string, std::shared_ptr<Type>> new_members;
+
+      for(auto [name, typ] : members){
+
+        auto new_typ = typ->clone_persist();
+        new_members[name] = new_typ;
+      }
+      auto new_struct = StructType::get(new_members, parent);
+      new_struct->self_ptr = this->getself();
+      return new_struct;
+    }
+    bool is_generic(){
+
+      for(auto m : members){
+        if(m.second->is_generic())return true;  
+      }
+      return false;
+    }
     Type *drill() {
         return this;
     }
@@ -509,7 +549,6 @@ public:
         except(E_INTERNAL, "find_difference not implemented for structs");
     }
 
-    bool is_generic();
 };
 
 
@@ -538,6 +577,7 @@ public:
 
     }
 
+    bool is_generic(){return false;}
     Type *drill() {
         return this;
     }
@@ -567,6 +607,12 @@ public:
     std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
       return self;
     }
+
+
+    std::shared_ptr<Type> clone_persist(){
+
+      return self;
+    }
     static std::shared_ptr <EnumType> get(std::vector <std::string> entries, Container *cont) {
         return create_heaped(EnumType(entries, cont));
     }
@@ -574,9 +620,8 @@ public:
     int distance_from(Type &target) {
         if (auto _tgt = target.get<EnumType>()) {
             if (_tgt == this)return 0;
-            return -1;
-        } else return -1;
-        except(E_INTERNAL, "Type distance not implemented for enums");
+        } 
+        return -1;
     }
 
     bool operator==(Type &against) {
@@ -616,6 +661,10 @@ public:
         return this;
     }
 
+    bool is_generic(){
+      if(resolves_to)return resolves_to->is_generic();
+      except(E_INTERNAL, "Cannot call is_generic on unresolved typeref");
+    }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
         if (resolves_to)for (auto m: resolves_to->flatten())ret.push_back(m);
@@ -634,9 +683,14 @@ public:
     }
 
     std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
-      return resolves_to ? resolves_to->copy_with_substitutions(gt) : self;
+      auto ref = TypeRef::get(std::make_unique<LongName>(*this->name));
+      ref->resolves_to = this->resolves_to->copy_with_substitutions(gt);
+      return ref;
     }
 
+    std::shared_ptr<Type> clone_persist(){
+      return resolves_to ? resolves_to->clone_persist() : self;
+    }
     static std::shared_ptr <TypeRef> get(std::unique_ptr <LongName> name) {
         // do not cache TypeRefs, as multiple refs may share the same name
         // but refer to an entirely different type depending on context
@@ -660,12 +714,11 @@ public:
     }
 
     std::pair<Type &, Type &> find_difference(Type &against) {
-        if (resolves_to)return resolves_to->find_difference(*against.drill());
+       if (resolves_to)return resolves_to->find_difference(*against.drill());
         return {*this, against};
     }
 
     int distance_from(Type &target) {
-        Logger::debug(target.str());
         if (!resolves_to)
             return -1;
         return resolves_to->distance_from(target);
@@ -692,8 +745,24 @@ public:
         return this;
     }
 
+    bool is_generic(){
+      for(auto p : params){
+        if(p->is_generic())return true;
+      }
+      return resolves_to->is_generic();
+    }
     std::shared_ptr<Type> copy_with_substitutions(GenericTable gt){
-      return resolves_to ? resolves_to->copy_with_substitutions(get_mapped_params())->copy_with_substitutions(gt) : self;
+      if(!resolves_to)except(E_INTERNAL, "Attempt to copy unresolved ParameterizedTypeRef");
+      auto copy = resolves_to->copy_with_substitutions(get_mapped_params());
+      return copy;
+    }
+
+    std::shared_ptr<Type> clone_persist(){
+      std::vector<std::shared_ptr<Type>> resolved_types;
+      for(auto t : params){
+        resolved_types.push_back(t->clone_persist());
+      }
+      return ParameterizedTypeRef::get(this->resolves_to->clone_persist(), resolved_types);
     }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
@@ -760,16 +829,23 @@ public:
 class Method;
 
 class Generic : public Type {
-private:
+  public:
     Type *drill() {
         return temporarily_resolves_to ? temporarily_resolves_to->drill() : this;
     }
 
-public:
 
+    bool is_generic(){return true;}
 
     std::shared_ptr <Type> copy_with_substitutions(GenericTable gt) {
         return temporarily_resolves_to ? temporarily_resolves_to->copy_with_substitutions(gt) : gt[name->str()] ? gt[name->str()] : self;
+    }
+
+    std::shared_ptr<Type> clone_persist(){
+      auto gen = Generic::get(std::make_unique<Name>(name->str()));
+      gen->temporarily_resolves_to = temporarily_resolves_to ? temporarily_resolves_to->clone_persist() : nullptr;
+      gen->temporarily_resolves_to = self;  
+    return gen;
     }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
@@ -786,7 +862,7 @@ public:
                 return ret->llvm_type(gen_table);
             }
 
-            except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str());
+            except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str() + " with refs: " + std::to_string(self.use_count()));
         }
     }
 
@@ -858,11 +934,15 @@ public:
         return ListType::get(of->copy_with_substitutions(gt), Integer::get(size->value));
     }
 
+    std::shared_ptr<Type> clone_persist(){
+      return ListType::get(of->clone_persist(), Integer::get(size->value));
+    }
     ListType(std::shared_ptr <Type> type, std::unique_ptr <Integer> size) {
         this->of = type->drill()->self;
         this->size = std::move(size);
     }
 
+    bool is_generic(){return of->is_generic();}
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
         for (auto m: of->flatten())ret.push_back(m);

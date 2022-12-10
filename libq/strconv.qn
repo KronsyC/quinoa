@@ -3,8 +3,7 @@
 //
 
 import @string;
-import @io;
-import @math;
+
 module StrConv is Exported{
 
   func from_int(number : u64) -> string{

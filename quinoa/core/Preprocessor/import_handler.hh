@@ -104,6 +104,11 @@ void handle_imports(CompilationUnit &unit) {
     static const std::string libq_dir = std::string(QUINOA_DIR) + "/libq";
 
 
+    for(auto cont : unit.get_containers()){
+      for(auto icont : unit.get_containers()){
+        icont->aliases[cont->name->str()] = LongName(cont->full_name());
+      }
+    }
     int removals = 0;
 
 

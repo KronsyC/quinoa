@@ -5,6 +5,7 @@
 #include "./parser.h"
 #include "./expression_parser.hh"
 #include "./type_parser.hh"
+#include <memory>
 
 template <typename T, typename U = Statement>
 inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
@@ -15,13 +16,6 @@ inline std::unique_ptr<U> stm(std::unique_ptr<T> mem)
 }
 
 #define st(arg) stm(std::move(arg))
-
-
-
-
-
-
-
 
 Import parse_import(std::vector<Token> toks)
 {
@@ -218,6 +212,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
     while (toks.size())
     {
+        print_toks(toks);
         auto current = popf(toks);
 
         if(current.is(TT_hashtag)){
@@ -265,24 +260,38 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
                 TT_lesser
             });
 
-            // Acts on specific type
-            if(toks[0].is(TT_dot)){
-                popf(toks);
-                auto acts_on = parse_type(toks);
-
-                // methods may only act upon locally defined types
-                if(acts_on->get<TypeRef>()){
-                    method->acts_upon = std::static_pointer_cast<TypeRef>(acts_on);
-                }
-                else except(E_BAD_METHOD_DEFINITION, "A method may only act upon locally defined types");
-            }
-
             // Generic Parameters
             if (toks[0].is(TT_lesser))
             {
                 auto generics = parse_generics(toks);
                 method->generic_params = generics;
             }
+
+            // Acts on specific type
+            if(toks[0].is(TT_dot)){
+                popf(toks);
+                auto acts_on = parse_type(toks);
+
+                // methods may only act upon locally defined types
+                if(auto ao = acts_on->get<TypeRef>()){
+                    method->acts_upon = std::static_pointer_cast<TypeRef>(ao->self);
+                }
+                else if(auto ao = acts_on->get<ParameterizedTypeRef>()){
+                  // Unwrap the type args, they must all be generic
+                  std::vector<std::shared_ptr<Generic>> type_args;
+                  for(auto arg : ao->params){
+                    auto tr = arg->get<TypeRef>();
+                    if(!tr)except(E_BAD_TYPE, "Generic specialization is an unsupported feature in quinoa");
+
+                    // Create a new generic to replace the typeref
+                    type_args.push_back(Generic::get(std::make_unique<Name>(tr->name->str())));  
+                  }
+                  method->acts_upon = std::static_pointer_cast<TypeRef>(ao->resolves_to->get<TypeRef>()->self); 
+                  method->acts_upon_generic_args = type_args;
+                }
+                else except(E_BAD_METHOD_DEFINITION, "A method may only act upon locally defined types");
+            }
+
             // Value Parameters
             expects(toks[0], TT_l_paren);
             auto params_block = read_block(toks, IND_parens);
@@ -301,18 +310,17 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             }
             else
             {
-                method->return_type = Primitive::get(PR_void);
+                method->return_type = Primitive::get(PR_void); 
             }
 
-            // Actual Content
+            // Handle function content (if not signature)
             if (!toks[0].is(TT_semicolon))
             {
                 auto content_toks = read_block(toks, IND_braces);
                 auto content = parse_scope(content_toks);
                 method->content = std::move(content);
             }
-            else
-                popf(toks);
+            else popf(toks); 
 
             method->local_only = !is_public;
             method->attrs = std::move(attrs);
@@ -343,6 +351,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             ret.push(stm<TypeMember, ContainerMember>(std::move(member)));
         }
         else if(current.is(TT_identifier)){
+            // Property Parsing
             auto prop = std::make_unique<Property>();
 
             prop->name = std::make_unique<ContainerMemberRef>();
@@ -351,7 +360,7 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
             prop->parent = parent;
             auto line = read_to(toks, TT_semicolon);
             popf(toks);
-            expects(popf(line), TT_colon);
+            pope(line, TT_colon);
             prop->type = parse_type(line);
 
             if(line.size()){
@@ -407,7 +416,7 @@ std::unique_ptr<Container> parse_container(std::vector<Token> &toks)
         print_toks(content);
         except(E_INTERNAL, "Failed to parse container content");
     }
-
+    cont->aliases[cont->name->str()] = cont->full_name();
     return cont;
 }
 std::unique_ptr<CompilationUnit> Parser::make_ast(std::vector<Token> &toks)

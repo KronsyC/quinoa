@@ -9,6 +9,8 @@
 
 #include "./reference.hh"
 #include "./constant.hh"
+#include "type.hh"
+#include <string>
 
 class Container;
 
@@ -83,22 +85,54 @@ struct MethodSignature{
     }
 };
 
+struct GenericImpl{
+  std::vector<std::shared_ptr<Type>> method_generic_args;
+  std::vector<std::shared_ptr<Type>> target_generic_args;
+};
+
 class Method : public MethodSignature, public ContainerMember {
 public:
     std::shared_ptr <TypeRef> acts_upon;
+    std::vector<std::shared_ptr<Generic>> acts_upon_generic_args;
+
     std::unique_ptr <Scope> content;
 
-    Vec<std::vector < std::shared_ptr < Type>>> generate_usages;
+    Vec<GenericImpl> generate_usages;
 
-    void apply_generic_substitution(std::vector<std::shared_ptr<Type>> types){
-        if(types.size() != generic_params.size())except(E_BAD_SUBSTITUTION, "Cannot substitute generics with mismatched counts");
-        for(unsigned int i = 0; i < types.size(); i++){
+    void apply_generic_substitution(std::vector<std::shared_ptr<Type>> types, std::vector<std::shared_ptr<Type>> acts_upon_types = {}){
+        if(types.size() != generic_params.size() || acts_upon_types.size() != acts_upon_generic_args.size()){
+          Logger::debug(std::to_string(types.size()) + " & " + std::to_string(acts_upon_types.size()) + "  vs  " + std::to_string(generic_params.size()) + " & " + std::to_string(acts_upon_generic_args.size())); 
+          
+      except(E_BAD_SUBSTITUTION, "Cannot substitute generics with mismatched counts\n\t\tIn function: " + this->name->str());
+      
+        }
+        for(unsigned i = 0; i < types.size(); i++){
             this->generic_params[i]->temporarily_resolves_to = types[i];
         }
+        for(unsigned i = 0; i < acts_upon_types.size(); i++){
+          this->acts_upon_generic_args[i]->temporarily_resolves_to = acts_upon_types[i];
+        }  
     }
     // Get the parameter at a specific index
     // this method is smart and accounts for varargs
     // returns `nullptr` if there is no parameter at the given index
+    
+    bool is_generic(){
+      return generic_params.size() || this->acts_upon_generic_args.size();
+    }
+
+    std::shared_ptr<Type> get_target_type(){
+      if(!acts_upon)return nullptr;
+      if(acts_upon->is_generic()){
+        std::vector<std::shared_ptr<Type>> resolved_generics;
+        for(auto t : acts_upon_generic_args){
+          resolved_generics.push_back(t->drill()->self);
+        }
+        auto ptref = ParameterizedTypeRef::get(acts_upon, resolved_generics)  ;
+        return ptref->clone_persist();
+      }
+      else return acts_upon;
+    }
 
     std::string source_name() {
         if (this->name->trunc)return this->name->str();

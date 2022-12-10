@@ -40,7 +40,7 @@ public:
         return ret;
     }
 
-    LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args) {
+    LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args, std::vector<std::shared_ptr<Type>> second_type_args = {}) {
 
         std::vector <llvm::Value*> args;
         llvm::Value* ret_val_if_param = nullptr;
@@ -53,12 +53,17 @@ public:
         auto mod = builder()->GetInsertBlock()->getModule();
         auto fn = mod->getFunction(target->source_name());
 
-        if(!fn && type_args.size()){
-
-          target->apply_generic_substitution(this->type_args);
-          fn = make_fn(*target, mod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true) ;
+        if(!fn && target->is_generic()){
+          Logger::debug("CREATE SIGNATURE FOR " + target->name->mangle_str());
+  
+          target->apply_generic_substitution(this->type_args, second_type_args);
+          fn = make_fn(*target, mod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
           Logger::debug("Generated from within generic call");
-          target->generate_usages.push(this->type_args);
+
+          GenericImpl impl;
+          impl.method_generic_args = type_args;
+          impl.target_generic_args = second_type_args;
+          target->generate_usages.push(impl);
         }
         else if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
 
@@ -69,10 +74,7 @@ public:
             auto param = target->get_parameter(i);
 
             auto expected_type = param->type->llvm_type();
-            Logger::debug("in call: " + str());
-            Logger::debug("Param of type: " + expected_type.qn_type->str() + " and arg of type: " + arg.type()->str());
             auto arg_val = cast(arg.llvm_value(vars, expected_type), expected_type);
-            Logger::debug("> resultant type: " + arg_val.type.qn_type->str());
             args.push_back(arg_val);
         }
 
@@ -140,7 +142,7 @@ protected:
         if (this->type_args.size())target->apply_generic_substitution(this->type_args);
 
         // immediately drill in case it is swapped out (specifically for generics)
-        return target->return_type->drill()->self;
+        return target->return_type->clone_persist();
     }
 };
 
@@ -200,14 +202,20 @@ public:
     }
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
+
+        Logger::debug("Calling method of type: " + this->call_on->type()->str());
         auto ptr = call_on->assign_ptr(vars);
-        Logger::debug("call_on_type llvm_value, targ: " + call_on->str() + "; type: " + call_on->type()->str() + "; deref count: " + std::to_string(deref_count));
         auto tmp_ref_count = deref_count;
         while(tmp_ref_count){
           ptr = ptr.load();
           tmp_ref_count--;
         }
-        auto call = create_call(vars, {ptr});
+
+        std::vector<std::shared_ptr<Type>> targ_type_args = {};
+        if(auto ptref = ptr.type.qn_type->pointee()->get<ParameterizedTypeRef>()){
+          targ_type_args = ptref->params;
+        } 
+        auto call = create_call(vars, {ptr}, targ_type_args);
         return cast(call, expected_type);
     }
 
@@ -227,16 +235,28 @@ public:
 protected:
     std::shared_ptr <Type> get_type() {
         if (!target)return std::shared_ptr<Type>(nullptr);
-        if (target == (Method *) 1) {
+        if (target == (Method*) 1) {
+            // Handle compiler implemented methods
             if (auto ref = call_on->type()->get<ReferenceType>()) {
-#define X(n, ret)if(method_name->str() == #n)return ret;
+                #define X(n, ret)if(method_name->str() == #n)return ret;
                 X(len, Primitive::get(PR_int64))
                 X(as_ptr, ref->of)
-#undef X
+                #undef X
             }
 
         }
-        return target->return_type;
+
+        auto cot = call_on->type();
+        Logger::debug("Call on: " + cot->str() + " > " + call_on->str());
+        if(auto ptref = cot->get<ParameterizedTypeRef>()){
+          target->apply_generic_substitution(this->type_args, ptref->params);
+          return target->return_type->clone_persist();      
+      
+        }
+        else{
+          target->apply_generic_substitution(this->type_args);
+          return target->return_type->drill()->copy_with_substitutions({});
+        }
 
     }
 };
@@ -251,6 +271,8 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
         if (value) {
+            Logger::debug("fn returns: " + qn_fn->return_type->str());
+            Logger::debug("Return: " + value->type()->str());
             auto return_value = value->llvm_value(vars, qn_fn->return_type);
 
             if(qn_fn->must_parameterize_return_val()){
@@ -314,7 +336,10 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
 
-        auto ll_type = type->llvm_type();
+        Logger::debug("init: " + type->str());
+        auto copy = type->copy_with_substitutions({});
+        Logger::debug("now: " + copy->str());
+        auto ll_type = copy->llvm_type();
         auto name = var_name.str();
 
         auto alloc = create_allocation(ll_type, func);
@@ -477,12 +502,15 @@ public:
 
             }
 
+            for(auto pair : generics){
+              Logger::debug(pair.first + " |=> " + pair.second->str());
+            }
 
             for(const auto& init : initializers){
                 auto member_idx = struct_ty->member_idx(init.first);
                 if (member_idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
 
-                auto member_ty = struct_ty->members[init.first]->llvm_type(generics);
+                auto member_ty = struct_ty->members[init.first]->copy_with_substitutions(generics)->llvm_type();
 
                 member_ty->print(llvm::outs());
                 Logger::debug(init.first + " is a " + member_ty.qn_type->str());
@@ -623,7 +651,7 @@ private:
         // Requires both write() and abort() from libc, ensure they are present
 
         auto write_sig = llvm::FunctionType::get(builder()->getInt32Ty(),
-                                                 {builder()->getInt32Ty(), builder()->getInt64Ty(),
+                                                 {builder()->getInt32Ty(), builder()->getInt8Ty()->getPointerTo(),
                                                   builder()->getInt64Ty()}, false);
         auto abort_sig = llvm::FunctionType::get(builder()->getVoidTy(), {}, false);
 
@@ -639,10 +667,7 @@ private:
 
         builder()->CreateCall(write_fn, {
                 builder()->getInt32(2),
-                builder()->CreatePtrToInt(
-                        builder()->CreateGlobalStringPtr(message),
-                        builder()->getInt64Ty()
-                ),
+                builder()->CreateGlobalStringPtr(message),
                 builder()->getInt64(message.size())
         });
         builder()->CreateCall(abort_fn);

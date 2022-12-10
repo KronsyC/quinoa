@@ -368,8 +368,10 @@ public:
             retrv_t = ref_t->of;
             strct = strct.load();
         }
-        auto strct_t = retrv_t.qn_type->get<StructType>();
-        if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct");
+        auto strct_t = retrv_t.qn_type->copy_with_substitutions({})->get<StructType>();
+
+
+        if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct: " + retrv_t.qn_type->str());
 
 
         auto idx = strct_t->member_idx(member_name->str());

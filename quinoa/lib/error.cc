@@ -22,7 +22,7 @@ void error(string reason, bool trace)
     Logger::printQueue();
     Logger::error(reason);
     if(trace)
-	print_trace();
+  	print_trace();
     exit(1);
 }
 #define X(ename) { E_##ename, #ename },
@@ -30,22 +30,23 @@ void error(string reason, bool trace)
 std::map<ErrorType, std::string> error_names = { ERR_TYPES };
 
 #undef X
-[[noreturn]]void except(ErrorType err, std::string message)
+[[noreturn]]
+void except(ErrorType err, std::string message)
 {
     except(err, message, true);
     exit(0);
 }
 void except(ErrorType err, std::string message, bool exits){
     #ifdef DEBUG
-    if(err == E_INTERNAL)
+        if(exits)
         print_trace();
     #endif
-    auto errname = error_names[err];
+    auto errname = "\033[0;3;1m" + error_names[err] + "\033[0;0m";
     if(exits){
         Logger::printQueue();
         Logger::enqueueMode(false);
     }
 
-    E_NOPREFIX ? Logger::error(message) : Logger::error(errname + " - " + message);
+    err == E_NOPREFIX ? Logger::error(message) : Logger::error(errname + " - " + message);
     if(exits){exit(100 + (int)err);}
 }
