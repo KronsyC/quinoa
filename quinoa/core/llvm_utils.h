@@ -4,6 +4,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include <llvm/IR/Instructions.h>
 class Method;
 
 llvm::Function* make_fn(
@@ -12,6 +13,8 @@ llvm::Function* make_fn(
 	llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage,
 	bool explicitly_generic = false);
 
+
+llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* fn);
 
 class Type;
 class BinaryOperation;
@@ -23,7 +26,6 @@ public:
     llvm::AllocaInst* value;
     bool constant = false;
     bool is_initialized = false;
-    BinaryOperation* initializer_node = nullptr;
 
 
     Variable() = default;

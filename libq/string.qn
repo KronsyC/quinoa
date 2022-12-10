@@ -1,19 +1,22 @@
 import @memory;
 import @lang::internal::error as Err;
-import @io;
+
+// The $internal module is implemented by the compiler and injected into all modules scopes
+
 module String is Exported{
 
     type _ = struct{
-        allocation : u8[];
+        allocation : char[];
         length     : u64;
     };
 
+    
     func from(data : str) -> String{
       return from_bytes(data); 
     }
 
-    func from_bytes(data : u8[]) -> String{
-      let raw_bytes = memory::alloc::<u8>(data.len); 
+    func from_bytes(data : char[]) -> String{
+      let raw_bytes = memory::alloc::<char>(data.len); 
 
       let idx : u64 = 0;
       while(idx < data.len){
@@ -28,23 +31,39 @@ module String is Exported{
 
       return S;
     }
+    
+    func new(size : u64) -> String{
+      let alloc_size = size;
 
 
-    func to_cstr.String() -> u8[]{
+      let alloc = memory::alloc::<char>(alloc_size);
+
+      let S = String{
+        allocation : alloc;
+        length : 0;
+      };
+
+      
+      return S;
+    }
+
+  
+    func to_cstr.String() -> char[]{
       // Allocate a slice with one byte more than the string's
       // copy the string content into the slice
       // write a 0 into the last slot of the slice
 
-      let allocation : u8[] = memory::alloc::<u8>(self.length + 1);
-    
+      let allocation = memory::alloc::<u8>(self.length + 1);
+   
       self.copy_bytes_into(allocation);
+
       allocation[allocation.len - 1] = 0;
 
       return allocation;
     }
 
 
-    func copy_bytes_into.String(slice : u8[]){
+    func copy_bytes_into.String(slice : char[]){
       if(slice.len < self.length){
         Err::panic("Failed to copy bytes from string: target slice smaller than string content");
       }
@@ -57,9 +76,54 @@ module String is Exported{
 
     }
 
+    func append_char.String(character : char){
+
+      self.resize_grow(1);
+
+      self.allocation[self.length - 1] = character;
+    }
+
+    func append_str.String(st : str){
+      let first_idx = self.length;
+      self.resize_grow(st.len);
+      let i : u64 = 0;
+      while(first_idx < self.length){
+        self.allocation[first_idx] = st[i];
+        first_idx++;
+        i++;
+      }
+    }
+
+    func append.String(st : String){
+      let first_idx = self.length;
+      self.resize_grow(st.len());
+
+      let i : u64 = 0;
+      while(first_idx < self.length){
+        self.allocation[first_idx] = st.allocation[i];
+        first_idx++;
+        i++;
+      }
+    }
+
+    func resize_grow.String(by : u64){
+
+      let new_size = self.length + by;
+
+      if(new_size > self.allocation.len){
+        let new_slice = memory::resize::<u8>(self.allocation, new_size + 2);
+
+        self.allocation = new_slice;
+      }
+      self.length = new_size;
+    }
+
     func len.String() -> u64{
         return self.length;
     }
 
+    func $drop.String(){
+      memory::delete::<char>(self.allocation);
+    }
 }
 

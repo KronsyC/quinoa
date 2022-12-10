@@ -1,0 +1,14 @@
+===
+= Ideas for possible future features / internal implementation details
+===
+
+FlaggedType
+some types may have flags associated with them (at compile time) such as
+- b'heaped
+- b'nomodify
+- O'scoped_to
+
+
+Compiler Implemented Module $Internal
+exposes traits which the compiler can use
+such as drop, copy, ... (inspired heavily by rust)

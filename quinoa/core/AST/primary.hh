@@ -294,6 +294,8 @@ public:
         return nullptr;
     }
 
+    void decl_new_variable(std::string name, std::shared_ptr<Type> type, bool is_constant = false);
 private:
+    std::map <std::string, std::unique_ptr<Variable>> vars;
     std::map <std::string, std::shared_ptr<Type>> type_table;
 };

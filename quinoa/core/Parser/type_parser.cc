@@ -82,6 +82,27 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container)
         }
         ret = StructType::get(fields, container);
     }
+    else if(first.is(TT_trait)){
+
+        if(!container)except(E_BAD_TYPE, "Struct types may only be declared as members of a container");
+        auto struct_content = read_block(toks, IND_braces);
+        if(struct_content.size()){
+            expects(struct_content[struct_content.size()-1], TT_semicolon);
+            struct_content.pop_back();
+        }
+
+        auto entries = parse_tst(struct_content, TT_semicolon);
+
+        std::map<std::string, std::shared_ptr<Type>> fields;
+        for(auto entry : entries){
+            auto field_name = pope(entry, TT_identifier).value;
+            pope(entry, TT_colon);
+            auto field_type = parse_type(entry);
+
+            fields[field_name] = field_type;
+        }
+        ret = StructType::get(fields, container);
+    }
     else if(first.is(TT_enum)){
         if(!container)except(E_BAD_TYPE, "Enum types may only be declared as members of a container");
         auto enum_content = read_block(toks, IND_braces);
@@ -93,7 +114,10 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container)
         auto entries = parse_tst(enum_content, TT_semicolon);
         std::vector<std::string> members;
         for(auto e : entries){
-            if(e.size() != 1 || !e[0].is(TT_identifier))except(E_BAD_TYPE, "An Enum member may only contain a single identifier");
+            if(e.size() != 1 || !e[0].is(TT_identifier)){
+              print_toks(e);
+              except(E_BAD_TYPE, "An Enum member may only contain a single identifier");
+            };
             members.push_back(e[0].value);
         }
         ret = EnumType::get(members, container);
@@ -128,7 +152,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container)
                 break;
 
             }
-            case TT_ampersand:{
+            case TT_bitwise_and:{
                 popf(toks);
                 ret = ReferenceType::get(ret);
                 break;

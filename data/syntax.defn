@@ -61,7 +61,7 @@ boolean
 @type str
 string
 
-@alias i8 char
+@alias i8
 @type integer
 int8
 
@@ -77,7 +77,7 @@ int32
 @type integer
 int64
 
-@alias u8 byte
+@alias u8 byte char
 @type integer
 uint8
 
@@ -197,9 +197,6 @@ decrement
 bang
 
 
-@prefix
-@alias &
-ampersand
 
 # Binary Operators
 
@@ -268,13 +265,12 @@ not_equals
 
 @infix 11
 @alias &
+@prefix
 bitwise_and
 
 @alias |
 @infix 13
 bitwise_or
-
-
 
 @alias ^
 @infix 13
@@ -327,6 +323,9 @@ seed
 
 @alias struct
 struct
+
+@alias trait
+trait
 
 @alias enum
 enum
@@ -458,6 +457,7 @@ intr_sqrt
 @alias @nth_root
 intr_nth_root
 
+
 # Unary Intrinsics
 
 @intrinsic 1 0
@@ -488,6 +488,25 @@ intr_add_one
 @alias @dec
 intr_sub_one
 
+@intrinsic 1 0
+@alias @log10
+intr_log10
+
+@intrinsic 1 0
+@alias @log2
+intr_log2
+
+@intrinsic 1 0
+@alias @loge
+intr_loge
+
+@intrinsic 1 0
+@alias @ceil
+intr_ceil
+
+@intrinsic 1 0
+@alias @floor
+intr_floor
 
 # Utility Intrinsics
 

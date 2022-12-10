@@ -17,10 +17,6 @@ module File is Exported{
         return syscall::write(self.fd, data.ptr as u64, data.len);
     }
 
-    func write.File(data : str) -> i64{
-        self.close();
-        return 0;
-    }
 
     func close.File(){
         self.is_open = false;

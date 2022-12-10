@@ -1,0 +1,28 @@
+//
+// This module provides a handy set of utilities for creating strings from various types
+//
+
+import @string;
+import @io;
+import @math;
+module StrConv is Exported{
+
+  func from_int(number : u64) -> string{
+    let char_count = @log10(number as f64) as u64 + 1;
+    let val = string::new(char_count);
+
+    while(char_count > 0){
+
+      let divisor = @pow(10, char_count - 1 as u32) as u64;
+
+      let digit = number % (divisor * 10) / divisor;
+      val.append_char(48 + (digit as char));
+
+      char_count--;
+    }
+
+    return val; 
+  }
+
+}
+

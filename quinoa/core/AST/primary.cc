@@ -83,3 +83,32 @@ std::vector<Type*> Scope::flatten_types(){
   }
   return ret;
 }
+
+#include "../llvm_utils.h"
+void Scope::decl_new_variable(std::string name, std::shared_ptr<Type> type, bool is_constant){
+  this->vars[name] = std::make_unique<Variable>(type, nullptr, is_constant);
+}
+
+
+std::shared_ptr<Type> Container::get_type(std::string name){
+        for (auto &member: members) {
+            if (auto type = dynamic_cast<TypeMember *>(member.ptr)) {
+                if (type->name->member->str() == name)return type->refers_to;
+            }
+        }
+
+        if (name == this->name->str()) {
+            return get_type();
+        }
+
+
+        // try each compositor sequentially until a match is found
+        for(auto cmp : compositors){
+          if(includes(NATIVE_MODULES, cmp->name->str()))continue;
+           auto cmp_mod = cmp->refers_to;
+          
+          if(!cmp_mod)except(E_INTERNAL, "unresolved compositor: " + cmp->name->str());
+          if(auto typ = cmp_mod->get_type(name))return typ;
+        }
+        return std::shared_ptr<Type>(nullptr);
+}

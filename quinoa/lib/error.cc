@@ -46,6 +46,6 @@ void except(ErrorType err, std::string message, bool exits){
         Logger::enqueueMode(false);
     }
 
-    Logger::error(errname + " - " + message);
+    E_NOPREFIX ? Logger::error(message) : Logger::error(errname + " - " + message);
     if(exits){exit(100 + (int)err);}
 }

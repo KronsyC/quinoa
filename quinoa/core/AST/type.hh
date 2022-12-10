@@ -19,19 +19,6 @@ static std::map <PrimitiveType, std::string> primitive_names{PRIMITIVES_ENUM_NAM
 static std::map <TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MAPPINGS};
 
 
-class Primitive;
-
-class Ptr;
-
-class ListType;
-
-class DynListType;
-
-class TypeRef;
-
-class ReferenceType;
-
-class Generic;
 
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat = true );
 
@@ -117,7 +104,8 @@ public:
     }
 
     std::string str() {
-        return primitive_names[kind];
+        auto name = primitive_names[kind];
+        return name;
     }
 
     bool is(PrimitiveType kind) {
@@ -499,10 +487,10 @@ public:
     }
 
     int distance_from(Type &target) {
-        if (!target.get<StructType>())return -1;
-        if (target.get<StructType>() == this)return 0;
+        auto tstruc = target.get<StructType>();
+        if (!tstruc)return -1;
+        if (tstruc == this)return 0;
 
-        // Distance is equal to that of the highest
         except(E_INTERNAL, "distance between: " + str() + " and " + target.str());
     }
 
@@ -522,6 +510,22 @@ public:
     }
 
     bool is_generic();
+};
+
+
+struct MethodSignature;
+
+//
+// A trait is very similar to a struct, but instead of defining properties
+// traits define methods that must be present
+//
+class TraitType : public ParentAwareType{
+public:
+  Vec<MethodSignature> signatures;
+
+  LLVMType llvm_type(GenericTable gen_table = {}){
+    except(E_INTERNAL, "llvm_type for traits is not implemented");
+  }
 };
 
 class EnumType : public ParentAwareType {
@@ -661,6 +665,7 @@ public:
     }
 
     int distance_from(Type &target) {
+        Logger::debug(target.str());
         if (!resolves_to)
             return -1;
         return resolves_to->distance_from(target);

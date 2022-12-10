@@ -8,6 +8,10 @@ module Memory is Exported{
     #[link_extern "realloc"]
     func realloc_unsafe(ptr : byte*, new_size : u64) -> byte*;
 
+    #[link_extern "free"]
+    func libc_free(ptr : byte*);
+
+
     func malloc<T>(length : u64) -> T*{
 
         let result = malloc_unsafe(@size_of::<T>() * length); 
@@ -18,6 +22,13 @@ module Memory is Exported{
         return result as T*;
     }
 
+    func delete<T>(ptr : T*){
+      libc_free(ptr as byte*);
+    }
+
+    func delete<T>(slice : T[]){
+      libc_free(slice.ptr as byte*);
+    }
     func realloc<T>(ptr : T*, new_size : u64) -> T*{
 
 
@@ -35,16 +46,22 @@ module Memory is Exported{
     }
 
     func alloc<T>(size : u64) -> T[]{
-        let allocation = malloc::<T>(size);
 
-        let slice = @make_slice::<T>(allocation, size);
+        let alloc_len = size;
+        if(alloc_len == 0){
+          alloc_len = 1;
+        }
+
+        let allocation = malloc::<T>(alloc_len);
+
+        let slice = @make_slice::<T>(allocation, alloc_len);
 
         return slice;
     }
 
     func resize<T>(current_slice : T[], new_len : u64) -> T[] {
 
-        T* new = realloc::<T>(current_slice.ptr, new_len);
+        let new = realloc::<T>(current_slice.ptr, new_len);
 
         let slc = @make_slice::<T>( new, new_len );
 

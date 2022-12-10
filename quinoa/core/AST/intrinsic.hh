@@ -80,6 +80,11 @@ public:
             C(intr_power)
             C(intr_sqrt)
             C(intr_nth_root)
+            C(intr_log2)
+            C(intr_loge)
+            C(intr_log10)
+            C(intr_ceil)
+            C(intr_floor)
         }
 #undef C
     }

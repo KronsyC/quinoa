@@ -59,16 +59,10 @@ public:
 };
 
 
-class Method : public ContainerMember {
-public:
-    // `func foo.Type` where `Type` is what is acted upon
-    std::shared_ptr <TypeRef> acts_upon;
+struct MethodSignature{
     std::vector <std::shared_ptr<Generic>> generic_params;
     Vec<Param> parameters;
     std::shared_ptr <Type> return_type;
-    std::unique_ptr <Scope> content;
-
-    Vec<std::vector < std::shared_ptr < Type>>> generate_usages;
 
     bool is_variadic() {
         // Check if the last parameter is a var-arg
@@ -76,6 +70,26 @@ public:
         auto &last = parameters[parameters.len() - 1];
         return last.is_variadic;
     }
+
+
+    Param *get_parameter(size_t idx) {
+        if (idx < parameters.len())return &parameters[idx];
+        else if (is_variadic())return &parameters[parameters.len() - 1];
+        else return nullptr;
+    }
+
+    bool must_parameterize_return_val(){
+        return return_type->get<StructType>() || return_type->get<DynListType>() || return_type->get<ListType>() || return_type->get<ParameterizedTypeRef>();
+    }
+};
+
+class Method : public MethodSignature, public ContainerMember {
+public:
+    std::shared_ptr <TypeRef> acts_upon;
+    std::unique_ptr <Scope> content;
+
+    Vec<std::vector < std::shared_ptr < Type>>> generate_usages;
+
     void apply_generic_substitution(std::vector<std::shared_ptr<Type>> types){
         if(types.size() != generic_params.size())except(E_BAD_SUBSTITUTION, "Cannot substitute generics with mismatched counts");
         for(unsigned int i = 0; i < types.size(); i++){
@@ -85,11 +99,6 @@ public:
     // Get the parameter at a specific index
     // this method is smart and accounts for varargs
     // returns `nullptr` if there is no parameter at the given index
-    Param *get_parameter(size_t idx) {
-        if (idx < parameters.len())return &parameters[idx];
-        else if (is_variadic())return &parameters[parameters.len() - 1];
-        else return nullptr;
-    }
 
     std::string source_name() {
         if (this->name->trunc)return this->name->str();
@@ -111,9 +120,6 @@ public:
         return name;
     }
 
-    bool must_parameterize_return_val(){
-        return return_type->get<StructType>() || return_type->get<DynListType>() || return_type->get<ListType>() || return_type->get<ParameterizedTypeRef>();
-    }
 
     bool is_equivalent_to(Method *method) {
 

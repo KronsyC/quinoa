@@ -39,6 +39,8 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         auto type_toks = read_to_reverse(toks, TT_as);
         if(type_toks.size()){
             auto cast_to = parse_type(type_toks);
+            if(!type_toks.size()){
+
             toks.pop_back();
             auto castee = parse_expr(toks, parent);
 
@@ -46,6 +48,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             cast->cast_to = cast_to;
             cast->value = std::move(castee);
             return cast;
+            }
         }
         toks = initial;
 

@@ -45,7 +45,7 @@ public:
         std::vector <llvm::Value*> args;
         llvm::Value* ret_val_if_param = nullptr;
         if(target->must_parameterize_return_val()){
-            auto alloc = builder()->CreateAlloca(target->return_type->llvm_type());
+            auto alloc = create_allocation(target->return_type->llvm_type(), builder()->GetInsertBlock()->getParent());
             args.push_back(alloc);
             ret_val_if_param =alloc;
         }
@@ -69,7 +69,10 @@ public:
             auto param = target->get_parameter(i);
 
             auto expected_type = param->type->llvm_type();
-            auto arg_val = cast(arg.llvm_value(vars), expected_type);
+            Logger::debug("in call: " + str());
+            Logger::debug("Param of type: " + expected_type.qn_type->str() + " and arg of type: " + arg.type()->str());
+            auto arg_val = cast(arg.llvm_value(vars, expected_type), expected_type);
+            Logger::debug("> resultant type: " + arg_val.type.qn_type->str());
             args.push_back(arg_val);
         }
 
@@ -198,6 +201,7 @@ public:
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
         auto ptr = call_on->assign_ptr(vars);
+        Logger::debug("call_on_type llvm_value, targ: " + call_on->str() + "; type: " + call_on->type()->str() + "; deref count: " + std::to_string(deref_count));
         auto tmp_ref_count = deref_count;
         while(tmp_ref_count){
           ptr = ptr.load();
@@ -312,9 +316,11 @@ public:
 
         auto ll_type = type->llvm_type();
         auto name = var_name.str();
-        auto alloca = builder()->CreateAlloca(ll_type, nullptr, name);
 
-        vars[name] = Variable(type, alloca, is_constant);
+        auto alloc = create_allocation(ll_type, func);
+        alloc->setName(name);
+    
+        vars[name] = Variable(type, alloc, is_constant);
     }
 
     ReturnChance returns() {
@@ -456,10 +462,6 @@ public:
 
         }
 
-        Logger::debug("== Generic Table ==");
-        for(auto pair : generics){
-            Logger::debug(pair.first + " => " + pair.second->str());
-        }
 
         if(struct_ty){
             auto lltype = type->llvm_type(generics);

@@ -7,18 +7,11 @@
 #include "../include.h"
 
 
-// These are the compiler voodoo modules, they have no
-// real implementation
-static std::vector <std::string> NATIVE_MODULES = {
-        "Exported",
-        "Entry",
-        "CompilerImplemented"
-};
 
 void resolve_compositor_refs(Container *mod, CompilationUnit &unit) {
     for (auto &comp: mod->compositors) {
         auto name = comp->name->str();
-        if (includes(NATIVE_MODULES, name))continue;
+        if (includes(Container::NATIVE_MODULES, name))continue;
 
         for (auto mod: unit.get_containers()) {
             auto fullname = std::make_unique<LongName>();

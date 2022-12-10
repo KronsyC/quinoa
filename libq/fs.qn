@@ -1,13 +1,23 @@
 import @sys::file as File;
-
+import @string;
+import @lang::internal::error as Err;
 module FS is Exported{
 
     func open_file(path : str) -> File{
-        return File::from_descriptor(1);
+        let path_str = string::from(path); 
+        let path_cstr = path_str.to_cstr();
+        let cstr = path_cstr.ptr;
+        let fd = libc_open_file(cstr as i8*, 0);
+
+        if(fd < 0){
+          Err::panic("Failed to open file");
+        }
+
+        return File::from_descriptor(fd as u32);
     }
 
 
     #[link_extern "open"]
-    func glibc_open_descriptor_to_file(name : i8*, mode : int);
+    func libc_open_file(name : char*, mode : int) -> i32;
 
 }

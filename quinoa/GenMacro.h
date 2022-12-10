@@ -47,11 +47,11 @@
 	new TokenDefinition(TT_void, "void", {"void"}, {"void"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_boolean, "boolean", {"bool"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_string, "string", {"str"}, {"str"}, false, false, 0, false, false, {}),\
-	new TokenDefinition(TT_int8, "int8", {"i8", "char"}, {"integer"}, false, false, 0, false, false, {}),\
+	new TokenDefinition(TT_int8, "int8", {"i8"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_int16, "int16", {"i16"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_int32, "int32", {"i32", "int"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_int64, "int64", {"i64"}, {"integer"}, false, false, 0, false, false, {}),\
-	new TokenDefinition(TT_uint8, "uint8", {"u8", "byte"}, {"integer"}, false, false, 0, false, false, {}),\
+	new TokenDefinition(TT_uint8, "uint8", {"u8", "byte", "char"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_uint16, "uint16", {"u16"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_uint32, "uint32", {"u32", "uint"}, {"integer"}, false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_uint64, "uint64", {"u64"}, {"integer"}, false, false, 0, false, false, {}),\
@@ -81,7 +81,6 @@
 	new TokenDefinition(TT_bitwise_not, "bitwise_not", {"~"}, "", false, false, 0, false, true, {}),\
 	new TokenDefinition(TT_decrement, "decrement", {"--"}, "", false, false, 0, true, true, {}),\
 	new TokenDefinition(TT_bang, "bang", {"!"}, "", false, false, 0, false, true, {}),\
-	new TokenDefinition(TT_ampersand, "ampersand", {"&"}, "", false, false, 0, false, true, {}),\
 	new TokenDefinition(TT_star, "star", {"*"}, "", false, false, 5, false, true, {}),\
 	new TokenDefinition(TT_plus, "plus", {"+"}, "", false, false, 6, false, false, {}),\
 	new TokenDefinition(TT_minus, "minus", {"-"}, "", false, false, 6, false, true, {}),\
@@ -97,7 +96,7 @@
 	new TokenDefinition(TT_assignment, "assignment", {"="}, "", false, false, 16, false, false, {}),\
 	new TokenDefinition(TT_equals, "equals", {"=="}, "", false, false, 10, false, false, {}),\
 	new TokenDefinition(TT_not_equals, "not_equals", {"!="}, "", false, false, 10, false, false, {}),\
-	new TokenDefinition(TT_bitwise_and, "bitwise_and", {"&"}, "", false, false, 11, false, false, {}),\
+	new TokenDefinition(TT_bitwise_and, "bitwise_and", {"&"}, "", false, false, 11, false, true, {}),\
 	new TokenDefinition(TT_bitwise_or, "bitwise_or", {"|"}, "", false, false, 13, false, false, {}),\
 	new TokenDefinition(TT_bitwise_xor, "bitwise_xor", {"^"}, "", false, false, 13, false, false, {}),\
 	new TokenDefinition(TT_bitwise_shl, "bitwise_shl", {"<<"}, "", false, false, 7, false, false, {}),\
@@ -115,6 +114,7 @@
 	new TokenDefinition(TT_module, "module", {"module"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_seed, "seed", {"seed"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_struct, "struct", {"struct"}, "", false, false, 0, false, false, {}),\
+	new TokenDefinition(TT_trait, "trait", {"trait"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_enum, "enum", {"enum"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_func, "func", {"func"}, "", false, false, 0, false, false, {}),\
 	new TokenDefinition(TT_type, "type", {"type"}, "", false, false, 0, false, false, {}),\
@@ -154,6 +154,11 @@
 	new TokenDefinition(TT_intr_negate, "intr_negate", {"@negate"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_add_one, "intr_add_one", {"@inc"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_sub_one, "intr_sub_one", {"@dec"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_log10, "intr_log10", {"@log10"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_log2, "intr_log2", {"@log2"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_loge, "intr_loge", {"@loge"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_ceil, "intr_ceil", {"@ceil"}, "", false, false, 0, false, false, {1, 0}),\
+	new TokenDefinition(TT_intr_floor, "intr_floor", {"@floor"}, "", false, false, 0, false, false, {1, 0}),\
 	new TokenDefinition(TT_intr_size_of, "intr_size_of", {"@size_of"}, "", false, false, 0, false, false, {0, 1}),\
 	new TokenDefinition(TT_intr_make_slice, "intr_make_slice", {"@make_slice"}, "", false, false, 0, false, false, {2, 1}),\
 	new TokenDefinition(TT_intr_subscript, "intr_subscript", {"@subscript"}, "", false, false, 0, false, false, {2, 0}),\
@@ -207,7 +212,6 @@
 	TT_bitwise_not,\
 	TT_decrement,\
 	TT_bang,\
-	TT_ampersand,\
 	TT_star,\
 	TT_plus,\
 	TT_minus,\
@@ -241,6 +245,7 @@
 	TT_module,\
 	TT_seed,\
 	TT_struct,\
+	TT_trait,\
 	TT_enum,\
 	TT_func,\
 	TT_type,\
@@ -280,6 +285,11 @@
 	TT_intr_negate,\
 	TT_intr_add_one,\
 	TT_intr_sub_one,\
+	TT_intr_log10,\
+	TT_intr_log2,\
+	TT_intr_loge,\
+	TT_intr_ceil,\
+	TT_intr_floor,\
 	TT_intr_size_of,\
 	TT_intr_make_slice,\
 	TT_intr_subscript,\
@@ -350,9 +360,9 @@
 	PRE_decrement, \
 	POST_decrement, \
 	PRE_bang, \
-	PRE_ampersand, \
 	PRE_star, \
 	PRE_minus, \
+	PRE_bitwise_and, \
 	
 
 #define PREFIX_ENUM_MAPPINGS \
@@ -360,9 +370,9 @@
 	{ TT_bitwise_not, PRE_bitwise_not}, \
 	{ TT_decrement, PRE_decrement}, \
 	{ TT_bang, PRE_bang}, \
-	{ TT_ampersand, PRE_ampersand}, \
 	{ TT_star, PRE_star}, \
 	{ TT_minus, PRE_minus}, \
+	{ TT_bitwise_and, PRE_bitwise_and}, \
 	
 
 #define POSTFIX_ENUM_MAPPINGS \
@@ -469,6 +479,11 @@
 	intr_negate,\
 	intr_add_one,\
 	intr_sub_one,\
+	intr_log10,\
+	intr_log2,\
+	intr_loge,\
+	intr_ceil,\
+	intr_floor,\
 	intr_size_of,\
 	intr_make_slice,\
 	intr_subscript,\
@@ -505,6 +520,11 @@
 	{ intr_negate, "@negate"},\
 	{ intr_add_one, "@inc"},\
 	{ intr_sub_one, "@dec"},\
+	{ intr_log10, "@log10"},\
+	{ intr_log2, "@log2"},\
+	{ intr_loge, "@loge"},\
+	{ intr_ceil, "@ceil"},\
+	{ intr_floor, "@floor"},\
 	{ intr_size_of, "@size_of"},\
 	{ intr_make_slice, "@make_slice"},\
 	{ intr_subscript, "@subscript"},\
@@ -541,6 +561,11 @@
 	{ "@negate", intr_negate},\
 	{ "@inc", intr_add_one},\
 	{ "@dec", intr_sub_one},\
+	{ "@log10", intr_log10},\
+	{ "@log2", intr_log2},\
+	{ "@loge", intr_loge},\
+	{ "@ceil", intr_ceil},\
+	{ "@floor", intr_floor},\
 	{ "@size_of", intr_size_of},\
 	{ "@make_slice", intr_make_slice},\
 	{ "@subscript", intr_subscript},\

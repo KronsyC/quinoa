@@ -130,7 +130,7 @@ void expects(Token tok, std::initializer_list<TokenType> expected_types) {
     }
 
     if (!is_good) {
-        std::string message = "Unexpected " + get_tt_name(tok.type) + " '" + tok.value + "'.";
+        std::string message = tok.position() + " Unexpected " + get_tt_name(tok.type) + " '" + tok.value + "'.";
         message += "\n\tWas Expecting: ";
         bool first = true;
         for (auto t: expected_types) {
@@ -140,7 +140,7 @@ void expects(Token tok, std::initializer_list<TokenType> expected_types) {
             message += "'" + get_tt_name(t) + "'";
             first = false;
         }
-        except(E_UNEXPECTED_TOKEN, message);
+        except(E_NOPREFIX, message);
     }
 }
 

@@ -11,6 +11,7 @@ void error(std::string reason, bool trace = false);
 
 #define ERR_TYPES          \
     X(ERR)                 \
+    X(NOPREFIX)             \
     X(INTERNAL)            \
     X(BAD_ARGS)            \
     X(BAD_METHOD_DEFINITION) \

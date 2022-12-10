@@ -228,6 +228,7 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
 
     Logger::debug("Call on type: " + target_ty->str());
     // Implicit reference unwrapping
+    call->deref_count = 0;
     while(auto ref = target_ty->get<ReferenceType>()){
       Logger::debug("deref");
       call->deref_count++;
@@ -249,6 +250,7 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
     std::vector < Method * > methods;
 
     for (auto method: target_mod->get_methods()) {
+        if(!method->acts_upon)continue;
         if (
                 method->name->member->str() == call->method_name->str()
                 && target_ty->distance_from(*method->acts_upon) >= 0

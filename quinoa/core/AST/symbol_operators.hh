@@ -73,7 +73,7 @@ public:
         auto none = op_t->llvm_type();
 
         switch (op_type) {
-            case PRE_ampersand: {
+            case PRE_bitwise_and: {
                 auto ptr = operand->assign_ptr(vars);
 
                 auto ptr_ty = ptr.type.qn_type->get<Ptr>();
@@ -135,7 +135,7 @@ protected:
         auto pointee_t = same_t->pointee();
         auto bool_t = Primitive::get(PR_boolean);
         switch (op_type) {
-            case PRE_ampersand:return same_ref;
+            case PRE_bitwise_and:return same_ref;
             case PRE_bang:return bool_t;
             case PRE_star:return pointee_t;
             case PRE_minus:return same_t;

@@ -40,8 +40,19 @@ enum ContainerType {
     CT_STRUCT
 };
 
+
+
 class Container : public TopLevelEntity {
 public:
+
+
+    // These are the compiler voodoo modules, they have no
+    // real implementation
+    static inline std::vector <std::string> NATIVE_MODULES = {
+        "Exported",
+        "Entry",
+        "CompilerImplemented"
+    };
     std::unique_ptr <Name> name = std::make_unique<Name>("unknown");
     std::shared_ptr <Name> name_space;
 
@@ -86,20 +97,7 @@ public:
         return false;
     }
 
-    std::shared_ptr <Type> get_type(std::string name = "_") {
-        for (auto &member: members) {
-            if (auto type = dynamic_cast<TypeMember *>(member.ptr)) {
-                if (type->name->member->str() == name)return type->refers_to;
-            }
-        }
-
-        if (name == this->name->str()) {
-            return get_type();
-        }
-
-
-        return std::shared_ptr<Type>(nullptr);
-    }
+    std::shared_ptr <Type> get_type(std::string name = "_");
 
     std::vector<Method *> get_methods() {
         std::vector < Method * > ret;

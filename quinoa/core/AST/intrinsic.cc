@@ -3,6 +3,7 @@
 #include "../llvm_utils.h"
 #include "./primary.hh"
 #include "../../lib/error.h"
+#include "type.hh"
 #include "llvm/IR/Intrinsics.h"
 
 // Override validation rules for scenarios such as optional args
@@ -125,7 +126,6 @@ llvm::Value* raise_to_power(LLVMValue target, LLVMValue exponent){
     // assume target and exponent are primitives
 
 
-    auto targ_t = target.type.qn_type->get<Primitive>();
     auto exp_t = exponent.type.qn_type->get<Primitive>();
 
     auto mod = builder()->GetInsertBlock()->getModule();
@@ -135,22 +135,24 @@ llvm::Value* raise_to_power(LLVMValue target, LLVMValue exponent){
 
     if(exp_t->is_integer()){
         auto powi = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::powi, {targ->getType(), exp_t->llvm_type()});
-        return cast_explicit(LLVMValue{builder()->CreateCall(powi, {targ, exponent}), targ.type}, target.type);
+        return LLVMValue{builder()->CreateCall(powi, {targ, exponent}), targ.type};
     }
     else if(exp_t->is_float()){
         auto pow = llvm::Intrinsic::getDeclaration(mod, llvm::Intrinsic::pow, {targ->getType(), exp_t->llvm_type()});
-        return cast_explicit(LLVMValue{builder()->CreateCall(pow, {targ, exponent}), targ.type}, target.type);
+        return LLVMValue{builder()->CreateCall(pow, {targ, exponent}), targ.type};
     }
     else except(E_BAD_INTRINSIC_CALL, "Only floats and integers may be used as exponents for exponent intrinsics");
 }
 
-MakesA(intr_power, this->args[0].type())
+MakesA(intr_power, Primitive::get(PR_float64))
 BinaryCodegenRule(intr_power, {
    
     Ret(raise_to_power(left, right));
 
 }, "Failed to generate an @pow intrinsic, the exponent must be an integer or float, and the operand must be a float")
 
+
+MakesA(intr_nth_root, Primitive::get(PR_float64))
 BinaryCodegenRule(intr_nth_root, {
     BinaryAssertPrimitive;
 
@@ -319,6 +321,58 @@ BinaryCodegenRuleSameT(intr_cmp_lesser_eq, {
     if(!operand.type.qn_type->get<Primitive>())except(E_BAD_INTRINSIC_CALL, "Calls to " + name + " may only use primitive types"); \
     Primitive& prim_ty = *operand.type.qn_type->get<Primitive>();
 
+UnaryCodegenRule(intr_log2, {
+    UnaryAssertPrimitive;
+
+    if(prim_ty.is_float()){
+      auto fn = llvm::Intrinsic::getDeclaration(builder()->GetInsertBlock()->getModule(), llvm::Intrinsic::log2, {prim_ty.llvm_type()});
+      auto result = builder()->CreateCall(fn, {operand});
+      Ret(result)  
+    }
+}, "Failed to generate an @log2 intrinsic, the operand must be a float");
+
+
+UnaryCodegenRule(intr_loge, {
+    UnaryAssertPrimitive;
+
+    if(prim_ty.is_float()){
+      auto fn = llvm::Intrinsic::getDeclaration(builder()->GetInsertBlock()->getModule(), llvm::Intrinsic::log, {prim_ty.llvm_type()});
+      auto result = builder()->CreateCall(fn, {operand});
+      Ret(result)  
+    }
+}, "Failed to generate an @loge intrinsic, the operand must be a float");
+
+
+UnaryCodegenRule(intr_log10, {
+    UnaryAssertPrimitive;
+
+    if(prim_ty.is_float()){
+      auto fn = llvm::Intrinsic::getDeclaration(builder()->GetInsertBlock()->getModule(), llvm::Intrinsic::log10, {prim_ty.llvm_type()});
+      auto result = builder()->CreateCall(fn, {operand});
+      Ret(result)  
+    }
+}, "Failed to generate an @log10 intrinsic, the operand must be a float");
+
+
+UnaryCodegenRule(intr_floor, {
+    UnaryAssertPrimitive;
+
+    if(prim_ty.is_float()){
+      auto fn = llvm::Intrinsic::getDeclaration(builder()->GetInsertBlock()->getModule(), llvm::Intrinsic::floor, {prim_ty.llvm_type()});
+      auto result = builder()->CreateCall(fn, {operand});
+      Ret(result)  
+    }
+}, "Failed to generate an @floor intrinsic, the operand must be a float");
+
+UnaryCodegenRule(intr_ceil, {
+    UnaryAssertPrimitive;
+
+    if(prim_ty.is_float()){
+      auto fn = llvm::Intrinsic::getDeclaration(builder()->GetInsertBlock()->getModule(), llvm::Intrinsic::ceil, {prim_ty.llvm_type()});
+      auto result = builder()->CreateCall(fn, {operand});
+      Ret(result)  
+    }
+}, "Failed to generate an @ceil intrinsic, the operand must be a float");
 
 UnaryCodegenRule(intr_bitwise_not, {
     UnaryAssertPrimitive;

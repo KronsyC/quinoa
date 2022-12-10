@@ -8,6 +8,20 @@
 static llvm::LLVMContext _ctx;
 static llvm::IRBuilder<> _builder(_ctx);
 
+
+
+llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* func){
+  auto& entry_block = func->getEntryBlock();
+  auto current_ins_pt = builder()->GetInsertBlock();
+
+  builder()->SetInsertPoint(&entry_block, entry_block.getFirstInsertionPt());
+  auto alloc = builder()->CreateAlloca(type);
+
+  builder()->SetInsertPoint(current_ins_pt);
+
+  return alloc;
+}
+
 llvm::LLVMContext* llctx()
 {
     return &_ctx;
