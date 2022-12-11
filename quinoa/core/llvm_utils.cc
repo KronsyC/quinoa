@@ -48,8 +48,10 @@ llvm::Function* make_fn(
 
 	llvm::Type* ret = f.return_type->llvm_type();
 	auto name = f.source_name();
-
-  Logger::debug("Make function signature: "  + name);
+  
+  // Do not duplicate signatures
+  if(auto re = mod->getFunction(name))return re;
+  // Logger::debug("Make function signature: "  + name);
 	std::vector<llvm::Type *> args;
 
 
@@ -99,7 +101,10 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
 
     if(!bool(_to))return _val;
 
-    Logger::debug("Cast: " + _val.type.qn_type->str() + " to " + _to.qn_type->str());
+    #ifdef DEBUG
+    _val->print(llvm::outs());
+    #endif
+    // Logger::debug("Cast: " + _val.type.qn_type->str() + " to " + _to.qn_type->str());
     auto to = _to.qn_type->drill()->llvm_type();
     LLVMValue val(_val.val, _val.type.qn_type->drill()->llvm_type());
 
@@ -230,7 +235,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
 
     }
     val.print();
-    except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() + " to " + to.qn_type->str());
+    except(E_INTERNAL, "(bug) failed to cast from " + val_ty.qn_type->str() +  " to " + to.qn_type->str());
 }
 
 

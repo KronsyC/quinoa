@@ -483,6 +483,7 @@ CodegenRule(intr_subscript){
 CodegenRule(intr_assign){
     auto assignee = args[0].assign_ptr(vars);
 
+    Logger::debug("ASSIGNMENT OF ASSIGNEE: " + args[0].type()->str());
     // Ensure we are not assigning to a constant
     if (auto var = dynamic_cast<SourceVariable *>(&args[0])) {
         auto &variable = vars[var->name->str()];
@@ -496,6 +497,9 @@ CodegenRule(intr_assign){
         variable.is_initialized = true;
     }
 
+    auto assign_ty = assignee.type.qn_type;
+    Logger::debug("Assignee is a: " + assign_ty->str());
+    auto assign_pointee = assign_ty->pointee();
     auto variable_type = assignee.type.qn_type->drill()->pointee()->llvm_type();
 
     auto& value = args[1];
@@ -512,10 +516,11 @@ CodegenRule(intr_assign){
         allocating_expr->write_direct(assignee, vars, variable_type);
         return allocating_expr->llvm_value(vars, variable_type);
     }
-    Logger::debug("Assigning: " + value.str());
-    Logger::debug("Type: " + value.type()->str());
-    auto llvm_value = value.llvm_value(vars);
 
+    Logger::debug("Assignment of variable: " + assignee.type.qn_type->pointee()->str());
+    Logger::debug("Assigning: " + value.str());
+    auto llvm_value = value.llvm_value(vars);
+    Logger::debug("Done");
     builder()->CreateStore(llvm_value, assignee);
     return cast(llvm_value, expected);
 }
@@ -531,8 +536,12 @@ CodegenRule(intr_size_of){
     return cast(LLVMValue(builder()->getInt64(size_bytes), this->type()), expected);
 }
 
+
+
 MakesA(intr_make_slice, DynListType::get(this->type_args[0]));
 CodegenRule(intr_make_slice){
+    Logger::debug("Make Slice: " + str() + " of type " + this->type()->str());
+    Logger::debug("ty: " + this->type_args[0]->str());
     auto internal_ptr  = this->args[0].llvm_value(vars, Ptr::get(this->type_args[0])->llvm_type());
     auto element_count = this->args[1].llvm_value(vars, Primitive::get(PR_uint64)->llvm_type());
 

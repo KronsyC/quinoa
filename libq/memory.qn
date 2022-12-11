@@ -14,12 +14,12 @@ module Memory is Exported{
 
     func malloc<T>(length : u64) -> T*{
 
-        let result = malloc_unsafe(@size_of::<T>() * length); 
+        let result = malloc_unsafe(@size_of::<T>() * length) as T*; 
         if((result as u64) == 0){
             Err::panic("Failed memory allocation");
         }
 
-        return result as T*;
+        return result;
     }
 
     func delete<T>(ptr : T*){
@@ -52,7 +52,7 @@ module Memory is Exported{
           alloc_len = 1;
         }
 
-        let allocation = malloc::<T>(alloc_len);
+        let allocation : T* = malloc::<T>(alloc_len) as T*;
 
         let slice = @make_slice::<T>(allocation, alloc_len);
 
@@ -61,10 +61,7 @@ module Memory is Exported{
 
     func resize<T>(current_slice : T[], new_len : u64) -> T[] {
 
-        /* let new = realloc::<T>(current_slice.ptr, new_len); */
 
-        /* let slc = @make_slice::<T>( new, new_len ); */
-
-        /* return current_slice; */
+        return current_slice;
     }
 }

@@ -115,12 +115,12 @@ public:
 
 
     std::shared_ptr <Type> type() {
-        if (recalculate_type || !cached_type) {
-            auto typ = get_type();
-            recalculate_type = false;
-            cached_type = typ;
-        }
-        return cached_type;
+        // if (recalculate_type || !cached_type) {
+            // auto typ = get_type();
+            // recalculate_type = false;
+            // cached_type = typ;
+        // }
+        return get_type();
     }
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
@@ -129,9 +129,6 @@ public:
         llvm_value(vars);
     }
 
-    Expr &get_parent() {
-        return *this->parent_expr;
-    }
 
     ReturnChance returns() {
         return ReturnChance::NEVER;
@@ -145,19 +142,8 @@ public:
 protected:
     virtual std::shared_ptr <Type> get_type() = 0;
 
-    /**
-     * Signify to the expression that a dependency has been changed,
-     * and some attributes must be recalculated
-    */
-    void changed_dep() {
-        recalculate_type = true;
-        if (parent_expr)parent_expr->changed_dep();
-    }
-
     Expr *parent_expr = nullptr;
 private:
-    bool recalculate_type = true;
-    std::shared_ptr <Type> cached_type;
 };
 
 
@@ -238,12 +224,7 @@ public:
         return output + "}";
     }
 
-    void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
-        for (auto &child: content) {
-            child->generate(qn_fn, func, vars, CFI);
-        }
-    }
-
+    void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI);
     std::vector<Statement *> flatten() {
         std::vector < Statement * > ret = {this};
         for (auto c: content)for (auto m: c->flatten())ret.push_back(m);

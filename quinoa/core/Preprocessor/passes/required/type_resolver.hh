@@ -8,7 +8,6 @@
 #include "../include.h"
 #include "./type_table_builder.hh"
 
-// Returns True, if all types are resolved
 proc_result resolve_types(Method& fn) {
 
     if(!fn.content)return {};
@@ -29,12 +28,14 @@ proc_result resolve_types(Method& fn) {
                 errors.emplace_back("Types can only be inferred for variables with initializers");
                 continue;
             }
-            init->type = init->initializer->type();
 
+            init->type = init->initializer->type();
             if(!init->type){
                 errors.push_back("Failed to get the type of an unresolved expression: " + init->str());
             }
             else{
+                Logger::debug("in expression: " + init->str());
+                Logger::debug("init -> " + init->initializer->type()->str());
                 res_count++;
             }
             continue;

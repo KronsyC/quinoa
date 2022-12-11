@@ -1,7 +1,6 @@
 import @memory;
 import @lang::internal::error as Err;
 
-// The $internal module is implemented by the compiler and injected into all modules scopes
 
 module String is Exported{
 
@@ -53,7 +52,7 @@ module String is Exported{
       // copy the string content into the slice
       // write a 0 into the last slot of the slice
 
-      let allocation = memory::alloc::<u8>(self.length + 1);
+      let allocation = memory::alloc::<char>(self.length + 1);
    
       self.copy_bytes_into(allocation);
 

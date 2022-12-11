@@ -833,7 +833,7 @@ class Generic : public Type {
     Type *drill() {
         return temporarily_resolves_to ? temporarily_resolves_to->drill() : this;
     }
-
+    std::string method;
 
     bool is_generic(){return true;}
 
@@ -844,8 +844,7 @@ class Generic : public Type {
     std::shared_ptr<Type> clone_persist(){
       auto gen = Generic::get(std::make_unique<Name>(name->str()));
       gen->temporarily_resolves_to = temporarily_resolves_to ? temporarily_resolves_to->clone_persist() : nullptr;
-      gen->temporarily_resolves_to = self;  
-    return gen;
+      return gen;
     }
     std::vector<Type *> flatten() {
         std::vector < Type * > ret = {this};
@@ -862,7 +861,7 @@ class Generic : public Type {
                 return ret->llvm_type(gen_table);
             }
 
-            except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str() + " with refs: " + std::to_string(self.use_count()));
+            except(E_INTERNAL, "Cannot get an llvm type for an unresolved generic " + this->str() + " with refs: " + std::to_string(self.use_count()) + " in " + method);
         }
     }
 

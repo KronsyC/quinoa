@@ -112,3 +112,12 @@ std::shared_ptr<Type> Container::get_type(std::string name){
         }
         return std::shared_ptr<Type>(nullptr);
 }
+
+
+#include "./container_member.hh"
+void Scope::generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI){
+        for (auto &child: content) {
+            child->generate(qn_fn, func, vars, CFI);
+        }
+    }
+

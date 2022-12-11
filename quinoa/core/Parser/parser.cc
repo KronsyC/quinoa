@@ -212,7 +212,6 @@ Vec<ContainerMember> parse_container_content(std::vector<Token> &toks, Container
 
     while (toks.size())
     {
-        print_toks(toks);
         auto current = popf(toks);
 
         if(current.is(TT_hashtag)){

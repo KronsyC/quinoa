@@ -222,6 +222,11 @@ public:
         left->scope = this->scope;
         right->scope = this->scope;
 
+        Logger::debug("BINARY OPERATION");
+        Logger::debug("LEFT: " +  left->type()->str() + " ~ " + left->str());
+        Logger::debug("RIGHT: " + right->type()->str() + " ~ " + right->str());
+
+        
         // special casting rules for assignment
         if(this->op_type == BIN_assignment){
             auto var_ty = left->type();

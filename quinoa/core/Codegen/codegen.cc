@@ -94,9 +94,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 }
 
 void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, bool allow_generic = false){
-    if(!fn)except(E_INTERNAL, "(bug) no function");
     if(fn->is_generic() && !allow_generic)return;
-
 
     auto fname = fn->source_name();
     auto ll_fn = ll_mod->getFunction(fname);
@@ -105,12 +103,19 @@ void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, boo
     ll_mod->print(llvm::outs(), nullptr);
         except(E_MISSING_FUNCTION, "Function " + fname + " could not be found");
     }
-    if(ll_fn->size())return;
+    if(ll_fn->getBasicBlockList().size()){
+      return;
+    }
     auto entry_block = llvm::BasicBlock::Create(*llctx(), "entry_block", ll_fn);
 
     builder()->SetInsertPoint(entry_block);
     auto vars = generate_variable_table(ll_fn, ast, fn);
+
+    for(auto g : fn->generic_params){
+        Logger::debug(">\t" + g->name->str() + " >< " + g->temporarily_resolves_to->str());  
+    }
     fn->content->generate(fn, ll_fn, vars, {});
+
     auto retc = fn->content->returns();
     if (ll_fn->getReturnType()->isVoidTy() && (retc == ReturnChance::NEVER || retc == ReturnChance::MAYBE || fn->must_parameterize_return_val()))
         builder()->CreateRetVoid();
@@ -143,6 +148,7 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 }
 void impl_generics(CompilationUnit& ast, Container& mod, llvm::Module& llmod){
   // Pass two: generic functions
+  Logger::debug("IMPL_GENERICS");
   std::size_t generated_impl_count = 0;
   while(1){
 
@@ -154,18 +160,28 @@ void impl_generics(CompilationUnit& ast, Container& mod, llvm::Module& llmod){
     if(generated_impl_count >= total_impl_count)break;
 
     for(auto method : mod.get_methods()){
+      Logger::debug("################### There are " + std::to_string(method->generate_usages.len()) + " impls for: " + method->source_name() );
       if(!method->generate_usages.len())continue;
       if(!method->content)continue;
 
       for(auto impl : method->generate_usages){
-        Logger::debug("Impl: " + std::to_string(impl->method_generic_args.size()) + " | " + std::to_string(impl->target_generic_args.size()));
+        
         method->apply_generic_substitution(impl->method_generic_args, impl->target_generic_args);
+        Logger::debug("Doing a generic impl for: " + method->source_name());
+
+
+        for(auto g : method->generic_params){
+          Logger::debug(g->name->str() + " --> " + g->temporarily_resolves_to->str());
+        }
+
         generated_impl_count++;
         make_fn(*method, &llmod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
         generate_method(method, ast, &llmod, true);
+        method->undo_generic_substitution();
       }
     }
   }
+  Logger::debug("==== DONE ====");
 }
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {

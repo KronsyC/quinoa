@@ -18,33 +18,19 @@ class CallLike : public Expr {
 public:
     Vec<Expr> args;
     std::vector <std::shared_ptr<Type>> type_args;
-    std::shared_ptr <Type> return_type;
     Method *target = nullptr;
 
-    std::vector<Type*> flatten_types(){
-        std::vector<Type*> ret;
-    
-        for(const auto& ta : type_args){
-            for(const auto& t : ta->flatten()){
-                ret.push_back(t);
-            }
-        }
-        if(return_type)for(const auto& t : return_type->flatten())ret.push_back(t);
-
-        for(const auto& val : args){
-            for(const auto& t : val->flatten_types()){
-                ret.push_back(t);
-            }
-        }
-
-        return ret;
-    }
 
     LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args, std::vector<std::shared_ptr<Type>> second_type_args = {}) {
 
         std::vector <llvm::Value*> args;
         llvm::Value* ret_val_if_param = nullptr;
+
+        target->apply_generic_substitution(this->type_args, second_type_args);
+
+
         if(target->must_parameterize_return_val()){
+            auto alloc_ty = target->return_type;
             auto alloc = create_allocation(target->return_type->llvm_type(), builder()->GetInsertBlock()->getParent());
             args.push_back(alloc);
             ret_val_if_param =alloc;
@@ -53,20 +39,25 @@ public:
         auto mod = builder()->GetInsertBlock()->getModule();
         auto fn = mod->getFunction(target->source_name());
 
-        if(!fn && target->is_generic()){
-          Logger::debug("CREATE SIGNATURE FOR " + target->name->mangle_str());
+        if(target->is_generic()){
   
-          target->apply_generic_substitution(this->type_args, second_type_args);
           fn = make_fn(*target, mod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
-          Logger::debug("Generated from within generic call");
 
           GenericImpl impl;
-          impl.method_generic_args = type_args;
-          impl.target_generic_args = second_type_args;
+          std::vector<std::shared_ptr<Type>> persist_type_args;
+          std::vector<std::shared_ptr<Type>> persist_second_type_args;
+          for(auto t : type_args){
+            persist_type_args.push_back(t->clone_persist());
+          }
+
+          for(auto t : second_type_args){
+            persist_second_type_args.push_back(t->clone_persist());
+          }
+          impl.method_generic_args = persist_type_args;
+          impl.target_generic_args = persist_second_type_args;
           target->generate_usages.push(impl);
         }
-        else if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
-
+        if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
 
 
         for (size_t i = 0; i < this->args.len(); i++) {
@@ -80,9 +71,11 @@ public:
 
         auto call = builder()->CreateCall(fn, args);
 
-
-        return {ret_val_if_param ? (llvm::Value*)builder()->CreateLoad(ret_val_if_param->getType()->getPointerElementType(), (llvm::Value*)ret_val_if_param) : call, target->return_type->llvm_type()};
-    }
+        
+        auto ret = LLVMValue{ret_val_if_param ? (llvm::Value*)builder()->CreateLoad(ret_val_if_param->getType()->getPointerElementType(), (llvm::Value*)ret_val_if_param) : call, target->return_type->clone_persist()->llvm_type()};
+        // target->undo_generic_substitution();  
+        return ret;  
+  }
 };
 
 class MethodCall : public CallLike {
@@ -135,14 +128,47 @@ public:
         except(E_INTERNAL, "assign_ptr not implemented for MethodCall: " + str());
     }
 
+    std::vector<Type*> flatten_types(){
+        std::vector<Type*> ret;
+    
+        for(const auto& ta : type_args){
+            for(const auto& t : ta->flatten()){
+                ret.push_back(t);
+            }
+        }
+
+        for(const auto& val : args){
+            for(const auto& t : val->flatten_types()){
+                ret.push_back(t);
+            }
+        }
+
+        return ret;
+    }
 protected:
     std::shared_ptr <Type> get_type() {
+
+
+        Logger::debug("Get return type of method call: " + str()); 
+        // if any of the type args are unresolved generics 
+        // simply return the result of a generic call
+        // otherwise return cloned substituted ret type
+    
         if (!target)return std::shared_ptr<Type>(nullptr);
 
-        if (this->type_args.size())target->apply_generic_substitution(this->type_args);
+        target->apply_generic_substitution(this->type_args);
 
-        // immediately drill in case it is swapped out (specifically for generics)
-        return target->return_type->clone_persist();
+        auto ret = target->return_type->copy_with_substitutions({});
+
+        target->undo_generic_substitution();
+        return ret;
+    }
+
+    bool is_generic_type_args(){
+      for(auto ta : type_args){
+        if(ta->get<Generic>())return true;
+      }
+      return false;
     }
 };
 
@@ -161,7 +187,6 @@ public:
                 ret.push_back(t);
             }
         }
-        for(const auto& t : return_type->flatten())ret.push_back(t);
 
         for(const auto& val : args){
             for(const auto& t : val->flatten_types()){
@@ -247,17 +272,19 @@ protected:
         }
 
         auto cot = call_on->type();
+        std::shared_ptr<Type> ret_t;
         Logger::debug("Call on: " + cot->str() + " > " + call_on->str());
         if(auto ptref = cot->get<ParameterizedTypeRef>()){
           target->apply_generic_substitution(this->type_args, ptref->params);
-          return target->return_type->clone_persist();      
+          ret_t = target->return_type->clone_persist();
       
         }
         else{
           target->apply_generic_substitution(this->type_args);
-          return target->return_type->drill()->copy_with_substitutions({});
+          ret_t = target->return_type->drill()->copy_with_substitutions({});
         }
-
+        target->undo_generic_substitution();
+        return ret_t;
     }
 };
 
@@ -336,10 +363,12 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI) {
 
-        Logger::debug("init: " + type->str());
-        auto copy = type->copy_with_substitutions({});
+        Logger::debug("INITIALIZE: " + var_name.str());
+        Logger::debug("init of type: " + type->str());
+        auto copy = type->copy_with_substitutions(qn_fn->generics_as_table());
         Logger::debug("now: " + copy->str());
         auto ll_type = copy->llvm_type();
+        ll_type->print(llvm::outs());
         auto name = var_name.str();
 
         auto alloc = create_allocation(ll_type, func);
@@ -418,7 +447,9 @@ public:
         this->scope = this->value->scope;
     }
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
-        return cast(cast(value->llvm_value(vars), cast_to), expected_type);
+        Logger::debug("Implicit cast: " + value->str() +"("+value->type()->str()+") to " + cast_to->str() + "; and finally to " + (expected_type ? expected_type.qn_type->str() : std::string("?")));
+        auto val = value->llvm_value(vars, cast_to);
+        return cast(val, expected_type);
     }
 
     std::string str() {

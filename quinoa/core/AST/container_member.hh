@@ -106,13 +106,36 @@ public:
       except(E_BAD_SUBSTITUTION, "Cannot substitute generics with mismatched counts\n\t\tIn function: " + this->name->str());
       
         }
+        Logger::debug("APPLY GENERIC SUBSTITUTIONS");
         for(unsigned i = 0; i < types.size(); i++){
+            Logger::debug(generic_params[i]->name->str() + " | => | " + types[i]->str());
             this->generic_params[i]->temporarily_resolves_to = types[i];
+            this->generic_params[i]->method = this->source_name();
         }
         for(unsigned i = 0; i < acts_upon_types.size(); i++){
           this->acts_upon_generic_args[i]->temporarily_resolves_to = acts_upon_types[i];
+          this->generic_params[i]->method = this->source_name();
         }  
     }
+  GenericTable generics_as_table(){
+    GenericTable ret;
+    for(auto g : generic_params){
+      if(!g->temporarily_resolves_to)except(E_INTERNAL, "Generic does not resolve");
+      ret[g->name->str()] = g->temporarily_resolves_to;
+    }
+    return ret;
+  }
+  void undo_generic_substitution(){
+    Logger::debug("UNDO GENERIC SUBSTITUTIONS");
+    for(auto g : generic_params){
+      g->temporarily_resolves_to = nullptr;
+      g->method = "undefined";
+    }
+    for(auto g : acts_upon_generic_args){
+      g->temporarily_resolves_to = nullptr;
+      g->method = "undefined";
+    }
+  }
     // Get the parameter at a specific index
     // this method is smart and accounts for varargs
     // returns `nullptr` if there is no parameter at the given index

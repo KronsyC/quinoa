@@ -1,5 +1,4 @@
 import @memory;
-/* import @strconv; */
 module Vector is Exported{
 
   type _<T> = struct{
@@ -8,8 +7,7 @@ module Vector is Exported{
   };
 
     func new<T>(size : u64) -> Vector<T>{
-
-      let alloc = memory::alloc::<u32>(size);
+      let alloc = memory::alloc::<T>(size);
 
       Vector::<T>{
         length : size;
@@ -32,6 +30,11 @@ module Vector is Exported{
     func resize_grow.Vector<T>(by : u64){
       // Grow at a rate of 2n 
       let new_size = self.allocation.len + by;
+
+      if(new_size <= self.allocation.len){
+        self.length = new_size;
+        return;
+      }
       let new_alloc_size = new_size * 2;
 
       /* let ns_str = strconv::from_int(new_alloc_size); */
