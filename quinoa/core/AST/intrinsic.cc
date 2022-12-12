@@ -235,9 +235,7 @@ BinaryCodegenRuleSameT(intr_bool_or, {
 
 MakesBool(intr_cmp_eq)
 BinaryCodegenRuleSameT(intr_cmp_eq, {
-    Logger::debug("icmpeq");
     BinaryAssertPrimitive;
-    Logger::debug("asssuc");
     if(prim_ty.is_integer())
         Ret(builder()->CreateICmpEQ(left, right))
     else if(prim_ty.is_float())
@@ -500,7 +498,7 @@ CodegenRule(intr_assign){
     auto assign_ty = assignee.type.qn_type;
     Logger::debug("Assignee is a: " + assign_ty->str());
     auto assign_pointee = assign_ty->pointee();
-    auto variable_type = assignee.type.qn_type->drill()->pointee()->llvm_type();
+    auto variable_type = assignee.type.qn_type->pointee()->llvm_type();
 
     auto& value = args[1];
     // Assert that the variable type and value type are equal
@@ -535,8 +533,6 @@ CodegenRule(intr_size_of){
     if(size_bytes == 0)size_bytes++;
     return cast(LLVMValue(builder()->getInt64(size_bytes), this->type()), expected);
 }
-
-
 
 MakesA(intr_make_slice, DynListType::get(this->type_args[0]));
 CodegenRule(intr_make_slice){

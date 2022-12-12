@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "./compilation_unit.hh"
 #include "./primary.hh"
 #include "./type.hh"
 #include "./container.hh"
@@ -26,7 +27,6 @@ public:
         std::vector <llvm::Value*> args;
         llvm::Value* ret_val_if_param = nullptr;
 
-        target->apply_generic_substitution(this->type_args, second_type_args);
 
 
         if(target->must_parameterize_return_val()){
@@ -40,22 +40,27 @@ public:
         auto fn = mod->getFunction(target->source_name());
 
         if(target->is_generic()){
-  
-          fn = make_fn(*target, mod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
 
-          GenericImpl impl;
-          std::vector<std::shared_ptr<Type>> persist_type_args;
-          std::vector<std::shared_ptr<Type>> persist_second_type_args;
+          Logger::debug("///////////////////////== Generic call encountered, add to impl queue ==; for " + target->source_name());
+          fn = make_fn(*target, mod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
+          fn->print(llvm::outs());
+
+          // Clone the type arguments so they persist past the lifetime of the current substitution
+          
+          std::vector<std::shared_ptr<Type>> cloned_fn_type_args;
+          std::vector<std::shared_ptr<Type>> cloned_tgt_type_args;
+
           for(auto t : type_args){
-            persist_type_args.push_back(t->clone_persist());
+            cloned_fn_type_args.push_back(t->clone());
           }
 
           for(auto t : second_type_args){
-            persist_second_type_args.push_back(t->clone_persist());
+            cloned_tgt_type_args.push_back(t->clone());
           }
-          impl.method_generic_args = persist_type_args;
-          impl.target_generic_args = persist_second_type_args;
-          target->generate_usages.push(impl);
+
+          target->parent->parent->add_impl(target, cloned_fn_type_args, cloned_tgt_type_args);
+
+
         }
         if (!fn)except(E_BAD_CALL, "Failed to load function for call: " + target->source_name());
 
@@ -71,10 +76,10 @@ public:
 
         auto call = builder()->CreateCall(fn, args);
 
-        
-        auto ret = LLVMValue{ret_val_if_param ? (llvm::Value*)builder()->CreateLoad(ret_val_if_param->getType()->getPointerElementType(), (llvm::Value*)ret_val_if_param) : call, target->return_type->clone_persist()->llvm_type()};
-        // target->undo_generic_substitution();  
-        return ret;  
+        auto returns = target->return_type->clone();
+
+
+        return LLVMValue{ret_val_if_param ? (llvm::Value*)builder()->CreateLoad(ret_val_if_param->getType()->getPointerElementType(), (llvm::Value*)ret_val_if_param) : call, returns};
   }
 };
 
@@ -111,8 +116,13 @@ public:
 
     LLVMValue llvm_value(VariableTable &vars, LLVMType expected_type = {}) {
 
+        target->apply_generic_substitution(this->type_args, {});
         auto call = create_call(vars, {});
-        return cast(call, expected_type);
+
+        Logger::debug("Created Call, casting to: " + (expected_type ? expected_type.qn_type->str() : "?"));
+        auto result = cast(call, expected_type); 
+        target->undo_generic_substitution(); 
+        return result;
     }
 
     std::vector<Statement *> flatten() {
@@ -149,19 +159,13 @@ protected:
     std::shared_ptr <Type> get_type() {
 
 
-        Logger::debug("Get return type of method call: " + str()); 
-        // if any of the type args are unresolved generics 
-        // simply return the result of a generic call
-        // otherwise return cloned substituted ret type
     
         if (!target)return std::shared_ptr<Type>(nullptr);
 
         target->apply_generic_substitution(this->type_args);
-
-        auto ret = target->return_type->copy_with_substitutions({});
-
+        auto ret_ty = target->return_type->clone();
         target->undo_generic_substitution();
-        return ret;
+        return ret_ty;
     }
 
     bool is_generic_type_args(){
@@ -240,8 +244,13 @@ public:
         if(auto ptref = ptr.type.qn_type->pointee()->get<ParameterizedTypeRef>()){
           targ_type_args = ptref->params;
         } 
+
+        target->apply_generic_substitution(type_args, targ_type_args);
+
         auto call = create_call(vars, {ptr}, targ_type_args);
-        return cast(call, expected_type);
+        auto result = cast(call, expected_type);
+        target->undo_generic_substitution();
+        return result;
     }
 
     std::vector<Statement *> flatten() {
@@ -258,8 +267,12 @@ public:
     }
 
 protected:
+
     std::shared_ptr <Type> get_type() {
+
+
         if (!target)return std::shared_ptr<Type>(nullptr);
+
         if (target == (Method*) 1) {
             // Handle compiler implemented methods
             if (auto ref = call_on->type()->get<ReferenceType>()) {
@@ -268,24 +281,23 @@ protected:
                 X(as_ptr, ref->of)
                 #undef X
             }
-
         }
 
+
         auto cot = call_on->type();
-        std::shared_ptr<Type> ret_t;
-        Logger::debug("Call on: " + cot->str() + " > " + call_on->str());
         if(auto ptref = cot->get<ParameterizedTypeRef>()){
+          ptref->apply_generic_substitution();
           target->apply_generic_substitution(this->type_args, ptref->params);
-          ret_t = target->return_type->clone_persist();
       
         }
         else{
           target->apply_generic_substitution(this->type_args);
-          ret_t = target->return_type->drill()->copy_with_substitutions({});
         }
+        auto ret_ty = target->return_type->clone();
         target->undo_generic_substitution();
-        return ret_t;
+        return ret_ty;
     }
+
 };
 
 class Return : public Statement {
@@ -365,9 +377,7 @@ public:
 
         Logger::debug("INITIALIZE: " + var_name.str());
         Logger::debug("init of type: " + type->str());
-        auto copy = type->copy_with_substitutions(qn_fn->generics_as_table());
-        Logger::debug("now: " + copy->str());
-        auto ll_type = copy->llvm_type();
+        auto ll_type = type->llvm_type();
         ll_type->print(llvm::outs());
         auto name = var_name.str();
 
@@ -503,66 +513,52 @@ public:
     }
 
     void write_direct(LLVMValue alloc, VariableTable &vars, LLVMType expected_type = {}) {
+      auto member = this->type;
 
-        auto struct_ty = type->get<StructType>();
-        GenericTable generics;
+      // For PTref, resolve
+      if(auto ptref = member->get<ParameterizedTypeRef>()){
+        ptref->apply_generic_substitution();
+        member = ptref->resolves_to->clone();
+        ptref->undo_generic_substitution();
+      }
 
+      auto struct_ty = member->get<StructType>();
 
-        if(auto pref_ty = type->get<ParameterizedTypeRef>()){
+      // Assert that it is a structtype
+      if(!struct_ty)except(E_BAD_TYPE, "A struct initialization type may only be a StructType");
 
-            struct_ty = pref_ty->resolves_to->get<StructType>();
-
-            if(!struct_ty)except(E_BAD_TYPE, "Struct initialization expressions require either a struct, or parameterized struct type, but the type was found to be: " + pref_ty->str());
-
-            generics = pref_ty->get_mapped_params();
-
+      // Assert all keys are present
+      std::vector<std::string> missing_keys;
+      for(auto [key, _] : struct_ty->members){
+        if(!initializers.contains(key)){
+            missing_keys.push_back(key);
         }
+      } 
 
-
-        if(struct_ty){
-            auto lltype = type->llvm_type(generics);
-
-            // ensure that all members are explicitly initialized
-            for (auto [name, ty]: struct_ty->members) {
-                auto &lookup = initializers[name];
-                if (!lookup){
-                    except(E_BAD_ASSIGNMENT,
-                           "Initialization for struct '" + type->str() + "' is missing a member: '" + name + "' of type " + ty->str()
-                    );
-                }
-
-            }
-
-            for(auto pair : generics){
-              Logger::debug(pair.first + " |=> " + pair.second->str());
-            }
-
-            for(const auto& init : initializers){
-                auto member_idx = struct_ty->member_idx(init.first);
-                if (member_idx == -1)except(E_BAD_ASSIGNMENT, "Bad Struct Key: " + init.first);
-
-                auto member_ty = struct_ty->members[init.first]->copy_with_substitutions(generics)->llvm_type();
-
-                member_ty->print(llvm::outs());
-                Logger::debug(init.first + " is a " + member_ty.qn_type->str());
-
-                auto init_value = init.second->llvm_value(vars, member_ty);
-
-                alloc.type->print(llvm::outs());
-                lltype->print(llvm::outs());
-
-                auto member_ptr = builder()->CreateStructGEP(lltype, alloc, member_idx);
-
-                builder()->CreateStore(init_value, member_ptr);
-            }
+      if(missing_keys.size()){
+        std::string message = "Failed to initialize a struct. The following keys were expected but not provided";
+        for(auto key : missing_keys){
+          message+="\n\t>\t" + key + " : " + struct_ty->members[key]->str();
         }
-        else{
-            except(E_BAD_TYPE, "cannot use the struct initialisation expression on non-struct types");
+        except(E_BAD_STRUCT_INITIALIZATION, message);
+      }
+    
+      //TODO: Add erroring for unexpected keys
 
-        }
+      // Write each key to the struct
+      for(auto [key_name, key_type] : struct_ty->members){
+        auto& init_value = this->initializers[key_name];
+        
+        auto init_ll_value = init_value->llvm_value(vars, key_type);
 
+        auto idx = struct_ty->member_idx(key_name);
 
+        auto member_ptr = builder()->CreateStructGEP(struct_ty->llvm_type(), alloc, idx);
 
+        builder()->CreateStore(init_ll_value, member_ptr);
+      }
+
+      // except(E_INTERNAL, "write_direct not implemented for structs: " + member->str());
     }
 
     LLVMValue assign_ptr(VariableTable &vars) {
@@ -570,6 +566,7 @@ public:
     }
 
     std::shared_ptr <Type> get_type() {
+        Logger::debug("get_type of structinit: " + type->str());
         return type;
     }
 };

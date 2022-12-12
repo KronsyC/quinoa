@@ -1,6 +1,7 @@
-#include "./type.hh"
+// #include "./type.hh"
 #include "./container.hh"
 #include "./container_member.hh"
+#include "type.hh"
 #include <memory>
 
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat){
@@ -92,8 +93,7 @@ GenericTable ParameterizedTypeRef::get_mapped_params(){
 
 static std::map<std::vector<llvm::Type*>, LLVMType> struct_cache;
 LLVMType StructType::llvm_type(GenericTable gen_table) {
-
-    auto substituted_struct = this->copy_with_substitutions(gen_table)->get<StructType>();
+    auto substituted_struct = self->get<StructType>();
 
     if(!substituted_struct)except(E_INTERNAL, "(bug) substituted variant of a struct was found to NOT be a struct");
 
@@ -103,8 +103,7 @@ LLVMType StructType::llvm_type(GenericTable gen_table) {
         member_types.push_back(ll_ty);
     }
 
-    
-
+  
     if(auto& st = struct_cache[member_types])return st;
 
     auto ll_ty = llvm::StructType::create(*llctx(), member_types, "struct:"+substituted_struct->get_name());
@@ -112,4 +111,31 @@ LLVMType StructType::llvm_type(GenericTable gen_table) {
     LLVMType ret{ll_ty, substituted_struct->self};
     struct_cache[member_types] = ret;
     return ret;
+}
+
+void ParameterizedTypeRef::apply_generic_substitution(){
+      auto paw = this->resolves_to->get<ParentAwareType>();
+      if(!paw)except(E_INTERNAL, "you may only apply_generic_substitution ParameterizedTypeRefs which refer to ParentAwareTypes");
+      auto type_member = paw->as_member();
+
+      if(type_member->generic_args.size() != params.size())except(E_BAD_TYPE, "Argument count on ParameterizedTypeRef to " + paw->str() + " does not match the parameter count");
+
+      for(unsigned i = 0; i < type_member->generic_args.size(); i++){
+      
+        type_member->generic_args[i]->temporarily_resolves_to = params[i];
+      }
+}
+
+void ParameterizedTypeRef::undo_generic_substitution(){
+  
+      auto paw = this->resolves_to->get<ParentAwareType>();
+      if(!paw)except(E_INTERNAL, "you may only undo_generic_substitution ParameterizedTypeRefs which refer to ParentAwareTypes");
+      auto type_member = paw->as_member();
+
+      if(type_member->generic_args.size() != params.size())except(E_BAD_TYPE, "Argument count on ParameterizedTypeRef to " + paw->str() + " does not match the parameter count");
+
+      for(unsigned i = 0; i < type_member->generic_args.size(); i++){
+      
+        type_member->generic_args[i]->temporarily_resolves_to.reset();
+      }
 }

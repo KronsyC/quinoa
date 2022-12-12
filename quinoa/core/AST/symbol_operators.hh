@@ -129,10 +129,10 @@ public:
 
 protected:
     std::shared_ptr <Type> get_type() {
-        auto same_t = operand->type();
-        if (!same_t)return same_t;
-        auto same_ref = ReferenceType::get(operand->type());
-        auto pointee_t = same_t->pointee();
+        #define same_t (operand->type())
+        #define same_ref ReferenceType::get(same_t)
+        #define pointee_t same_t->pointee()
+
         auto bool_t = Primitive::get(PR_boolean);
         switch (op_type) {
             case PRE_bitwise_and:return same_ref;
@@ -367,13 +367,20 @@ public:
 
     LLVMValue assign_ptr(VariableTable &vars) {
         auto strct = member_of->assign_ptr(vars);
-        auto retrv_t = member_of->type()->llvm_type();
-        while(auto ref_t = retrv_t.qn_type->get<ReferenceType>()){
+        auto member_ty = member_of->type();
+        auto retrv_t = member_ty->llvm_type();
+
+while(auto ref_t = retrv_t.qn_type->get<ReferenceType>()){
             // Implicitly de-reference the op for member access
             retrv_t = ref_t->of;
             strct = strct.load();
         }
-        auto strct_t = retrv_t.qn_type->copy_with_substitutions({})->get<StructType>();
+        if(auto ptref = retrv_t.qn_type->get<ParameterizedTypeRef>()){
+          ptref->apply_generic_substitution();
+          retrv_t = ptref->resolves_to->clone();
+          ptref->undo_generic_substitution();                
+        }
+        auto strct_t = retrv_t.qn_type->get<StructType>();
 
 
         if (!strct_t)except(E_BAD_MEMBER_ACCESS, "Cannot access members of non-struct: " + retrv_t.qn_type->str());
@@ -423,8 +430,11 @@ protected:
             left_t = ref_t->of;
         }
 
-        while(auto pref = left_t->get<ParameterizedTypeRef>()){
-          left_t = pref->copy_with_substitutions({});
+        if(auto pref = left_t->get<ParameterizedTypeRef>()){
+          pref->apply_generic_substitution();
+          left_t = pref->resolves_to->clone();
+          pref->undo_generic_substitution();
+          // except(E_INTERNAL, "unsupported ParameterizedTypeRef: " + pref->str());
         }
 
         if (auto strct = left_t->get<StructType>()) {

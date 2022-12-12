@@ -149,7 +149,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
         }
 
     }
-    // Reference -> Ptr
+    // Reference -> Ptr, implicit
     if(val_ref && to.qn_type->get<Ptr>()){
         return LLVMValue{val, to};
     }

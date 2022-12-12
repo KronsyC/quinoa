@@ -23,6 +23,7 @@ void error(std::string reason, bool trace = false);
     X(BAD_METADATA)        \
     X(BAD_VAR)             \
     X(BAD_RETURN)          \
+    X(BAD_STRUCT_INITIALIZATION) \
     X(UNDECLARED_VAR)      \
     X(UNRESOLVED_CALL)     \
     X(BAD_OPERAND)         \

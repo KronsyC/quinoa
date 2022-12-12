@@ -15,6 +15,9 @@ module Vector is Exported{
       };
     }
 
+    func len.Vector<T>() -> u64{
+      return self.length;
+    }
 
     func resize.Vector<T>(size : u64){
       if(size > self.allocation.len){
@@ -47,5 +50,8 @@ module Vector is Exported{
     func resize_shrink.Vector<T>(by : u64){
 
     }
-
+  
+    func append.Vector<T>(val : T){
+      self.resize_grow(1);
+    }
 }

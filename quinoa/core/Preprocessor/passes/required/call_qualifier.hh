@@ -4,6 +4,7 @@
 #include "../../../AST/advanced_operators.hh"
 #include <iterator>
 #include<optional>
+#include <string>
 struct MatchRanking {
     Method *against = nullptr;
 
@@ -24,8 +25,6 @@ struct MatchRanking {
     int general_compat = 0;
 
 
-    // If there is a match, add this to the generated definitions
-    std::vector <std::shared_ptr<Type>> generate_with;
 
     MatchRanking(bool possible = false) {
         this->possible = possible;
@@ -47,7 +46,7 @@ struct MatchRanking {
 /*
  * Create a ranking object based on the method-call pairing
  */
-MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_static = true) {
+MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_static = true, std::vector<std::shared_ptr<Type>> target_type_args = {}) {
 
     if (!method)except(E_INTERNAL, "Failed to create ranking object for method call (method is null)");
 
@@ -69,21 +68,13 @@ MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_st
     }
 
 
-    if (method->generic_params.size()) {
-        if (call->type_args.size() != method->generic_params.size())return MatchRanking();
-
-        // The current implementation of the compiler requires generics to be explicitly
-        // defined, later versions of the compiler may change this
-
-
+    if (method->is_generic()) {
         // TODO: Check the number of generic-reliant parameters (for use in ranking)
-
-        ranking.generate_with = call->type_args;
-        for (unsigned int i = 0; i < method->generic_params.size(); i++) {
-            method->generic_params[i]->temporarily_resolves_to = call->type_args[i];
-        }
+        method->apply_generic_substitution(call->type_args, target_type_args);
 
     }
+
+    // Logger::debug("c");
     ranking.possible = true;
     for (size_t i = 0; i < call->args.len(); i++) {
         auto arg_t = call->args[i].type();
@@ -96,7 +87,7 @@ MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_st
 
         // Compare the types of the arg and param
         auto score = arg_t->distance_from(param_t);
-
+        Logger::debug("Distance from " + arg_t->str() + "  =>  " + param_t.str() + "  :::  " + std::to_string(score));
         if (score == -1) {
             ranking.possible = false;
             break;
@@ -104,6 +95,7 @@ MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_st
 
         ranking.general_compat += score;
     }
+    if(method->is_generic())method->undo_generic_substitution();
     return ranking;
 }
 
@@ -159,7 +151,6 @@ Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionSt
 
             std::vector <MatchRanking> suitors;
             for (auto r: ranks) {
-
                 if (r.general_compat <= best_rating)suitors.push_back(r);
             }
             if (suitors.size() == 0)return nullptr;
@@ -233,14 +224,14 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
       call->deref_count++;
       target_ty = ref->of;
     }
-
+  std::vector<std::shared_ptr<Type>> type_args;
     if(auto ptref = target_ty->get<ParameterizedTypeRef>()){
       target_ty = ptref->resolves_to;
+      type_args = ptref->params;
     }
 
     auto target_paw_ty = target_ty->get<ParentAwareType>();
     if (!target_paw_ty) {
-
 
         Logger::error("You may only define methods for structs and enums, but the call target was found to be of type: " + target_ty->str());
         return nullptr;
@@ -257,7 +248,6 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
         if(!method->acts_upon)continue;
         if (method->name->member->str() == call->method_name->str()) {
             auto aopaw = method->acts_upon->resolves_to->get<ParentAwareType>();
-            Logger::debug("acts upon: " + aopaw->str());
             if(!aopaw)except(E_INTERNAL, "actsupon is not a ParentAwareType");
             if(aopaw->getself() == target_paw_ty->getself()){
               methods.push_back(method);
@@ -270,8 +260,9 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
 
     std::vector <MatchRanking> ranks;
     for (auto method: methods) {
-
-        auto rank = rank_method_against_call(method, call, false);
+        
+        auto rank = rank_method_against_call(method, call, false, type_args);
+        rank.print();
         ranks.push_back(rank);
     }
 
@@ -286,7 +277,6 @@ proc_result qualify_calls(Method &code) {
     for (auto item: code.content->flatten()) {
 
         if (auto call = dynamic_cast<MethodCall *>(item)) {
-            // dont redo work
             if (call->target)continue;
 
             auto best_fn = get_best_target(call, code.parent);

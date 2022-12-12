@@ -34,8 +34,6 @@ proc_result resolve_types(Method& fn) {
                 errors.push_back("Failed to get the type of an unresolved expression: " + init->str());
             }
             else{
-                Logger::debug("in expression: " + init->str());
-                Logger::debug("init -> " + init->initializer->type()->str());
                 res_count++;
             }
             continue;

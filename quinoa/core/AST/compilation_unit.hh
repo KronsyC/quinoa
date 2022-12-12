@@ -4,15 +4,42 @@
 #include "./container.hh"
 #include "./container_member.hh"
 
+
+struct GenericImpl{
+  Method* target = nullptr;
+  bool has_impl  = false;
+  std::vector<std::shared_ptr<Type>> substituted_method_type_args;
+  std::vector<std::shared_ptr<Type>> substituted_target_type_args;
+};
+
+
 class CompilationUnit : public ANode {
 public:
     Vec<TopLevelEntity> members;
 
+    std::vector<std::shared_ptr<GenericImpl>> generic_impls;
 
-    //
-    // Keep track of all dependencies (imported containers)
-    //
-    //
+
+    void add_impl(Method* target, std::vector<std::shared_ptr<Type>> subst_fn_ta, std::vector<std::shared_ptr<Type>> subst_tgt_ta){
+
+      //TODO: Return early for duplicate implementations
+
+      GenericImpl impl;
+      impl.target = target;
+      impl.substituted_target_type_args = subst_tgt_ta;
+      impl.substituted_method_type_args = subst_fn_ta;
+      
+      generic_impls.push_back(std::make_unique<GenericImpl>(impl));
+      
+    }
+
+    GenericImpl* get_next_impl(){
+      for(auto& i : generic_impls){
+        if(i->has_impl)continue;
+        return i.get();
+      }
+      return nullptr;
+    }
 
     std::vector<Container *> get_containers() {
         std::vector < Container * > ret;

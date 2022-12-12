@@ -85,10 +85,6 @@ struct MethodSignature{
     }
 };
 
-struct GenericImpl{
-  std::vector<std::shared_ptr<Type>> method_generic_args;
-  std::vector<std::shared_ptr<Type>> target_generic_args;
-};
 
 class Method : public MethodSignature, public ContainerMember {
 public:
@@ -97,7 +93,7 @@ public:
 
     std::unique_ptr <Scope> content;
 
-    Vec<GenericImpl> generate_usages;
+    unsigned application_count = 0;
 
     void apply_generic_substitution(std::vector<std::shared_ptr<Type>> types, std::vector<std::shared_ptr<Type>> acts_upon_types = {}){
         if(types.size() != generic_params.size() || acts_upon_types.size() != acts_upon_generic_args.size()){
@@ -106,16 +102,14 @@ public:
       except(E_BAD_SUBSTITUTION, "Cannot substitute generics with mismatched counts\n\t\tIn function: " + this->name->str());
       
         }
-        Logger::debug("APPLY GENERIC SUBSTITUTIONS");
         for(unsigned i = 0; i < types.size(); i++){
             Logger::debug(generic_params[i]->name->str() + " | => | " + types[i]->str());
             this->generic_params[i]->temporarily_resolves_to = types[i];
-            this->generic_params[i]->method = this->source_name();
         }
         for(unsigned i = 0; i < acts_upon_types.size(); i++){
           this->acts_upon_generic_args[i]->temporarily_resolves_to = acts_upon_types[i];
-          this->generic_params[i]->method = this->source_name();
         }  
+      application_count++;
     }
   GenericTable generics_as_table(){
     GenericTable ret;
@@ -126,14 +120,15 @@ public:
     return ret;
   }
   void undo_generic_substitution(){
-    Logger::debug("UNDO GENERIC SUBSTITUTIONS");
     for(auto g : generic_params){
-      g->temporarily_resolves_to = nullptr;
-      g->method = "undefined";
+      g->temporarily_resolves_to.reset();
     }
     for(auto g : acts_upon_generic_args){
-      g->temporarily_resolves_to = nullptr;
-      g->method = "undefined";
+      g->temporarily_resolves_to.reset();
+    }
+    application_count--;
+    if(application_count < 0){
+      except(E_INTERNAL, "negative application count");
     }
   }
     // Get the parameter at a specific index
@@ -152,7 +147,7 @@ public:
           resolved_generics.push_back(t->drill()->self);
         }
         auto ptref = ParameterizedTypeRef::get(acts_upon, resolved_generics)  ;
-        return ptref->clone_persist();
+        return ptref;
       }
       else return acts_upon;
     }

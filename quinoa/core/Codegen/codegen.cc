@@ -84,7 +84,7 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
 	{
 		auto& param = method->parameters[i];
 		auto arg = fn->getArg(i+diff);
-		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, arg->getName().str());
+		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "!" + arg->getName().str());
 
 		builder()->CreateStore(arg, alloc);
 		vars[param.name.str()] = Variable(param.type, alloc);
@@ -146,43 +146,6 @@ std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &a
 
 	return llmod;
 }
-void impl_generics(CompilationUnit& ast, Container& mod, llvm::Module& llmod){
-  // Pass two: generic functions
-  Logger::debug("IMPL_GENERICS");
-  std::size_t generated_impl_count = 0;
-  while(1){
-
-    std::size_t total_impl_count = 0;
-    for(auto m : mod.get_methods()){
-      total_impl_count+=m->generate_usages.len();
-    }
-    Logger::debug("impl count: " + std::to_string(total_impl_count));
-    if(generated_impl_count >= total_impl_count)break;
-
-    for(auto method : mod.get_methods()){
-      Logger::debug("################### There are " + std::to_string(method->generate_usages.len()) + " impls for: " + method->source_name() );
-      if(!method->generate_usages.len())continue;
-      if(!method->content)continue;
-
-      for(auto impl : method->generate_usages){
-        
-        method->apply_generic_substitution(impl->method_generic_args, impl->target_generic_args);
-        Logger::debug("Doing a generic impl for: " + method->source_name());
-
-
-        for(auto g : method->generic_params){
-          Logger::debug(g->name->str() + " --> " + g->temporarily_resolves_to->str());
-        }
-
-        generated_impl_count++;
-        make_fn(*method, &llmod, llvm::GlobalValue::LinkageTypes::ExternalLinkage, true);
-        generate_method(method, ast, &llmod, true);
-        method->undo_generic_substitution();
-      }
-    }
-  }
-  Logger::debug("==== DONE ====");
-}
 llvm::Module *Codegen::codegen(CompilationUnit &ast)
 {
 	auto rootmod = new llvm::Module("Quinoa Program", *llctx());
@@ -192,19 +155,38 @@ llvm::Module *Codegen::codegen(CompilationUnit &ast)
 
 	// Generate all the modules, and link them into the root module
   
-  std::vector<std::pair<Container*, std::unique_ptr<llvm::Module>>> mods;
+  std::vector<std::unique_ptr<llvm::Module>> mods;
+  std::map<Container*, llvm::Module*> container_module_mappings;
 
 	for(auto container : ast.get_containers()){
         if(container->type != CT_MODULE)continue;
         auto generated_mod = generate_module(*container, ast);
-        mods.push_back({container, std::move(generated_mod)});
+        container_module_mappings[container] = generated_mod.get();
+        mods.push_back(std::move(generated_mod));
 	}
-  for(auto& pair : mods){
-    impl_generics(ast, *pair.first, *pair.second);
-  }
 
-  for(auto& [_, llmod] : mods){
-   llvm::Linker::linkModules(*rootmod, std::move(llmod));
+  while(auto impl = ast.get_next_impl()){
+
+    Logger::debug("######### GENERATING GENERIC IMPL FOR " + impl->target->source_name());
+    Logger::debug("Generic Arguments:");
+    for(auto a : impl->substituted_method_type_args){
+      Logger::debug("\t> " + a->str());
+    }
+    Logger::debug("Target Arguments:");
+    for(auto a : impl->substituted_target_type_args){
+      Logger::debug("\t> " + a->str());
+    }
+    impl->target->apply_generic_substitution(impl->substituted_method_type_args, impl->substituted_target_type_args);
+
+    make_fn(*impl->target, container_module_mappings[impl->target->parent], llvm::GlobalValue::ExternalLinkage, true);
+    generate_method(impl->target, ast, container_module_mappings[impl->target->parent], true);
+
+    impl->target->undo_generic_substitution();
+    impl->has_impl = true;
+  }
+  
+  for(auto& mod : mods){
+   llvm::Linker::linkModules(*rootmod, std::move(mod));
   }
 	return rootmod;
 }
