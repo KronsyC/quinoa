@@ -5,6 +5,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include <llvm/IR/Instructions.h>
+#include <map>
 class Method;
 
 llvm::Function* make_fn(
@@ -17,6 +18,12 @@ llvm::Function* make_fn(
 llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* fn);
 
 class Type;
+
+
+typedef std::shared_ptr<Type> _Type;
+typedef std::vector<_Type> TypeVec;
+typedef std::map<std::string, _Type> GenericTable;
+
 class BinaryOperation;
 class LLVMValue;
 class Variable

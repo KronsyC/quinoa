@@ -47,6 +47,35 @@ void attempt_resolve_typeref(TypeRef &ref, Container *container) {
   }
 
   else{
+    auto module_name = ref.name->all_but_last()->str();
+    auto type_name   = ref.name->last().str();
+
+    auto module_name_resolved = container->aliases[module_name];
+
+    if(!module_name_resolved){
+      except(E_BAD_TYPE, "A type was found to reference the module: " + module_name + ", but it could not be found" \
+             "\n\t\tin " + container->full_name().str());
+    }
+
+    Container* mod = nullptr;
+    for(auto m : container->parent->get_containers()){
+      if(m->full_name().str() == module_name_resolved.str()){
+        mod = m;
+        break;
+      }
+    }
+    if(!mod)except(E_INTERNAL, "module lookup failed despite an alias existing");
+
+    auto type = mod->get_type(type_name);
+
+    if(!type){
+      //TODO: Fallback to module-aliased type references ( '_' types )
+      except(E_BAD_TYPE, "The type reference: '" + ref.name->str() + "' was found to refer to the module '"+mod->full_name().str() + "'" \
+             "\n\t\tHowever, the module does not have a definition for type: '" + type_name + "'");
+    }
+
+    ref.resolves_to = type;
+    return;
     except(E_INTERNAL, "Multipart type refs not implemented");
   }
 

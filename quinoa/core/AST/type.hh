@@ -11,9 +11,6 @@
 
 class Type;
 
-typedef _Type std::shared_ptr<Type>;
-typedef TypeVec TypeVec;
-typedef std::map<std::string, _Type> GenericTable;
 
 
 
