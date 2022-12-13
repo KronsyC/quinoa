@@ -14,7 +14,7 @@
 */
 
 std::string gen_rand_unique_str(size_t size) {
-    static std::vector <std::string> used_strings;
+    static std::vector<std::string> used_strings;
     static const char choices[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     static int len = sizeof(choices);
     std::string ret;

@@ -140,7 +140,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             auto member_name = container_name->parts.pop();
             auto member_ref = std::make_unique<ContainerMemberRef>();
 
-            std::vector<std::shared_ptr<Type>> type_args;
+            TypeVec type_args;
             if(toks[0].is(TT_op_generic)){
                 type_args = parse_type_args(toks);
             }
@@ -183,14 +183,14 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
 
         if(toks.size() && (toks[1].is(TT_double_colon) || toks[1].is(TT_op_generic) || toks[1].is(TT_l_brace))){
             auto name = parse_long_name(toks);
-            std::vector<std::shared_ptr<Type>> generic_args;
+            TypeVec generic_args;
             if(toks[0].is(TT_op_generic)){
                 generic_args = parse_type_args(toks, true);
             }
             print_toks(toks);
             if(toks[0].is(TT_l_brace)){
                 
-                std::shared_ptr<Type> typ = TypeRef::get(std::move(name));
+                _Type typ = TypeRef::get(std::move(name));
 
                 if(generic_args.size())typ = ParameterizedTypeRef::get(typ, generic_args);
 
@@ -320,7 +320,7 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
         else if(toks[0].is_intrinsic()){
             auto intrinsic_type = intrinsic_mappings[popf(toks).value];
 
-            std::vector<std::shared_ptr<Type>> type_args;
+            TypeVec type_args;
             if(toks[0].is(TT_op_generic)){
                 type_args = parse_type_args(toks);
             }

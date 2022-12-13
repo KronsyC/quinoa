@@ -48,7 +48,7 @@ public:
 
     // These are the compiler voodoo modules, they have no
     // real implementation
-    static inline std::vector <std::string> NATIVE_MODULES = {
+    static inline std::vector<std::string> NATIVE_MODULES = {
         "Exported",
         "Entry",
         "CompilerImplemented"
@@ -97,10 +97,10 @@ public:
         return false;
     }
 
-    std::shared_ptr <Type> get_type(std::string name = "_");
+    _Type get_type(std::string name = "_");
 
     std::vector<Method *> get_methods() {
-        std::vector < Method * > ret;
+        std::vector< Method * > ret;
         for (auto &member: members) {
             if (auto method = dynamic_cast<Method *>(member.ptr)) {
                 ret.push_back(method);
@@ -115,7 +115,7 @@ public:
     }
 
     std::vector<Property *> get_properties() {
-        std::vector < Property * > ret;
+        std::vector< Property * > ret;
 
         for (auto &member: members) {
             if (auto prop = dynamic_cast<Property *>(member.ptr)) {

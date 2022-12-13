@@ -3,7 +3,7 @@
 #include "../include.h"
 
 void gen_entrypoint(CompilationUnit &unit) {
-    std::vector < Container * > entryPointCandidates;
+    std::vector< Container * > entryPointCandidates;
     for (auto member: unit.get_containers()) {
         if (member->type == CT_MODULE && member->has_compositor("Entry"))
             entryPointCandidates.push_back(member);

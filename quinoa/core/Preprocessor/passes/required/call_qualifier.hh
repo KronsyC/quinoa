@@ -46,7 +46,7 @@ struct MatchRanking {
 /*
  * Create a ranking object based on the method-call pairing
  */
-MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_static = true, std::vector<std::shared_ptr<Type>> target_type_args = {}) {
+MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_static = true, TypeVec target_type_args = {}) {
 
     if (!method)except(E_INTERNAL, "Failed to create ranking object for method call (method is null)");
 
@@ -106,11 +106,11 @@ enum SelectionStage {
     RATING
 };
 
-Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionStage stage = SelectionStage::INITIAL) {
+Method *select_best_ranked_method(std::vector<MatchRanking> &ranks, SelectionStage stage = SelectionStage::INITIAL) {
 
     switch (stage) {
         case SelectionStage::INITIAL: {
-            std::vector <MatchRanking> suitors;
+            std::vector<MatchRanking> suitors;
             for (auto r: ranks) {
                 if (!r.possible)continue;
                 suitors.push_back(r);
@@ -124,7 +124,7 @@ Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionSt
                 if (smallest_vararg_count == -1)smallest_vararg_count = r.vararg_count;
                 else if (r.vararg_count < smallest_vararg_count)smallest_vararg_count = r.vararg_count;
             }
-            std::vector <MatchRanking> suitors;
+            std::vector<MatchRanking> suitors;
             for (auto &r: ranks) {
                 if (r.vararg_count <= smallest_vararg_count)suitors.push_back(r);
             }
@@ -136,7 +136,7 @@ Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionSt
                 if (smallest_generic_count == -1)smallest_generic_count = r.generic_count;
                 else if (r.generic_count < smallest_generic_count)smallest_generic_count = r.generic_count;
             }
-            std::vector <MatchRanking> suitors;
+            std::vector<MatchRanking> suitors;
             for (auto r: ranks) {
                 if (r.generic_count <= smallest_generic_count)suitors.push_back(r);
             }
@@ -149,7 +149,7 @@ Method *select_best_ranked_method(std::vector <MatchRanking> &ranks, SelectionSt
                 else if (r.general_compat < best_rating)best_rating = r.general_compat;
             }
 
-            std::vector <MatchRanking> suitors;
+            std::vector<MatchRanking> suitors;
             for (auto r: ranks) {
                 if (r.general_compat <= best_rating)suitors.push_back(r);
             }
@@ -190,7 +190,7 @@ Method *get_best_target(MethodCall *call, Container* cont) {
     }
 
     // Find all methods with the name
-    std::vector < Method * > methods;
+    std::vector< Method * > methods;
 
     auto call_method_name = call->name->member->str();
 
@@ -203,7 +203,7 @@ Method *get_best_target(MethodCall *call, Container* cont) {
     if (methods.size() == 0)
         except(E_BAD_CALL, "No methods of '" + call_mod_name + "' have the name '" + call_method_name + "'");
 
-    std::vector <MatchRanking> ranks;
+    std::vector<MatchRanking> ranks;
     for (auto method: methods) {
         auto rank = rank_method_against_call(method, call);
         ranks.push_back(rank);
@@ -224,7 +224,7 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
       call->deref_count++;
       target_ty = ref->of;
     }
-  std::vector<std::shared_ptr<Type>> type_args;
+  TypeVec type_args;
     if(auto ptref = target_ty->get<ParameterizedTypeRef>()){
       target_ty = ptref->resolves_to;
       type_args = ptref->params;
@@ -242,7 +242,7 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
 
     Logger::debug("Call on type: " + target_paw_ty->str());
     // Find all methods with the name and same actionable type
-    std::vector < Method * > methods;
+    std::vector< Method * > methods;
 
     for (auto method: target_mod->get_methods()) {
         if(!method->acts_upon)continue;
@@ -258,7 +258,7 @@ Method *get_best_target(MethodCallOnType *call, Container* cont) {
         except(E_BAD_CALL, "No methods of '" + target_mod->name->str() + "' have the name '" +
                            call->method_name->str() + "'");
 
-    std::vector <MatchRanking> ranks;
+    std::vector<MatchRanking> ranks;
     for (auto method: methods) {
         
         auto rank = rank_method_against_call(method, call, false, type_args);

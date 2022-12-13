@@ -104,7 +104,7 @@ public:
     }
 
     std::vector<T *> release() {
-        std::vector < T * > ret;
+        std::vector< T * > ret;
         for (auto i: _items) {
             ret.push_back(i.ptr);
         }
@@ -154,7 +154,7 @@ public:
     }
 
 private:
-    std::vector <VecItem> _items;
+    std::vector<VecItem> _items;
 
 
 };

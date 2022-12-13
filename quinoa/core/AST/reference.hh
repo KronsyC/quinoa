@@ -120,13 +120,13 @@ public:
         return var.as_value();
     }
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         if (!scope)except(E_INTERNAL, "variable " + str() + " has no scope");
         return scope->get_type(name->str());
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         return ret;
     }
 };

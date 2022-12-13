@@ -10,7 +10,14 @@
 #include "./reference.hh"
 
 class Type;
-typedef std::map<std::string, std::shared_ptr<Type>> GenericTable;
+
+typedef _Type std::shared_ptr<Type>;
+typedef TypeVec TypeVec;
+typedef std::map<std::string, _Type> GenericTable;
+
+
+
+
 
 enum PrimitiveType {
     PRIMITIVES_ENUM_MEMBERS
@@ -23,12 +30,16 @@ static std::map <TokenType, PrimitiveType> primitive_mappings{PRIMITIVES_ENUM_MA
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat = true );
 
 
+//
+// TODO: refactor all of the methods which return `Type*` to
+// return a shared_ptr
+//
 class Type : public ANode {
 public:
     virtual LLVMType llvm_type(GenericTable generics = {}) = 0;
 
 
-    virtual std::shared_ptr<Type> pointee() = 0;
+    virtual _Type pointee() = 0;
 
     virtual std::string str() = 0;
 
@@ -47,10 +58,10 @@ public:
 
     virtual std::vector<Type *> flatten() = 0;
 
-    virtual std::shared_ptr<Type> clone() = 0;
+    virtual _Type clone() = 0;
 
     virtual std::pair<Type &, Type &> find_difference(Type &against) = 0;
-    std::shared_ptr<Type> self;
+    _Type self;
 
 protected:
     /**
@@ -70,8 +81,8 @@ protected:
         // so we do not have to impl a
         // custom hashing fn for each type
         // TODO: optimize
-        static std::vector <T> keys;
-        static std::vector <std::shared_ptr<T>> values;
+        static std::vector<T> keys;
+        static std::vector<std::shared_ptr<T>> values;
         auto idx = indexof(keys, obj);
         if (idx == -1) {
             auto alloc = std::make_shared<T>(obj);
@@ -101,7 +112,7 @@ public:
     Primitive(PrimitiveType kind) {
         this->kind = kind;
     }
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       return self;
     }
     std::string str() {
@@ -146,8 +157,8 @@ public:
         return create_heaped(Primitive(type));
     }
 
-    std::shared_ptr<Type> pointee() {
-        std::shared_ptr<Type> ret(nullptr);
+    _Type pointee() {
+        _Type ret(nullptr);
         return ret;
     }
 
@@ -206,24 +217,24 @@ protected:
     }
 
 public:
-    Ptr(std::shared_ptr<Type> type) {
+    Ptr(_Type type) {
         this->of = type->drill()->self;
     }
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       return Ptr::get(of->clone());
     }
     
     bool is_generic(){return of->is_generic();}
 
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         for (auto m: of->flatten())ret.push_back(m);
         return ret;
     }
 
 
-    std::shared_ptr<Type> of;
+    _Type of;
 
     std::string str() {
         return of->str() + "*";
@@ -233,11 +244,11 @@ public:
         return {of->llvm_type(gen_table)->getPointerTo(), self};
     }
 
-    std::shared_ptr<Type> pointee() {
+    _Type pointee() {
         return of;
     }
 
-    static std::shared_ptr <Ptr> get(std::shared_ptr<Type> to) {
+    static std::shared_ptr <Ptr> get(_Type to) {
         return create_heaped(Ptr(to));
     }
 
@@ -272,19 +283,19 @@ public:
 //
 class ReferenceType : public Type {
 public:
-    std::shared_ptr<Type> of;
+    _Type of;
 
-    ReferenceType(std::shared_ptr<Type> of) {
+    ReferenceType(_Type of) {
         this->of = of->drill()->self;
     }
 
     bool is_generic(){return of->is_generic();}
 
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       return ReferenceType::get(of->clone());
     }
-    static std::shared_ptr <ReferenceType> get(std::shared_ptr<Type> of) {
+    static std::shared_ptr <ReferenceType> get(_Type of) {
         return create_heaped(ReferenceType(of));
     }
 
@@ -293,7 +304,7 @@ public:
     }
 
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         for (auto t: of->flatten())ret.push_back(t);
         return ret;
 
@@ -303,7 +314,7 @@ public:
         return this;
     }
 
-    std::shared_ptr<Type> pointee() {
+    _Type pointee() {
         return of;
     }
 
@@ -357,21 +368,21 @@ protected:
 public:
 
     bool is_generic(){return of->is_generic();}
-    std::shared_ptr<Type> of;
-    DynListType(std::shared_ptr<Type> type) {
+    _Type of;
+    DynListType(_Type type) {
         this->of = type->drill()->self;
     }
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       return DynListType::get(of->clone());
     }
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         for (auto m: of->flatten())ret.push_back(m);
         return ret;
     }
 
-    std::shared_ptr<Type> pointee() {
+    _Type pointee() {
         return of;
     }
 
@@ -379,7 +390,7 @@ public:
         return of->str() + "[]";
     }
 
-    static std::shared_ptr <DynListType> get(std::shared_ptr<Type> of) {
+    static std::shared_ptr <DynListType> get(_Type of) {
         return create_heaped(DynListType(of));
     }
 
@@ -416,6 +427,13 @@ public:
 };
 
 class TypeMember;
+
+//
+// TODO: Instead of inheriting from this class
+// make this class a standalone type and
+// add an optional field to all types
+// which refers to this class
+//
 class ParentAwareType : public Type {
 public:
     Container *parent = nullptr;
@@ -442,7 +460,7 @@ public:
 //
 class TupleType : public Type{
 public:
-    std::vector<std::shared_ptr<Type>> members;
+    TypeVec members;
 
     //TODO: Implement this
 };
@@ -461,9 +479,9 @@ public:
 
 class StructType : public ParentAwareType {
 public:
-    std::map <std::string, std::shared_ptr<Type>> members;
+    std::map <std::string, _Type> members;
 
-    StructType(std::map <std::string, std::shared_ptr<Type>> members, Container *cont) {
+    StructType(std::map <std::string, _Type> members, Container *cont) {
 
         this->members = members;
         this->parent = cont;
@@ -483,7 +501,7 @@ public:
     }
 
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         for (auto m: members) {
             for (auto f: m.second->flatten())ret.push_back(f);
         }
@@ -504,8 +522,8 @@ public:
         return name;
     }
 
-    std::shared_ptr<Type> pointee() {
-        return std::shared_ptr<Type>(nullptr);
+    _Type pointee() {
+        return _Type(nullptr);
     }
 
     int member_idx(std::string name) {
@@ -517,7 +535,7 @@ public:
         return -1;
     }
 
-    static std::shared_ptr <StructType> get(std::map <std::string, std::shared_ptr<Type>> members, Container *cont) {
+    static std::shared_ptr <StructType> get(std::map <std::string, _Type> members, Container *cont) {
         return create_heaped(StructType(members, cont));
     }
 
@@ -539,8 +557,8 @@ public:
     LLVMType llvm_type(GenericTable gen_table = {});
 
 
-    std::shared_ptr<Type> clone(){
-      std::map<std::string, std::shared_ptr<Type>> cloned_members;
+    _Type clone(){
+      std::map<std::string, _Type> cloned_members;
       for(auto [m_name, m_ty] : members){
         cloned_members[m_name] = m_ty->clone();
       }
@@ -574,9 +592,9 @@ public:
 
 class EnumType : public ParentAwareType {
 public:
-    std::vector <std::string> entries;
+    std::vector<std::string> entries;
 
-    EnumType(std::vector <std::string> entries, Container *cont) {
+    EnumType(std::vector<std::string> entries, Container *cont) {
         this->entries = entries;
         this->parent = cont;
 
@@ -605,14 +623,14 @@ public:
         return name;
     }
 
-    std::shared_ptr<Type> pointee() {
-        return std::shared_ptr<Type>(nullptr);
+    _Type pointee() {
+        return _Type(nullptr);
     }
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       return self;
     }
-    static std::shared_ptr <EnumType> get(std::vector <std::string> entries, Container *cont) {
+    static std::shared_ptr <EnumType> get(std::vector<std::string> entries, Container *cont) {
         return create_heaped(EnumType(entries, cont));
     }
 
@@ -652,7 +670,7 @@ public:
 class TypeRef : public Type {
 public:
     std::unique_ptr <LongName> name;
-    std::shared_ptr<Type> resolves_to;
+    _Type resolves_to;
 
     Type *drill() {
         if (resolves_to)
@@ -660,7 +678,7 @@ public:
         return this;
     }
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       if(!resolves_to)except(E_INTERNAL, "Cannot clone a non-resolved TypeRef");
       return resolves_to->clone();
     }
@@ -669,7 +687,7 @@ public:
       except(E_INTERNAL, "Cannot call is_generic on unresolved typeref");
     }
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         if (resolves_to)for (auto m: resolves_to->flatten())ret.push_back(m);
         return ret;
     }
@@ -681,8 +699,8 @@ public:
             return "unresolved_t:" + name->str();
     }
 
-    std::shared_ptr<Type> pointee() {
-        return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
+    _Type pointee() {
+        return resolves_to ? resolves_to->pointee() : _Type(nullptr);
     }
 
     static std::shared_ptr<TypeRef> get(std::unique_ptr <LongName> name) {
@@ -725,12 +743,12 @@ public:
 //
 class ParameterizedTypeRef : public Type{
 public:
-    std::shared_ptr<Type> resolves_to;
+    _Type resolves_to;
 
-    std::vector<std::shared_ptr<Type>> params;
+    TypeVec params;
 
     GenericTable get_mapped_params();
-    ParameterizedTypeRef(std::shared_ptr<Type> resolves_to, std::vector<std::shared_ptr<Type>> params){
+    ParameterizedTypeRef(_Type resolves_to, TypeVec params){
         this->resolves_to = resolves_to;
         this->params = params;
     }
@@ -747,8 +765,8 @@ public:
     }
 
 
-    std::shared_ptr<Type> clone(){
-      std::vector<std::shared_ptr<Type>> cloned_params;
+    _Type clone(){
+      TypeVec cloned_params;
       for(auto p : params){
         cloned_params.push_back(p->clone());
       }
@@ -757,7 +775,7 @@ public:
     }
 
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         if (resolves_to)for (auto m: resolves_to->flatten())ret.push_back(m);
         for(auto p : params)for(auto t : p->flatten())ret.push_back(t);
         return ret;
@@ -776,11 +794,11 @@ public:
         return name;
     }
 
-    std::shared_ptr<Type> pointee() {
-        return resolves_to ? resolves_to->pointee() : std::shared_ptr<Type>(nullptr);
+    _Type pointee() {
+        return resolves_to ? resolves_to->pointee() : _Type(nullptr);
     }
 
-    static std::shared_ptr <ParameterizedTypeRef> get(std::shared_ptr<Type> resolves_to, std::vector<std::shared_ptr<Type>> params) {
+    static std::shared_ptr <ParameterizedTypeRef> get(_Type resolves_to, TypeVec params) {
         return create_heaped(ParameterizedTypeRef(resolves_to, params));
     }
     LLVMType llvm_type(GenericTable generics){
@@ -834,7 +852,7 @@ class Generic : public Type {
     bool is_generic(){return true;}
 
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         if (temporarily_resolves_to)ret.push_back(temporarily_resolves_to.get());
         return ret;
     }
@@ -852,7 +870,7 @@ class Generic : public Type {
         }
     }
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       // If the generic does not resolve to anything, that is fine
       // this can occur in the case where a return type is dependant
       // on a generic in the calling function
@@ -860,8 +878,8 @@ class Generic : public Type {
     }
     
     std::unique_ptr <Name> name;
-    std::shared_ptr<Type>  constraint;
-    std::shared_ptr<Type> temporarily_resolves_to;
+    _Type  constraint;
+    _Type temporarily_resolves_to;
 
     Generic(std::unique_ptr <Name> name) {
         this->name = std::move(name);
@@ -900,7 +918,7 @@ class Generic : public Type {
         } else return false;
     }
 
-    std::shared_ptr<Type> pointee() {
+    _Type pointee() {
         if (temporarily_resolves_to)return temporarily_resolves_to->pointee();
         else except(E_UNRESOLVED_TYPE, "Cannot get pointee of unresolved generic type: " + this->name->str());
     }
@@ -920,22 +938,22 @@ protected:
     }
 
 public:
-    std::shared_ptr<Type> of;
+    _Type of;
     std::unique_ptr <Integer> size;
 
-    ListType(std::shared_ptr<Type> type, std::unique_ptr <Integer> size) {
+    ListType(_Type type, std::unique_ptr <Integer> size) {
         this->of = type->drill()->self;
         this->size = std::move(size);
     }
 
     bool is_generic(){return of->is_generic();}
     std::vector<Type *> flatten() {
-        std::vector < Type * > ret = {this};
+        std::vector< Type * > ret = {this};
         for (auto m: of->flatten())ret.push_back(m);
         return ret;
     }
 
-    std::shared_ptr<Type> clone(){
+    _Type clone(){
       return ListType::get(of->clone(), std::make_unique<Integer>(size->value));
     }
 
@@ -946,7 +964,7 @@ public:
 
     ListType(ListType &&) = default;
 
-    std::shared_ptr<Type> pointee() {
+    _Type pointee() {
         return of;
     }
 
@@ -954,7 +972,7 @@ public:
         return (of ? of->str() : "?") + "[" + size->str() + "]";
     }
 
-    static std::shared_ptr <ListType> get(std::shared_ptr<Type> of, std::unique_ptr <Integer> size) {
+    static std::shared_ptr <ListType> get(_Type of, std::unique_ptr <Integer> size) {
         return create_heaped(ListType(of, std::move(size)));
     }
 

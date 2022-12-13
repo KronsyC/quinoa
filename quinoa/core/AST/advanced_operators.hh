@@ -18,13 +18,13 @@
 class CallLike : public Expr {
 public:
     Vec<Expr> args;
-    std::vector <std::shared_ptr<Type>> type_args;
+    TypeVec type_args;
     Method *target = nullptr;
 
 
-    LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args, std::vector<std::shared_ptr<Type>> second_type_args = {}) {
+    LLVMValue create_call(VariableTable &vars, std::vector<llvm::Value*> injected_args, TypeVec second_type_args = {}) {
 
-        std::vector <llvm::Value*> args;
+        std::vector<llvm::Value*> args;
         llvm::Value* ret_val_if_param = nullptr;
 
 
@@ -47,8 +47,8 @@ public:
 
           // Clone the type arguments so they persist past the lifetime of the current substitution
           
-          std::vector<std::shared_ptr<Type>> cloned_fn_type_args;
-          std::vector<std::shared_ptr<Type>> cloned_tgt_type_args;
+          TypeVec cloned_fn_type_args;
+          TypeVec cloned_tgt_type_args;
 
           for(auto t : type_args){
             cloned_fn_type_args.push_back(t->clone());
@@ -126,7 +126,7 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto a: args)for (auto m: a->flatten())ret.push_back(m);
         return ret;
     }
@@ -156,11 +156,11 @@ public:
         return ret;
     }
 protected:
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
 
 
     
-        if (!target)return std::shared_ptr<Type>(nullptr);
+        if (!target)return _Type(nullptr);
 
         target->apply_generic_substitution(this->type_args);
         auto ret_ty = target->return_type->clone();
@@ -240,7 +240,7 @@ public:
           tmp_ref_count--;
         }
 
-        std::vector<std::shared_ptr<Type>> targ_type_args = {};
+        TypeVec targ_type_args = {};
         if(auto ptref = ptr.type.qn_type->pointee()->get<ParameterizedTypeRef>()){
           targ_type_args = ptref->params;
         } 
@@ -254,7 +254,7 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
 
         for (auto a: args)for (auto m: a->flatten())ret.push_back(m);
         for (auto f: call_on->flatten())ret.push_back(f);
@@ -268,10 +268,10 @@ public:
 
 protected:
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
 
 
-        if (!target)return std::shared_ptr<Type>(nullptr);
+        if (!target)return _Type(nullptr);
 
         if (target == (Method*) 1) {
             // Handle compiler implemented methods
@@ -328,7 +328,7 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         if (value)for (auto m: value->flatten())ret.push_back(m);
         return ret;
     }
@@ -344,13 +344,13 @@ public:
 
 class InitializeVar : public Statement {
 public:
-    std::shared_ptr <Type> type;
+    _Type type;
     Name var_name;
     std::unique_ptr <Expr> initializer;
     bool is_constant = false;
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         if (initializer)for (auto m: initializer->flatten())ret.push_back(m);
         return ret;
     }
@@ -395,10 +395,10 @@ public:
 class ExplicitCast : public Expr {
 public:
     std::unique_ptr <Expr> value;
-    std::shared_ptr <Type> cast_to;
+    _Type cast_to;
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: value->flatten())ret.push_back(m);
         return ret;
     }
@@ -419,7 +419,7 @@ public:
         return value->str() + " as " + cast_to->str();
     }
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         return cast_to;
     }
 
@@ -436,7 +436,7 @@ public:
 class ImplicitCast : public Expr {
 public:
     std::unique_ptr <Expr> value;
-    std::shared_ptr <Type> cast_to;
+    _Type cast_to;
 
     std::vector<Type*> flatten_types(){
         auto ret = value->flatten_types();
@@ -447,11 +447,11 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: value->flatten())ret.push_back(m);
         return ret;
     }
-    ImplicitCast(std::unique_ptr<Expr> val, std::shared_ptr<Type> cast_to){
+    ImplicitCast(std::unique_ptr<Expr> val, _Type cast_to){
         this->value = std::move(val);
         this->cast_to = cast_to;
         this->scope = this->value->scope;
@@ -466,7 +466,7 @@ public:
         return value->str() + " => " + cast_to->str();
     }
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         return cast_to;
     }
 
@@ -479,7 +479,7 @@ public:
 class StructInitialization : public AllocatingExpr {
 public:
     std::map <std::string, std::unique_ptr<Expr>> initializers;
-    std::shared_ptr<Type> type;
+    _Type type;
 
 
     std::vector<Type*> flatten_types(){
@@ -493,12 +493,12 @@ public:
         return ret;
     }
 
-    StructInitialization(std::shared_ptr<Type> tgt) {
+    StructInitialization(_Type tgt) {
         this->type = tgt;
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto &i: initializers)for (auto m: i.second->flatten())ret.push_back(m);
         return ret;
     }
@@ -565,7 +565,7 @@ public:
         except(E_BAD_ASSIGNMENT, "Struct Initializers are not assignable");
     }
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         Logger::debug("get_type of structinit: " + type->str());
         return type;
     }
@@ -589,7 +589,7 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: index->flatten())ret.push_back(m);
         return ret;
     }
@@ -657,7 +657,7 @@ public:
         }
     }
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         if (!target)except(E_INTERNAL, "subscript bad target");
         if (!target->type())return target->type();
         return target->type()->pointee();

@@ -8,8 +8,8 @@
 struct GenericImpl{
   Method* target = nullptr;
   bool has_impl  = false;
-  std::vector<std::shared_ptr<Type>> substituted_method_type_args;
-  std::vector<std::shared_ptr<Type>> substituted_target_type_args;
+  TypeVec substituted_method_type_args;
+  TypeVec substituted_target_type_args;
 };
 
 
@@ -20,7 +20,7 @@ public:
     std::vector<std::shared_ptr<GenericImpl>> generic_impls;
 
 
-    void add_impl(Method* target, std::vector<std::shared_ptr<Type>> subst_fn_ta, std::vector<std::shared_ptr<Type>> subst_tgt_ta){
+    void add_impl(Method* target, TypeVec subst_fn_ta, TypeVec subst_tgt_ta){
 
       //TODO: Return early for duplicate implementations
 
@@ -42,7 +42,7 @@ public:
     }
 
     std::vector<Container *> get_containers() {
-        std::vector < Container * > ret;
+        std::vector< Container * > ret;
         for (auto m: members) {
             if (auto mod = dynamic_cast<Container *>(m.ptr)) {
                 ret.push_back(mod);
@@ -51,8 +51,8 @@ public:
         return ret;
     }
 
-    std::vector <std::unique_ptr<TopLevelEntity>> transfer() {
-        std::vector <std::unique_ptr<TopLevelEntity>> ret;
+    std::vector<std::unique_ptr<TopLevelEntity>> transfer() {
+        std::vector<std::unique_ptr<TopLevelEntity>> ret;
         for (auto m: members) {
             std::unique_ptr <TopLevelEntity> ptr(m.ptr);
             ret.push_back(std::move(ptr));
@@ -61,7 +61,7 @@ public:
     }
 
     std::vector<Method *> get_methods() {
-        std::vector < Method * > ret;
+        std::vector< Method * > ret;
         for (auto *cont: get_containers()) {
             for (auto method: cont->get_methods()) {
                 ret.push_back(method);
@@ -71,7 +71,7 @@ public:
     }
 
     std::vector<Property *> get_properties() {
-        std::vector < Property * > ret;
+        std::vector< Property * > ret;
         for (auto *cont: get_containers()) {
             for (auto prop: cont->get_properties()) {
                 ret.push_back(prop);
@@ -81,7 +81,7 @@ public:
     }
 
     std::vector<TypeMember *> get_types() {
-        std::vector < TypeMember * > ret;
+        std::vector< TypeMember * > ret;
         for (auto cont: get_containers()) {
             for (auto member: cont->members) {
                 if (auto type = dynamic_cast<TypeMember *>(member.ptr)) {
@@ -93,7 +93,7 @@ public:
     }
 
     std::vector<ContainerMember *> get_hoists() {
-        std::vector < ContainerMember * > ret;
+        std::vector< ContainerMember * > ret;
         for (auto m: get_methods())ret.push_back(m);
         for (auto p: get_properties())ret.push_back(p);
         return ret;

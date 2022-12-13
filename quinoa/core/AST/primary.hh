@@ -18,15 +18,15 @@ class Type;
  */
 class LLVMType {
 public:
-    std::shared_ptr<Type> qn_type;
+    _Type qn_type;
 
     llvm::Type *operator->();
 
-    LLVMType(std::shared_ptr<Type> qn_type);
+    LLVMType(_Type qn_type);
     LLVMType(){
     this->is_explicitly_constructed = false;
   }
-    LLVMType(llvm::Type *ll, std::shared_ptr<Type> qn) {
+    LLVMType(llvm::Type *ll, _Type qn) {
         if(!qn)except(E_INTERNAL, "(bug) cannot construct an LLVMType without the corresponding quinoa type");
         this->cached_type = ll;
         this->qn_type = qn;
@@ -114,7 +114,7 @@ public:
     */
 
 
-    std::shared_ptr <Type> type() {
+    _Type type() {
         // if (recalculate_type || !cached_type) {
             // auto typ = get_type();
             // recalculate_type = false;
@@ -140,7 +140,7 @@ public:
 
 
 protected:
-    virtual std::shared_ptr <Type> get_type() = 0;
+    virtual _Type get_type() = 0;
 
     Expr *parent_expr = nullptr;
 private:
@@ -226,22 +226,22 @@ public:
 
     void generate(Method *qn_fn, llvm::Function *func, VariableTable &vars, ControlFlowInfo CFI);
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto c: content)for (auto m: c->flatten())ret.push_back(m);
         return ret;
     }
 
-    void set_type(std::string var_name, std::shared_ptr <Type> typ) {
+    void set_type(std::string var_name, _Type typ) {
         type_table[var_name] = typ;
     }
 
-    std::shared_ptr <Type> get_type(std::string var_name) {
+    _Type get_type(std::string var_name) {
         auto lookup = type_table[var_name];
         if (lookup)return lookup;
         else if (scope)return scope->get_type(var_name);
         else {
             except(E_UNRESOLVED_TYPE, "Failed to get type of '" + var_name + "'", false);
-            return std::shared_ptr<Type>(nullptr);
+            return _Type(nullptr);
         }
     }
 
@@ -275,8 +275,8 @@ public:
         return nullptr;
     }
 
-    void decl_new_variable(std::string name, std::shared_ptr<Type> type, bool is_constant = false);
+    void decl_new_variable(std::string name, _Type type, bool is_constant = false);
 private:
     std::map <std::string, std::unique_ptr<Variable>> vars;
-    std::map <std::string, std::shared_ptr<Type>> type_table;
+    std::map <std::string, _Type> type_table;
 };

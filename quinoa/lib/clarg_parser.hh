@@ -28,11 +28,11 @@ private:
         void *value = nullptr;
     };
     std::map <std::string, ExpectedClarg> kw_args;
-    std::vector <std::string> list_args;
+    std::vector<std::string> list_args;
 
 
-    static std::vector <std::string> vectorize_args(int argc, char **argv) {
-        std::vector <std::string> ret;
+    static std::vector<std::string> vectorize_args(int argc, char **argv) {
+        std::vector<std::string> ret;
         for (int i = 0; i < argc; i++) {
             std::string arg(argv[i]);
             ret.push_back(arg);

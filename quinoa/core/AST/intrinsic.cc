@@ -10,7 +10,7 @@
 
 #define boolean Primitive::get(PR_boolean)
 
-#define MakesA(_for, _type)template<> std::shared_ptr<Type> Intrinsic<_for>::get_type(){return _type;}
+#define MakesA(_for, _type)template<> _Type Intrinsic<_for>::get_type(){return _type;}
 
 #define MakesBool(_for)MakesA(_for, boolean)
 

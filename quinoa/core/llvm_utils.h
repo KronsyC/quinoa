@@ -22,14 +22,14 @@ class LLVMValue;
 class Variable
 {
 public:
-    std::shared_ptr<Type> type;
+    _Type type;
     llvm::AllocaInst* value;
     bool constant = false;
     bool is_initialized = false;
 
 
     Variable() = default;
-    Variable(std::shared_ptr<Type> type, llvm::AllocaInst* value, bool _const = true)
+    Variable(_Type type, llvm::AllocaInst* value, bool _const = true)
     {
         this->type = type;
         this->value = value;

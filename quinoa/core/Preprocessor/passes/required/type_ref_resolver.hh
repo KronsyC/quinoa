@@ -96,7 +96,7 @@ void attempt_resolve_typeref(TypeRef &ref, TypeMember *mem) {
 }
 
 std::vector<TypeRef *> get_refs_from(Type &type) {
-    std::vector < TypeRef * > ret;
+    std::vector< TypeRef * > ret;
     for (auto ty: type.flatten()) {
         if (auto tr = dynamic_cast<TypeRef *>(ty)) {
             ret.push_back(tr);

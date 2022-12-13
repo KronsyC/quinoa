@@ -14,7 +14,7 @@ static std::map<IntrinsicType, std::string> intrinsic_names = {INTRINSICS_ENUM_N
 
 class _Intrinsic : public Expr{
 public:
-    std::vector<std::shared_ptr<Type>> type_args;
+    TypeVec type_args;
     Vec<Expr>                          args;
 
     // Help keep track of certain attributes, such as const assignment rights
@@ -38,12 +38,12 @@ public:
 
     std::string name = intrinsic_names[IT];
 
-    Intrinsic(Vec<Expr> args, std::vector<std::shared_ptr<Type>> type_args){
+    Intrinsic(Vec<Expr> args, TypeVec type_args){
         this->args = std::move(args);
         this->type_args = type_args;
         this->validate();
     }
-    static std::unique_ptr<_Intrinsic> create(IntrinsicType type, Vec<Expr> args, std::vector<std::shared_ptr<Type>> type_args){
+    static std::unique_ptr<_Intrinsic> create(IntrinsicType type, Vec<Expr> args, TypeVec type_args){
         #define C(intr_ty) case intr_ty: return std::make_unique<Intrinsic<(intr_ty)>>(std::move(args), type_args);
 
         switch(type){
@@ -89,7 +89,7 @@ public:
 #undef C
     }
 
-    std::shared_ptr<Type> get_type(){
+    _Type get_type(){
         // Default behaviour (non-overridden)
         // Return parameter type for unary operations
         // Return left type for binary operations (most operations enforce left and right type equality)

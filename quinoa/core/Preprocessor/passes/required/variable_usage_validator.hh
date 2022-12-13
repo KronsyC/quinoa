@@ -7,7 +7,7 @@
 #include "../include.h"
 
 
-void validate_usage(Scope &scope, std::vector <std::string> declared_vars) {
+void validate_usage(Scope &scope, std::vector<std::string> declared_vars) {
     for (auto member: scope.flatten()) {
         if (member->scope == &scope) {
             if (auto nest = dynamic_cast<Scope *>(member)) {
@@ -30,7 +30,7 @@ void validate_usage(Scope &scope, std::vector <std::string> declared_vars) {
 void validate_variable_usage(CompilationUnit &unit) {
     for (auto method: unit.get_methods()) {
         if (!method->content)continue;
-        std::vector <std::string> declarations;
+        std::vector<std::string> declarations;
         for (auto &p: method->parameters) {
             declarations.push_back(p->name.str());
         }

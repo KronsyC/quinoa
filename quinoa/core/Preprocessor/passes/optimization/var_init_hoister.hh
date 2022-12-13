@@ -6,9 +6,9 @@
 // is a recommened frontend optimization by the llvm team
 
 void mangleVarNames(SourceBlock &code) {
-    std::vector <std::string> occupiedNames;
+    std::vector<std::string> occupiedNames;
     //
-    std::vector < InitializeVar * > traversedInits;
+    std::vector< InitializeVar * > traversedInits;
     for (auto member: code) {
         if (instanceof<InitializeVar>(member)) {
             auto var = (InitializeVar *) member;
@@ -31,7 +31,7 @@ void hoistVarInitializations(CompilationUnit &unit) {
         // flatten it
         auto flat = method->flatten();
         // remove all declarations and push them into a list
-        std::vector < InitializeVar * > allInitializations;
+        std::vector< InitializeVar * > allInitializations;
         for (unsigned int i = 0; i < flat.size(); i++) {
             auto item = flat[i];
             if (instanceof<InitializeVar>(item)) {

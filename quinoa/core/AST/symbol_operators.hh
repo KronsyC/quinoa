@@ -44,7 +44,7 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: operand->flatten())
             ret.push_back(m);
         return ret;
@@ -128,7 +128,7 @@ public:
     }
 
 protected:
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         #define same_t (operand->type())
         #define same_ref ReferenceType::get(same_t)
         #define pointee_t same_t->pointee()
@@ -277,14 +277,14 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for(auto n : internal_intrinsic->flatten())ret.push_back(n);
         return ret;
     }
 
 
 private:
-    LLVMType get_operand_cast_type(std::shared_ptr<Type> left, std::shared_ptr<Type> right){
+    LLVMType get_operand_cast_type(_Type left, _Type right){
 #define common return get_common_type(left->llvm_type(), right->llvm_type());
 #define boolean return Primitive::get(PR_boolean)->llvm_type();
 #define right_t  return right->llvm_type();
@@ -343,7 +343,7 @@ private:
         }
     }
 protected:
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         return this->internal_intrinsic->type();
     }
 };
@@ -413,16 +413,16 @@ while(auto ref_t = retrv_t.qn_type->get<ReferenceType>()){
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: member_of->flatten())
             ret.push_back(m);
         return ret;
     }
 
 protected:
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         auto left_t = member_of->type();
-        if (!left_t)return std::shared_ptr<Type>(nullptr);
+        if (!left_t)return _Type(nullptr);
         auto member = member_name->str();
 
         while(auto ref_t = left_t->get<ReferenceType>()){

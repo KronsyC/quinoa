@@ -24,11 +24,11 @@ std::vector<std::shared_ptr<Generic>> parse_generics(std::vector<Token>& toks){
     return generics;
 }
 
-std::vector<std::shared_ptr<Type>> parse_type_args(std::vector<Token>& toks, bool is_fish){
+TypeVec parse_type_args(std::vector<Token>& toks, bool is_fish){
     auto ta_block = is_fish ? read_block(toks, IND_generics) : read_block(toks, IND_angles);
     auto entries = parse_cst(ta_block);
 
-    std::vector<std::shared_ptr<Type>> type_args;
+    TypeVec type_args;
     for(auto e : entries){
         auto ty = parse_type(e);
         type_args.push_back(ty);
@@ -37,11 +37,11 @@ std::vector<std::shared_ptr<Type>> parse_type_args(std::vector<Token>& toks, boo
 }
 
 
-std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container)
+_Type parse_type(std::vector<Token>& toks, Container* container)
 {
     if (!toks.size())
         except(E_BAD_TYPE, "Failed to parse type");
-    std::shared_ptr<Type> ret;
+    _Type ret;
     auto first = popf(toks);
     if(first.is(TT_string)){
         ret = DynListType::get(Primitive::get(PR_uint8));
@@ -72,7 +72,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container)
 
         auto entries = parse_tst(struct_content, TT_semicolon);
 
-        std::map<std::string, std::shared_ptr<Type>> fields;
+        std::map<std::string, _Type> fields;
         for(auto entry : entries){
             auto field_name = pope(entry, TT_identifier).value;
             pope(entry, TT_colon);
@@ -93,7 +93,7 @@ std::shared_ptr<Type> parse_type(std::vector<Token>& toks, Container* container)
 
         auto entries = parse_tst(struct_content, TT_semicolon);
 
-        std::map<std::string, std::shared_ptr<Type>> fields;
+        std::map<std::string, _Type> fields;
         for(auto entry : entries){
             auto field_name = pope(entry, TT_identifier).value;
             pope(entry, TT_colon);

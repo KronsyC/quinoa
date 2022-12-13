@@ -36,14 +36,14 @@ public:
 class Property : public ContainerMember {
 public:
     std::unique_ptr <ConstantValue> initializer;
-    std::shared_ptr <Type> type;
+    _Type type;
 };
 
 class TypeMember : public ContainerMember {
 public:
-    std::shared_ptr <Type> refers_to;
+    _Type refers_to;
     std::vector<std::shared_ptr<Generic>> generic_args;
-    TypeMember(std::shared_ptr <Type> t) {
+    TypeMember(_Type t) {
         this->refers_to = t;
     }
 };
@@ -51,10 +51,10 @@ public:
 class Param : public ANode {
 public:
     Name name;
-    std::shared_ptr <Type> type;
+    _Type type;
     bool is_variadic = false;
 
-    Param(Name pname, std::shared_ptr <Type> type)
+    Param(Name pname, _Type type)
             : name(pname) {
         this->type = std::move(type);
     }
@@ -62,9 +62,9 @@ public:
 
 
 struct MethodSignature{
-    std::vector <std::shared_ptr<Generic>> generic_params;
+    std::vector<std::shared_ptr<Generic>> generic_params;
     Vec<Param> parameters;
-    std::shared_ptr <Type> return_type;
+    _Type return_type;
 
     bool is_variadic() {
         // Check if the last parameter is a var-arg
@@ -88,14 +88,14 @@ struct MethodSignature{
 
 class Method : public MethodSignature, public ContainerMember {
 public:
-    std::shared_ptr <TypeRef> acts_upon;
+    std::shared_ptr<TypeRef> acts_upon;
     std::vector<std::shared_ptr<Generic>> acts_upon_generic_args;
 
     std::unique_ptr <Scope> content;
 
     unsigned application_count = 0;
 
-    void apply_generic_substitution(std::vector<std::shared_ptr<Type>> types, std::vector<std::shared_ptr<Type>> acts_upon_types = {}){
+    void apply_generic_substitution(TypeVec types, TypeVec acts_upon_types = {}){
         if(types.size() != generic_params.size() || acts_upon_types.size() != acts_upon_generic_args.size()){
           Logger::debug(std::to_string(types.size()) + " & " + std::to_string(acts_upon_types.size()) + "  vs  " + std::to_string(generic_params.size()) + " & " + std::to_string(acts_upon_generic_args.size())); 
           
@@ -139,10 +139,10 @@ public:
       return generic_params.size() || this->acts_upon_generic_args.size();
     }
 
-    std::shared_ptr<Type> get_target_type(){
+    _Type get_target_type(){
       if(!acts_upon)return nullptr;
       if(acts_upon->is_generic()){
-        std::vector<std::shared_ptr<Type>> resolved_generics;
+        TypeVec resolved_generics;
         for(auto t : acts_upon_generic_args){
           resolved_generics.push_back(t->drill()->self);
         }

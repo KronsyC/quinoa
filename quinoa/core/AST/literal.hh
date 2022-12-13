@@ -61,14 +61,14 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto r: members)for (auto m: r->flatten())ret.push_back(m);
         return ret;
     }
 
 private:
-    std::shared_ptr <Type> get_type() {
-        std::vector <std::shared_ptr<Type>> member_types;
+    _Type get_type() {
+        TypeVec member_types;
         for (auto m: members) {
             member_types.push_back(m->type());
         }

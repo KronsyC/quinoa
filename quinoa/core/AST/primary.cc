@@ -2,7 +2,7 @@
 #include "./type.hh"
 #include "./reference.hh"
 #include "./container.hh"
-LLVMType::LLVMType(std::shared_ptr<Type> qn_type){
+LLVMType::LLVMType(_Type qn_type){
     this->qn_type = qn_type;
 }
 
@@ -85,12 +85,12 @@ std::vector<Type*> Scope::flatten_types(){
 }
 
 #include "../llvm_utils.h"
-void Scope::decl_new_variable(std::string name, std::shared_ptr<Type> type, bool is_constant){
+void Scope::decl_new_variable(std::string name, _Type type, bool is_constant){
   this->vars[name] = std::make_unique<Variable>(type, nullptr, is_constant);
 }
 
 
-std::shared_ptr<Type> Container::get_type(std::string name){
+_Type Container::get_type(std::string name){
         for (auto &member: members) {
             if (auto type = dynamic_cast<TypeMember *>(member.ptr)) {
                 if (type->name->member->str() == name)return type->refers_to;
@@ -110,7 +110,7 @@ std::shared_ptr<Type> Container::get_type(std::string name){
           if(!cmp_mod)except(E_INTERNAL, "unresolved compositor: " + cmp->name->str());
           if(auto typ = cmp_mod->get_type(name))return typ;
         }
-        return std::shared_ptr<Type>(nullptr);
+        return _Type(nullptr);
 }
 
 

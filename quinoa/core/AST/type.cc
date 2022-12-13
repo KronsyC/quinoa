@@ -97,7 +97,7 @@ LLVMType StructType::llvm_type(GenericTable gen_table) {
 
     if(!substituted_struct)except(E_INTERNAL, "(bug) substituted variant of a struct was found to NOT be a struct");
 
-    std::vector < llvm::Type * > member_types;
+    std::vector< llvm::Type * > member_types;
     for (auto member: substituted_struct->members) {
         auto ll_ty = member.second->llvm_type(gen_table);
         member_types.push_back(ll_ty);

@@ -73,7 +73,7 @@ public:
         auto mod = builder()->GetInsertBlock()->getModule();
 
         // Generate the string bytes
-        std::vector < llvm::Constant * > chars;
+        std::vector< llvm::Constant * > chars;
         for (auto _char: value) {
             chars.push_back(builder()->getInt8(_char));
         }
@@ -94,7 +94,7 @@ public:
         builder()->CreateStore(cast_arr, arr_ptr);
     }
 
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         return DynListType::get(Primitive::get(PR_uint8));
     }
 
@@ -130,7 +130,7 @@ public:
     }
 
 protected:
-    std::shared_ptr<Type> get_type() {
+    _Type get_type() {
         return Primitive::get(PR_boolean);
     }
 
@@ -161,7 +161,7 @@ public:
     }
 
 protected:
-    std::shared_ptr <Type> get_type() {
+    _Type get_type() {
         if(value < 0){
 #define X(i)((long long)-(maxVal(i) >> 2))
             if (value >= X(8))
@@ -226,7 +226,7 @@ public:
     }
 
 protected:
-    std::shared_ptr<Type> get_type() {
+    _Type get_type() {
         return Primitive::get(PR_float64);
     }
 

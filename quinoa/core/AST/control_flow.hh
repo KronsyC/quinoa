@@ -20,7 +20,7 @@ public:
 
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: condition->flatten())ret.push_back(m);
         for (auto m: if_true->flatten()) {
             ret.push_back(m);
@@ -136,7 +136,7 @@ public:
     }
 
     std::vector<Statement *> flatten() {
-        std::vector < Statement * > ret = {this};
+        std::vector< Statement * > ret = {this};
         for (auto m: condition->flatten())ret.push_back(m);
         for (auto m: execute->flatten())ret.push_back(m);
         return ret;
