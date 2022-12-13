@@ -3,21 +3,89 @@ import @string;
 import @lang::internal::error as Err;
 module FS is Exported{
 
-    func open_file(path : str) -> File{
-        let path_str = string::from(path); 
-        let path_cstr = path_str.to_cstr();
-        let cstr = path_cstr.ptr;
-        let fd = libc_open_file(cstr as i8*, 0);
+    DEFAULT_PERMISSIONS : u32 = 404;
 
-        if(fd < 0){
-          Err::panic("Failed to open file");
-        }
+    type OpenOptions = struct{
+      read   : bool;
+      write  : bool;
 
-        return File::from_descriptor(fd as u32);
+      create : bool;
+      append : bool;
+      trunc  : bool;
+
+      permissions : u32;
+    };
+
+    // Create a default OpenOptions object
+    func create_options() -> OpenOptions{
+      return OpenOptions{
+        read : true;
+        write : false;
+        create : false;
+        append : false;
+        trunc : false;
+        permissions : DEFAULT_PERMISSIONS;
+      };
+    }
+
+    // Create a default OpenOptions object for writing to files
+    func create_write_options() -> OpenOptions{
+      return OpenOptions{
+        read : false;
+        write : true;
+        create : true;
+        append : true;
+        trunc : false;
+        permissions : DEFAULT_PERMISSIONS;
+      };
+    }
+   
+    func to_flags.OpenOptions() -> u32{
+      let ret : u32 = 0;
+
+      // C macro values converted to decimal (Quinoa has no octal support)
+      const READONLY  = 0;     // 00 
+      const WRITEONLY = 1;     // 01
+      const CREATE    = 64;    // 0100
+      const TRUNC     = 512;   // 01000
+      const APPEND    = 1024;  // 02000
+
+
+      if(self.read){
+        ret = ret | READONLY;
+      }
+      if(self.write){
+        ret = ret | WRITEONLY;
+      }
+      if(self.create){
+        ret = ret | CREATE;
+      }
+      if(self.append){
+        ret = ret | APPEND;
+      }
+      if(self.trunc){
+        ret = ret | TRUNC;
+      }
+      return ret;
+    }
+
+
+    func open_file(path : string, options : OpenOptions) -> File{
+      let flags = options.to_flags();
+      
+      let cstr = path.to_cstr();
+      
+      let fd = libc_open_file(cstr.ptr, flags, options.permissions);
+
+      if(fd < 0){
+        Err::panic("Failed to open file");
+      } 
+
+      return File::from_descriptor(fd as u32);
     }
 
 
     #[link_extern "open"]
-    func libc_open_file(name : char*, mode : int) -> i32;
+    func libc_open_file(name: char*, flags: u32, mode: u32) -> i32;
 
 }

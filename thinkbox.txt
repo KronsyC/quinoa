@@ -1,14 +1,82 @@
-===
-= Ideas for possible future features / internal implementation details
+Quinoa future features / internal implementation details
+
+Note: I know nothing about programming languages so these ideas are likely
+      to be absolutely abyssmal and break every rule of sane language design
 ===
 
 FlaggedType
 some types may have flags associated with them (at compile time) such as
 - b'heaped
 - b'nomodify
+- b'owned
 - O'scoped_to
 
 
 Compiler Implemented Module $Internal
 exposes traits which the compiler can use
 such as drop, copy, ... (inspired heavily by rust)
+
+
+----------------------------------------------------------------------------------------------------------------------------
+
+Memory safety feature to avoid losing pointers:
+- disown (keyword name w.i.p)
+- steal  (likewise)
+- #[disowns] (attribute that propogates to all functions which disown memory, used explicitly for stdlib memory functions)
+
+What does disown do?
+- Can only be used on a type labelled as 'owned'
+- if used in a return statement 'return disown ptr;'
+  the calling function is forced to manage the memory
+  returned by the function
+- Only heap-allocated values may be disowned
+- If a function has a disowned return value,
+  all return statements must disown
+- stolen parameters must explicitly be disowned
+
+what does steal do?
+- It is a flag on function parameters
+- acts as a way to pass 'owned' values to functions
+- stolen parameters can be optimized to be pointers
+
+NOTE:
+once a value is disowned, it cannot be used as doing so would be u.b
+if one control path disowns a value, all other paths must also disown  (TODO: possibly add syntactic sugar for this)
+All owned variables must be definitely disowned before the end of a function (prevents heap memory leaks)
+
+
+IDEAS:
+
+This pattern may see extensive use, not sure where yet.
+you could somewhat think of a function defined like this
+as a transformation on data (old state -> new state)
+without the copy overhead
+```
+func foo(steal val : T) -> T{
+  // change the state of val here
+  return disown val;
+}
+```
+
+
+----------------------------------------------------------------------------------------------------------------------------
+
+Throw away the current import system
+In the compiler cli, pass the '-i' flag
+followed by a json string to represent each
+available source file, and metadata associated
+with them
+example:
+
+$ quinoa build ./main.qn -i "{\"__std__::io\" : \"/home/user/quinoa/libq/io.qn\"}" 
+
+This is painful to use directly, but would be extremely useful for the future build system `chia`
+
+--------------------------
+-- STANDARD LIBRARY TODOS
+--------------------------
+
+Get rid of `syscall.qn` and write a glibc wrapper `@libc::foo`
+with nice error handling (reads errno)
+
+

@@ -1,5 +1,5 @@
 import @syscall;
-
+import @lang::internal::error as Err;
 module File is Exported{
 
     type _ = struct{
@@ -8,13 +8,18 @@ module File is Exported{
     };
 
 
-    func write.File(data : byte[]) -> i64{
+    func write.File(data : byte[]) -> u64{
 
         if(!(self.is_open)){
             return -1;
         }
-
-        return syscall::write(self.fd, data.ptr as u64, data.len);
+        
+        let return_value = syscall::write(self.fd, data.ptr, data.len);
+        if(return_value == -1){
+          Err::panic("Failed to write to file");
+        }
+        
+        return return_value as u64;
     }
 
 
@@ -23,7 +28,8 @@ module File is Exported{
         syscall::close(self.fd);
     }
 
-    func read.File(){
+    func read.File(buffer : byte[]){
+      let read_count = syscall::read(self.fd, buffer.ptr, buffer.len); 
     }
 
     func from_descriptor( fd : u32 ) -> File{
