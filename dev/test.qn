@@ -1,0 +1,10 @@
+import @string;
+
+module Test is Entry{
+
+    type IPAddr = union{
+        V4: string;
+        V6: string; 
+    };
+
+}

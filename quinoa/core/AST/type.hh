@@ -429,6 +429,36 @@ public:
     }
 };
 
+
+
+//
+// A Tuple is a sequence of values with predefined types
+// represented internally by a struct
+// members are accessed using subscript `tuple[I]` notation
+// created using the syntax `(u32, f32)`
+//
+// Internally uses an anonymous struct to represent members
+// a slice (DynListType) is technically a tuple `(u64, T*)`
+//
+class TupleType : public Type{
+public:
+    std::vector<std::shared_ptr<Type>> members;
+
+    //TODO: Implement this
+};
+
+//
+// Unions have the same size as their largest member + 8 bytes
+// they contain a prefix u64 to discriminate between different types
+//
+// internally represented as a { i64, iN } where N is the size
+// of the largest member (in bits)
+//
+class UnionType : public ParentAwareType{
+public:
+    // TODO: Implement this
+};
+
 class StructType : public ParentAwareType {
 public:
     std::map <std::string, std::shared_ptr<Type>> members;
