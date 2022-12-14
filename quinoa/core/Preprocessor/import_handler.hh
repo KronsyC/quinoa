@@ -43,7 +43,7 @@ void add_prefixes(CompilationUnit &unit, std::string str_prefix) {
 void resolve_aliased_symbols(CompilationUnit &unit, LongName &alias, LongName &replace_with) {
 
   for(const auto& cont : unit.get_containers()){
-    if(cont->is_imported)continue;
+    // if(cont->is_imported)continue;
     cont->aliases[alias.str()] = LongName(replace_with);
   }
 }
@@ -80,12 +80,18 @@ CompilationUnit *construct_ast_from_path(std::string path) {
         auto exports = generate_export_table(*cached);
         all_exports[path] = exports;
 
+        // add all self-refs to the alias table
+        for(auto cont : cached->get_containers()){
+          for(auto c : cached->get_containers()){
+            c->aliases[cont->name->str()] = cont->full_name(); 
+          }
+        }
+
         handle_imports(*cached);
 
     }
 
-
-    return cached.get();
+    return cached.get();  
 }
 
 void merge_units(CompilationUnit &tgt, CompilationUnit donor) {
@@ -104,11 +110,11 @@ void handle_imports(CompilationUnit &unit) {
     static const std::string libq_dir = std::string(QUINOA_DIR) + "/libq";
 
 
-    for(auto cont : unit.get_containers()){
-      for(auto icont : unit.get_containers()){
-        icont->aliases[cont->name->str()] = LongName(cont->full_name());
-      }
-    }
+    // for(auto cont : unit.get_containers()){
+      // for(auto icont : unit.get_containers()){
+        // icont->aliases[cont->name->str()] = LongName(cont->full_name());
+      // }
+    // }
     int removals = 0;
 
 
@@ -141,16 +147,9 @@ void handle_imports(CompilationUnit &unit) {
 
                 auto full_name = target_module->full_name();
 
-                
+                                
                 resolve_aliased_symbols(unit, alias, full_name);
 
-                // Inject identities into the aliases table (this is a little bit of a hack, but works)
-                for(auto cont : unit.get_containers()){
-                  if(cont->is_imported)continue;
-                  for(auto icont : unit.get_containers()){
-                    icont->aliases[cont->name->str()] = cont->full_name();
-                  }
-                }
 
                 merge_units(unit, std::move(*ast));
 

@@ -1,4 +1,4 @@
-import @syscall;
+import @sys::posix;
 import @lang::internal::error as Err;
 module File is Exported{
 
@@ -14,7 +14,7 @@ module File is Exported{
             return -1;
         }
         
-        let return_value = syscall::write(self.fd, data.ptr, data.len);
+        let return_value = posix::write_file(self.fd, data.ptr, data.len);
         if(return_value == -1){
           Err::panic("Failed to write to file");
         }
@@ -25,11 +25,11 @@ module File is Exported{
 
     func close.File(){
         self.is_open = false;
-        syscall::close(self.fd);
+        posix::close_file(self.fd);
     }
 
     func read.File(buffer : byte[]){
-      let read_count = syscall::read(self.fd, buffer.ptr, buffer.len); 
+      let read_count = posix::read_file(self.fd, buffer.ptr, buffer.len); 
     }
 
     func from_descriptor( fd : u32 ) -> File{

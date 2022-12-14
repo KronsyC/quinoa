@@ -32,30 +32,14 @@ module Posix is Exported{
   // FILE AND DIRECTORY RELATED FUNCTIONS
   //
 
-  type FileStats = struct{
-    dev     : dev_t; 
-    ino     : ino_t;
-    mode    : mode_t;
-    nlink   : nlink_t;
-    uid     : uid_t;
-    gid     : gid_t;
-    rdev    : dev_t;
-    size    : off_t;
-    blksize : blksize_t;
-    blocks  : blkcnt_t;
-  };
-
-  type UTimeBuf = struct{
-    access_time : time_t;
-    mod_time    : time_t;
-  };
-
-  // DIR
-  type Directory = struct{
-      ino  : ino_t;
-      name : cstr;
-  };
-
+  // POSIX does not ensure any
+  // struct ordering, so they
+  // must be accessed through
+  // opaque pointers
+  type FileStats = struct{};
+  type UTimeBuf  =  struct{};
+  type Directory = struct{};
+  type File      = struct{};
 
   #[link_extern "getcwd"]
   func get_cwd(buf: cstr, buf_len: u64) -> char*;
@@ -147,10 +131,57 @@ module Posix is Exported{
   func umask(mask : mode_t) -> mode_t;
 
 
-  // TODO: Implement the FILE struct
-  /* #[link_extern "fdopen"] */
-  /* func open_fd(fd : i32, mode : cstr) -> File*; */
+  #[link_extern "fdopen"]
+  func open_fd(fd : i32, mode : cstr) -> File*;
 
-  /* #[link_extern "fileno"] */
-  /* func get_file_fd(stream : File*) -> i32; */
+  #[link_extern "fileno"]
+  func get_file_fd(stream : File*) -> i32;
+
+  //
+  // PROCESSES
+  //
+  #[link_extern "fork"]
+  func create_process() -> pid_t;
+
+  // We can only use the execv* class of functions
+  // since quinoa does not support c-style var-args
+  
+  #[link_extern "execv"]
+  func exec(path : cstr, args : cstr*) -> i32;
+
+  #[link_extern "execve"]
+  func exec_env(path_name : cstr, argv : cstr*, envp : cstr*) -> i32;
+
+  #[link_extern "execvp"]
+  func exec_path(path_name : cstr, argv : cstr*) -> i32;
+
+  #[link_extern "execvpe"]
+  func exec_path_env(file : cstr, argv : cstr*, envp : cstr*) -> i32;
+
+  #[link_extern "waitpid"]
+  func process_wait(pid : pid_t, status : i32*, options : i32) -> pid_t;
+
+  #[link_extern "_exit"]
+  func process_exit(status : i32);
+
+  #[link_extern "kill"]
+  func process_kill(pid : pid_t, sig : i32) -> i32;
+
+  #[link_extern "sleep"]
+  func sleep(seconds : i32) -> u32;
+
+  #[link_extern "pause"]
+  func pause() -> i32;
+
+  #[link_extern "alarm"]
+  func alarm(seconds : u32) -> u32;
+
+  #[link_extern "setuid"]
+  func set_uid(uid : uid_t) -> i32;
+
+  #[link_extern "setgid"]
+  func set_gid(gid : gid_t) -> i32;
+
+  // TODO: Implement the "Long Jumps"
+
 }

@@ -9,7 +9,6 @@
 #include <memory>
 
 void attempt_resolve_typeref(TypeRef &ref, Container *container) {
-  Logger::debug("artr: " + ref.name->str() + " in " + container->full_name().str());
 
   // case: local type
   //       OR aliased module type 
@@ -76,7 +75,6 @@ void attempt_resolve_typeref(TypeRef &ref, Container *container) {
 
     ref.resolves_to = type;
     return;
-    except(E_INTERNAL, "Multipart type refs not implemented");
   }
 
   except(E_INTERNAL, "attempt_resolve_typeref not implemented for containers");

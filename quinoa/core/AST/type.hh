@@ -459,7 +459,85 @@ class TupleType : public Type{
 public:
     TypeVec members;
 
-    //TODO: Implement this
+
+    TupleType(TypeVec members){
+      this->members = members;
+    }
+
+    static _Type get(TypeVec members){
+      return create_heaped(TupleType(members));
+    }
+    _Type pointee(){
+      except(E_INTERNAL, "cannot get the pointee of a tuple");
+    }
+    std::vector<Type*> flatten(){
+      std::vector<Type*> ret = {this};
+
+      for(auto m : members)for(auto t : m->flatten())ret.push_back(t);
+      return ret;
+    }
+
+    _Type clone(){
+      TypeVec cloned_members;
+      for(auto m : members)cloned_members.push_back(m->clone());
+    
+      return TupleType::get(cloned_members);
+    }
+    Type* drill(){return this;}
+
+    int distance_from(Type& t){
+      auto tup = t.get<TupleType>();
+      if(!tup)return -1;
+      if(tup->members.size() != members.size())return -1;
+      int highest_diff = 0;
+      for(unsigned i = 0; i < members.size(); i++){
+        auto tu = tup->members[i];
+        auto diff = members[i]->distance_from(*tu);
+        if(diff == -1)return -1;
+        if(diff > highest_diff)highest_diff = diff;
+      }
+      return highest_diff;
+    }
+    std::pair<Type&, Type&> find_difference(Type& against){
+      except(E_INTERNAL, "find_difference not implemented for tuples");
+    }  
+    bool is_generic(){
+      for(auto m : members){
+        if(m->is_generic())return true;
+      }
+      return false;
+    }
+
+    LLVMType llvm_type(GenericTable gt){
+      std::vector<llvm::Type*> member_types;
+      for(auto m : members){
+        member_types.push_back(m->llvm_type());
+      }
+      auto llty = llvm::StructType::get(*llctx(), member_types);
+      return {llty, self};
+    }
+
+    std::string str(){
+      std::string ret = "tuple:(";
+      bool first = true;
+      for(auto m : members){
+        if(!first)ret+=",";
+        ret+=m->str();
+        first = false;
+      }
+      ret+=")";
+      return ret;
+    }
+
+    bool operator==(Type& compare){
+      auto tup = compare.get<TupleType>();
+      if(!tup)return false;
+      if(tup->members.size() != members.size())return -1;
+      for(unsigned i = 0; i < tup->members.size(); i++){
+        if(*tup->members[i] != *members[i])return false;
+      }
+      return true;
+    }
 };
 
 //
@@ -828,10 +906,7 @@ public:
         auto tptr = target.get<ParameterizedTypeRef>();
         if(!tptr)return -1;
         if(resolves_to->distance_from(*tptr->resolves_to) == -1)return -1;
-        Logger::debug("Distance from: " + tptr->str() + " to " + str());
-        Logger::debug("distance from refs: " + std::to_string(this->resolves_to->distance_from(*tptr->resolves_to)));
         return 0;
-        except(E_INTERNAL, "distance no impl");
     }
 
     void apply_generic_substitution();

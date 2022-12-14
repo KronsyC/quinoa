@@ -71,7 +71,9 @@ public:
             parts.push(*p.ptr);
         }
     }
-
+    LongName(Name n){
+      parts.push(n);
+    }
     LongName(LongName &&) = default;
 
     LongName &operator=(LongName &&to) = default;

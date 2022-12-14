@@ -81,7 +81,14 @@ struct MethodSignature{
     }
 
     bool must_parameterize_return_val(){
-        return return_type->get<StructType>() || return_type->get<DynListType>() || return_type->get<ListType>() || return_type->get<ParameterizedTypeRef>();
+        return is_preallocated_retval(*return_type);
+    }
+
+    static bool is_preallocated_retval(Type& ty){
+      if(auto pt = ty.get<ParameterizedTypeRef>()){
+        return is_preallocated_retval(*pt->resolves_to);
+      }
+      return ty.get<StructType>() || ty.get<DynListType>() || ty.get<ListType>() || ty.get<TupleType>();
     }
 };
 

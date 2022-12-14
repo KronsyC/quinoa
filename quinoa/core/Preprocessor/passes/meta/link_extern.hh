@@ -18,11 +18,16 @@ void link_extern(CompilationUnit &unit) {
         for (auto tag: meta) {
             if (tag->name != "link_extern")continue;
             if (fn->content)except(E_BAD_METADATA, "link_extern method must be a signature");
-            if (tag->arguments.len() != 1)error("link_extern tag expects one string argument");
-            auto &name = tag->arguments[0];
-            if (!dynamic_cast<String *>(&name))error("link_extern expects a string");
-            fn->name->trunc = true;
-            fn->name->member->set_name(name.str().substr(1, name.str().size() - 2));
+            if (tag->arguments.len() > 1)error("link_extern tag expects one string argument");
+            if(tag->arguments.len() == 0){
+              fn->name->trunc = true;
+            }
+            else{
+              auto &name = tag->arguments[0];
+              if (!dynamic_cast<String *>(&name))error("link_extern expects a string");
+              fn->name->trunc = true;
+              fn->name->member->set_name(name.str().substr(1, name.str().size() - 2));
+            }
 
         }
     }

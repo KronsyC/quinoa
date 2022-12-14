@@ -123,6 +123,17 @@ _Type parse_type(std::vector<Token>& toks, Container* container)
         ret = EnumType::get(members, container);
 
     }
+    else if(first.is(TT_l_paren)){
+      pushf(toks, first);
+      auto tuple_content = read_block(toks, IND_parens);
+      auto tuple_members = parse_cst(tuple_content);
+      TypeVec tv;
+      for(auto m : tuple_members){
+        auto type = parse_type(m);
+        tv.push_back(type);
+      }
+      ret = TupleType::get(tv);
+    }
     if(!ret)except(E_BAD_TYPE, "Failed to parse type: " + first.value);
     bool run = true;
     while (toks.size() && run)

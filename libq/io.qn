@@ -1,5 +1,5 @@
-import @syscall;
-
+/* import @sys::file as File; */
+import @sys::posix as posix;
 module IO is Exported{
 
     stdin  : u32 = 0;
@@ -8,10 +8,10 @@ module IO is Exported{
     
 
     func putc(ch:char){
-        syscall::write(stdout, &ch as byte*, 1);
+        posix::write_file(stdout, &ch as byte*, 1);
     }
     func print(message : str) -> i64{
-        let len = syscall::write(
+        let len = posix::write_file(
             stdout,
             message.ptr,
             message.len

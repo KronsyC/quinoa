@@ -87,7 +87,6 @@ MatchRanking rank_method_against_call(Method *method, CallLike *call, bool is_st
 
         // Compare the types of the arg and param
         auto score = arg_t->distance_from(param_t);
-        Logger::debug("Distance from " + arg_t->str() + "  =>  " + param_t.str() + "  :::  " + std::to_string(score));
         if (score == -1) {
             ranking.possible = false;
             break;
