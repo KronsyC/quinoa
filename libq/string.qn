@@ -1,7 +1,6 @@
 import @memory;
 import @lang::internal::error as Err;
 
-
 module String is Exported{
 
     type _ = struct{
@@ -95,7 +94,7 @@ module String is Exported{
 
     func append.String(st : String){
       let first_idx = self.length;
-      /* self.resize_grow(st.len()); */
+      self.resize_grow(st.len());
 
       let i : u64 = 0;
       while(first_idx < self.length){
@@ -110,7 +109,7 @@ module String is Exported{
       let new_size = self.length + by;
 
       if(new_size > self.allocation.len){
-        let new_slice = memory::resize::<u8>(self.allocation, new_size + 2);
+        let new_slice = memory::resize::<u8>(self.allocation, new_size * 2);
 
         self.allocation = new_slice;
       }

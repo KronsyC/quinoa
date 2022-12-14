@@ -61,7 +61,8 @@ module Memory is Exported{
 
     func resize<T>(current_slice : T[], new_len : u64) -> T[] {
 
-
-        return current_slice;
+        let new_ptr = realloc::<T>(current_slice.ptr, new_len);
+        let new_slice = @make_slice::<T>(new_ptr, new_len);
+        return new_slice;
     }
 }
