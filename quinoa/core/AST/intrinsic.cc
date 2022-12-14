@@ -526,12 +526,8 @@ CodegenRule(intr_assign){
 MakesA(intr_size_of, Primitive::get(PR_uint64));
 CodegenRule(intr_size_of){
     auto type = this->type_args[0];
-    auto size = type->llvm_type()->getPrimitiveSizeInBits();
-    auto size_bytes = size / 8;
-
-    // if a type is less than 1 byte (booleans) round up to 1 as that is the size it will end up having
-    if(size_bytes == 0)size_bytes++;
-    return cast(LLVMValue(builder()->getInt64(size_bytes), this->type()), expected);
+    auto size = builder()->GetInsertBlock()->getModule()->getDataLayout().getTypeAllocSize(type->llvm_type());
+    return cast(LLVMValue(builder()->getInt64(size), this->type()), expected);
 }
 
 MakesA(intr_make_slice, DynListType::get(this->type_args[0]));

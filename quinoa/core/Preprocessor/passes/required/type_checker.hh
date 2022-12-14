@@ -7,10 +7,21 @@
 
 void validate_returns(Method &method) {
     auto &return_type = *method.return_type;
+    auto prim = return_type.get<Primitive>();
+    
+    // ensure that non-void functions return a value
+    if(!(prim && prim->is(PR_void))){
+      auto ret_chance = method.content->returns();
+      if(ret_chance == ReturnChance::MAYBE){
+        except(E_BAD_RETURN, "Not all paths in " + method.name->str() + " return a value, expected return type: " + return_type.str());
+      }
+      else if(ret_chance == ReturnChance::NEVER){
+        except(E_BAD_RETURN, "The function " + method.name->str() + " never returns a value, but is expected to return: " + return_type.str());
+      }
+    }
 
     for (auto node: method.content->flatten()) {
         if (auto ret = dynamic_cast<Return *>(node)) {
-            auto prim = return_type.get<Primitive>();
 
             // method is void and returns value
             if (ret->value && prim && prim->kind == PR_void) {

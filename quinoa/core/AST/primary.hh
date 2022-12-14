@@ -247,17 +247,16 @@ public:
 
     ReturnChance returns() {
 
-
+        bool maybe_return = false;
         for (auto item: content) {
-
 
             if (dynamic_cast<ControlFlowJump *>(item.ptr))return ReturnChance::NEVER;
 
-            if (item->returns() == ReturnChance::MAYBE)return ReturnChance::MAYBE;
+            if (item->returns() == ReturnChance::MAYBE)maybe_return = true;
             if (item->returns() == ReturnChance::DEFINITE)return ReturnChance::DEFINITE;
         }
 
-        return ReturnChance::NEVER;
+        return maybe_return ? ReturnChance::MAYBE : ReturnChance::NEVER;
     }
 
     Statement* parent_of(Statement* node){

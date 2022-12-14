@@ -9,7 +9,7 @@ module Vector is Exported{
     func new<T>(size : u64) -> Vector<T>{
       let alloc = memory::alloc::<T>(size);
 
-      Vector::<T>{
+      return Vector::<T>{
         length : size;
         allocation: alloc;
       };
