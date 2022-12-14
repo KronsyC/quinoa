@@ -54,14 +54,14 @@ VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, 
     for(auto type : ast.get_types()){
         if(auto _enum = dynamic_cast<EnumType*>(type->refers_to.get())){
             for(auto member : _enum->get_members()){
-                auto alloc = builder()->CreateAlloca(member.second->getType());
-                builder()->CreateStore(member.second, alloc);
+                auto alloc = new llvm::GlobalVariable(*fn->getParent(), member.second->getType(), false, llvm::GlobalValue::LinkOnceODRLinkage, member.second);
                 auto full_name = type->name->str() + "::" + member.first;
-                vars[full_name] = Variable(type->refers_to, alloc, true);
+                alloc->setName(full_name);
+                vars[full_name] = Variable(type->refers_to, (llvm::AllocaInst*)alloc, true);
 
                 if(type->parent == method->parent){
                     auto local_name = type->name->member->str() + "::" + member.first;
-                    vars[local_name] = Variable(type->refers_to, alloc, true);
+                    vars[local_name] = Variable(type->refers_to, (llvm::AllocaInst*)alloc, true);
                 }
             }
         }

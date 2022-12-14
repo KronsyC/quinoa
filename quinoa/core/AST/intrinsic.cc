@@ -461,7 +461,7 @@ UnaryCodegenRule(intr_sqrt, {
 UnaryCodegenRule(intr_pointer_to, {
 
     // Allocate some stack memory and push the operand into it
-    auto alloc = builder()->CreateAlloca(op_type);
+    auto alloc = create_allocation(op_type, builder()->GetInsertBlock()->getParent());
     builder()->CreateStore(operand, alloc);
 
     return cast( LLVMValue(alloc, Ptr::get(op_type.qn_type)->llvm_type()), expected );

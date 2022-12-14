@@ -187,7 +187,6 @@ std::unique_ptr<Expr> parse_expr(std::vector<Token> toks, Scope *parent)
             if(toks[0].is(TT_op_generic)){
                 generic_args = parse_type_args(toks, true);
             }
-            print_toks(toks);
             if(toks[0].is(TT_l_brace)){
                 
                 _Type typ = TypeRef::get(std::move(name));

@@ -92,7 +92,7 @@ module Posix is Exported{
   func file_permissions(pathname : cstr, mode : u32) -> i32;
 
   #[link_extern "open"]
-  func open_file(pathname : cstr, flags : u32) -> i32;
+  func open_file(pathname : cstr, flags : u32, mode : mode_t) -> i32;
 
   #[link_extern "creat"]
   func create_file(pathname : cstr, mode : mode_t);
