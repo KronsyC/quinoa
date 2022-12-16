@@ -4,6 +4,8 @@
 #include "../AST/compilation_unit.hh"
 #include "../compiler.h"
 #include "./passes/syntactic_sugar.hh"
+#include <cstring>
+#include <llvm/ADT/StringRef.h>
 
 #define ExportTable std::map<std::string, Container*>
 
@@ -26,6 +28,26 @@ std::string gen_rand_unique_str(size_t size) {
     if (includes(used_strings, ret))
         return gen_rand_unique_str(size);
     return ret;
+}
+
+std::string to_encodedstr(std::uint64_t num) {
+    // Convert the number to a string
+    static const char chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    static const unsigned chars_len = sizeof chars / sizeof chars[0];
+    std::uint8_t sections[8];
+    std::memcpy(&sections, &num, sizeof num);
+    std::string ret;
+    for (auto m : sections) {
+        auto idx = m % (chars_len - 1);
+        ret.push_back(chars[idx]);
+    }
+    return ret.substr(0, 5);
+}
+
+std::string hash_path(std::string path, int char_count = 4) {
+    auto hash = llvm::hash_value(path);
+    auto str_hash = to_encodedstr(hash);
+    return str_hash;
 }
 
 void add_prefixes(CompilationUnit& unit, std::string str_prefix) {
@@ -77,7 +99,7 @@ CompilationUnit* construct_ast_from_path(std::string path) {
         cached = std::move(imported_ast);
         apply_syntactic_sugar(*cached);
 
-        auto prefix_hash = gen_rand_unique_str(4);
+        std::string prefix_hash = hash_path(path);
         add_prefixes(*cached, prefix_hash);
 
         auto exports = generate_export_table(*cached);
