@@ -7,10 +7,10 @@
 #include "../include.h"
 
 
-void validate_usage(Scope &scope, std::vector<std::string> declared_vars) {
-    for (auto member: scope.flatten()) {
-        if (member->scope == &scope) {
-            if (auto nest = dynamic_cast<Scope *>(member)) {
+void validate_usage(Block &block, std::vector<std::string> declared_vars) {
+    for (auto member: block.flatten()) {
+        if (member->scope == &block) {
+            if (auto nest = dynamic_cast<Block *>(member)) {
                 validate_usage(*nest, declared_vars);
                 continue;
             }

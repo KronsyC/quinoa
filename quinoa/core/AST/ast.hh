@@ -2,10 +2,7 @@
 
 #include "./include.hh"
 
-
 class ANode {
-public:
+  public:
     virtual ~ANode() = default;
 };
-
-

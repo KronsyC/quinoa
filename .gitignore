@@ -6,3 +6,5 @@ tmp/
 .idea/
 dev/
 .cache/
+**/node_modules/
+remote/

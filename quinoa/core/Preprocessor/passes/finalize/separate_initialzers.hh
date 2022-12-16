@@ -21,12 +21,12 @@ void split_initializers(CompilationUnit &unit) {
                             BIN_assignment);
                     assignment->scope = init->scope;
                     assignment->set_initializing();
-                    int idx = init->scope->content.indexof(init);
+                    int idx = init->block()->content.indexof(init);
                     if (idx == -1)error("Failed to get index of " + init->str());
                     // push the assignment into the context
                     auto &ref = *assignment.release();
-                    init->scope->content.set(idx, ref);
-                    init->scope->content.pushf(*init);
+                    init->block()->content.set(idx, ref);
+                    init->block()->content.pushf(*init);
                 }
             }
         }

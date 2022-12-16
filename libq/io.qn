@@ -2,9 +2,9 @@
 import @sys::posix as posix;
 module IO is Exported{
 
-    stdin  : u32 = 0;
-    stdout : u32 = 1;
-    stderr : u32 = 2;
+    pvt const stdin  : u32 = 0;
+    pvt const stdout : u32 = 1;
+    pvt const stderr : u32 = 2;
     
 
     func putc(ch:char){

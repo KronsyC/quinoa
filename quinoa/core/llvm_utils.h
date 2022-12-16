@@ -8,17 +8,14 @@
 #include <map>
 class Method;
 
-llvm::Function* make_fn(
-	Method &f,
-	llvm::Module *mod,
-	llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage,
-	bool explicitly_generic = false);
-
+llvm::Function* make_fn(Method& f, llvm::Module* mod,
+                        llvm::Function::LinkageTypes linkage =
+                            llvm::Function::LinkageTypes::ExternalLinkage,
+                        bool explicitly_generic = false);
 
 llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* fn);
 
 class Type;
-
 
 typedef std::shared_ptr<Type> _Type;
 typedef std::vector<_Type> TypeVec;
@@ -26,18 +23,15 @@ typedef std::map<std::string, _Type> GenericTable;
 
 class BinaryOperation;
 class LLVMValue;
-class Variable
-{
-public:
+class Variable {
+  public:
     _Type type;
     llvm::AllocaInst* value;
     bool constant = false;
     bool is_initialized = false;
 
-
     Variable() = default;
-    Variable(_Type type, llvm::AllocaInst* value, bool _const = true)
-    {
+    Variable(_Type type, llvm::AllocaInst* value, bool _const = true) {
         this->type = type;
         this->value = value;
         this->constant = _const;
@@ -46,24 +40,22 @@ public:
     LLVMValue as_value();
 };
 
-
 class LLVMType;
 
 #define VariableTable std::map<std::string, Variable>
 
-struct ControlFlowInfo
-{
+struct ControlFlowInfo {
     // The block to jump to after the `break` action is invoked
-    llvm::BasicBlock *breakTo;
+    llvm::BasicBlock* breakTo;
 
     // The block to jump to after the `continue` action is invoked
-    llvm::BasicBlock *continueTo;
+    llvm::BasicBlock* continueTo;
 
     // The block to jump to after the `fallthrough` action is invoked
-    llvm::BasicBlock *fallthroughTo;
+    llvm::BasicBlock* fallthroughTo;
 
     // The block to break to after the inner scope is executed
-    llvm::BasicBlock *exitBlock;
+    llvm::BasicBlock* exitBlock;
 };
 
 llvm::LLVMContext* llctx();

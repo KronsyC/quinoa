@@ -6,187 +6,174 @@
 #include "llvm/Linker/Linker.h"
 #include <string>
 
-
-
-
-llvm::GlobalValue *make_global(
-	Property *prop,						   
-	llvm::Module *mod,
-	llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage
-	)
-{
-	auto type = prop->type->llvm_type();
-	llvm::Constant *const_initializer = nullptr;
-	if (prop->initializer) const_initializer = prop->initializer->const_value(type);
-	else{
+llvm::GlobalValue*
+make_global(Property* prop, llvm::Module* mod,
+            llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage) {
+    auto type = prop->type->llvm_type();
+    llvm::Constant* const_initializer = nullptr;
+    if (prop->initializer)
+        const_initializer = prop->initializer->const_value(type);
+    else {
         except(E_ERR, "Property " + prop->name->str() + " must have an initializer");
     }
-	
-	auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->name->str());
-	return global;
+
+    auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->name->str());
+    return global;
 }
 
-VariableTable generate_variable_table(llvm::Function *fn, CompilationUnit &ast, Method *method)
-{
-	if (fn == nullptr)
-		except(E_INTERNAL, "Cannot varify the args of a null function");
-	VariableTable vars;
+void inject_variable_definitions(Method& fn, llvm::Function* ll_fn) {
 
-	// Inject the peer properties as non-prefixed variables
-	for (auto prop : method->parent->get_properties())
-	{
-		auto prop_name = prop->name->member->str();
-		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
-		vars[prop_name] = Variable(prop->type, init);
-	}
+    if (auto ty = fn.get_target_type()) {
+        auto arg = ll_fn->getArg(fn.must_parameterize_return_val() ? 1 : 0);
+        auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "self");
+        builder()->CreateStore(arg, alloc);
+        fn.scope->decl_new_variable("self", ReferenceType::get(ty), false);
+        fn.scope->get_var("self").value = alloc;
+    }
 
+    int diff = fn.acts_upon ? 1 : 0;
+    if (fn.must_parameterize_return_val())
+        diff++;
 
+    for (unsigned int i = 0; i < fn.parameters.len(); i++) {
+        auto& param = fn.parameters[i];
+        auto arg = ll_fn->getArg(i + diff);
+        auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "!" + arg->getName().str());
 
-	// Inject all properties as full variables
-	for (auto prop : ast.get_properties())
-	{
-		auto prop_name = prop->name->str();
-		auto init = (llvm::AllocaInst *)fn->getParent()->getGlobalVariable(prop->name->str());
-		vars[prop_name] = Variable(prop->type, init);
-	}
+        builder()->CreateStore(arg, alloc);
 
-    // Inject All Enum Members as variables
-    for(auto type : ast.get_types()){
-        if(auto _enum = dynamic_cast<EnumType*>(type->refers_to.get())){
-            for(auto member : _enum->get_members()){
-                auto alloc = new llvm::GlobalVariable(*fn->getParent(), member.second->getType(), false, llvm::GlobalValue::LinkOnceODRLinkage, member.second);
-                auto full_name = type->name->str() + "::" + member.first;
-                alloc->setName(full_name);
-                vars[full_name] = Variable(type->refers_to, (llvm::AllocaInst*)alloc, true);
+        fn.scope->decl_new_variable(param.name.str(), param.type, true);
+        fn.scope->get_var(param.name.str()).value = alloc;
+    }
+}
 
-                if(type->parent == method->parent){
-                    auto local_name = type->name->member->str() + "::" + member.first;
-                    vars[local_name] = Variable(type->refers_to, (llvm::AllocaInst*)alloc, true);
-                }
+void inject_module_definitions(Container& cont) {
+    // Create external defintions for all global values
+    for (auto m : cont.parent->get_containers()) {
+        // Dont predeclare self
+        if (m == &cont)
+            continue;
+
+        // Dont predeclare non-depended modules
+        bool is_dep = false;
+        for (auto& [_, a] : cont.aliases) {
+            if (m->full_name().str() == a.str()) {
+                is_dep = true;
+                break;
             }
+        }
+        if (!is_dep)
+            continue;
+
+        for (auto dec : m->member_decls) {
+            if (!dec.is_public)
+                continue;
+            auto name = m->name->str() + "::" + dec.name;
+            Logger::debug("Declaring " + name);
+
+            auto global = new llvm::GlobalVariable(cont.get_mod(), dec.type->llvm_type(), dec.is_constant,
+                                                   llvm::GlobalValue::LinkOnceODRLinkage, nullptr, name);
+            cont.scope->decl_new_variable(name, dec.type);
+            cont.scope->get_var(name).value = (llvm::AllocaInst*)global;
         }
     }
 
-    if(auto ty = method->get_target_type()){
-        auto arg = fn->getArg( method->must_parameterize_return_val() ? 1 : 0);
-        auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "self");
-        builder()->CreateStore(arg, alloc);
-        vars["self"] = Variable(Ptr::get(ty), alloc);
+    // Create local defintions
+    for (auto def : cont.member_decls) {
+        Logger::debug("Declaring " + def.name + " locally");
+        auto name = def.name;
+        auto global_name = cont.name->str() + "::" + name;
+
+        auto glob = new llvm::GlobalVariable(cont.get_mod(), def.type->llvm_type(), def.is_constant,
+                                             def.is_public ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
+                                                           : llvm::GlobalValue::LinkageTypes::PrivateLinkage,
+                                             def.initializer, global_name);
+
+        cont.scope->decl_new_variable(name, def.type);
+        cont.scope->decl_new_variable(global_name, def.type);
+        cont.scope->get_var(name).value = (llvm::AllocaInst*)glob;
+        cont.scope->get_var(global_name).value = (llvm::AllocaInst*)glob;
     }
-
-	// Inject the args as variables
-
-    //TODO: add the get_parameter_offset function as doing this repeatedly is bound to create bugs if new features are added
-    int diff = method->acts_upon ? 1 : 0;
-    if(method->must_parameterize_return_val())diff++;
-
-	for (unsigned int i = 0; i < method->parameters.len(); i++)
-	{
-		auto& param = method->parameters[i];
-		auto arg = fn->getArg(i+diff);
-		auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "!" + arg->getName().str());
-
-		builder()->CreateStore(arg, alloc);
-		vars[param.name.str()] = Variable(param.type, alloc);
-	}
-
-	return vars;
 }
 
-void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, bool allow_generic = false){
-    if(fn->is_generic() && !allow_generic)return;
+void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, bool allow_generic = false) {
+    if (fn->is_generic() && !allow_generic)
+        return;
 
     auto fname = fn->source_name();
     auto ll_fn = ll_mod->getFunction(fname);
-    if (ll_fn == nullptr)
-    {
-    ll_mod->print(llvm::outs(), nullptr);
+    if (ll_fn == nullptr) {
+        ll_mod->print(llvm::outs(), nullptr);
         except(E_MISSING_FUNCTION, "Function " + fname + " could not be found");
     }
-    if(ll_fn->getBasicBlockList().size()){
-      return;
+    if (ll_fn->getBasicBlockList().size()) {
+        return;
     }
     auto entry_block = llvm::BasicBlock::Create(*llctx(), "entry_block", ll_fn);
 
     builder()->SetInsertPoint(entry_block);
-    auto vars = generate_variable_table(ll_fn, ast, fn);
-
-    for(auto g : fn->generic_params){
-        Logger::debug(">\t" + g->name->str() + " >< " + g->temporarily_resolves_to->str());  
-    }
-    fn->content->generate(fn, ll_fn, vars, {});
+    inject_variable_definitions(*fn, ll_fn);
+    std::map<std::string, Variable> tmp;
+    fn->content->generate(fn, ll_fn, tmp, {});
 
     auto retc = fn->content->returns();
-    if (ll_fn->getReturnType()->isVoidTy() && (retc == ReturnChance::NEVER || retc == ReturnChance::MAYBE || fn->must_parameterize_return_val()))
+    if (ll_fn->getReturnType()->isVoidTy() &&
+        (retc == ReturnChance::NEVER || retc == ReturnChance::MAYBE || fn->must_parameterize_return_val()))
         builder()->CreateRetVoid();
 }
-std::unique_ptr<llvm::Module> generate_module(Container &mod, CompilationUnit &ast)
-{
-  Logger::debug("GENERATE MODULE: " + mod.full_name().str());
-	if(mod.type != CT_MODULE)except(E_INTERNAL, "cannot generate non-module container");
-	auto llmod = std::make_unique<llvm::Module>(mod.name->str(), *llctx());
+void generate_module(Container& mod, CompilationUnit& ast) {
+    Logger::debug("GENERATE MODULE: " + mod.full_name().str());
+    inject_module_definitions(mod);
+    if (mod.type != CT_MODULE)
+        except(E_INTERNAL, "cannot generate non-module container");
 
-	// Write hoisted definitions
-	for(auto hoist : ast.get_hoists()){
-		if(auto method = dynamic_cast<Method*>(hoist)){
-			make_fn(*method, llmod.get());
-		}
-		else if(auto prop = dynamic_cast<Property*>(hoist)){
-			make_global(prop, llmod.get());
-		}
-		else except(E_INTERNAL, "Attempt to hoist unrecognized node");
-	}
+    // Write hoisted definitions
+    for (auto hoist : ast.get_hoists()) {
+        if (auto method = dynamic_cast<Method*>(hoist)) {
+            make_fn(*method, &mod.get_mod());
+        } else if (auto prop = dynamic_cast<Property*>(hoist)) {
+            make_global(prop, &mod.get_mod());
+        } else
+            except(E_INTERNAL, "Attempt to hoist unrecognized node");
+    }
 
-  // Pass one: concrete functions
-	for(auto method : mod.get_methods()){
-        if(method->generic_params.size())continue;
-        if(!method->content || !method->content->content.len())continue;
-        generate_method(method, ast, llmod.get());
-	}
-
-	return llmod;
+    // Pass one: concrete functions
+    for (auto method : mod.get_methods()) {
+        if (method->generic_params.size())
+            continue;
+        if (!method->content || !method->content->content.len())
+            continue;
+        generate_method(method, ast, &mod.get_mod());
+    }
 }
-llvm::Module *Codegen::codegen(CompilationUnit &ast)
-{
-	auto rootmod = new llvm::Module("Quinoa Program", *llctx());
-	std::vector<TopLevelEntity*> definitions;
+llvm::Module* Codegen::codegen(CompilationUnit& ast) {
+    auto rootmod = new llvm::Module("Quinoa Program", *llctx());
+    std::vector<TopLevelEntity*> definitions;
 
+    // Generate all the modules, and link them into the root module
 
-
-	// Generate all the modules, and link them into the root module
-  
-  std::vector<std::unique_ptr<llvm::Module>> mods;
-  std::map<Container*, llvm::Module*> container_module_mappings;
-
-	for(auto container : ast.get_containers()){
-        if(container->type != CT_MODULE)continue;
-        auto generated_mod = generate_module(*container, ast);
-        container_module_mappings[container] = generated_mod.get();
-        mods.push_back(std::move(generated_mod));
-	}
-
-  while(auto impl = ast.get_next_impl()){
-
-    Logger::debug("######### GENERATING GENERIC IMPL FOR " + impl->target->source_name());
-    Logger::debug("Generic Arguments:");
-    for(auto a : impl->substituted_method_type_args){
-      Logger::debug("\t> " + a->str());
+    for (auto container : ast.get_containers()) {
+        if (container->type != CT_MODULE)
+            continue;
+        generate_module(*container, ast);
     }
-    Logger::debug("Target Arguments:");
-    for(auto a : impl->substituted_target_type_args){
-      Logger::debug("\t> " + a->str());
+
+    while (auto impl = ast.get_next_impl()) {
+
+        impl->target->apply_generic_substitution(impl->substituted_method_type_args,
+                                                 impl->substituted_target_type_args);
+
+        make_fn(*impl->target, &impl->target->parent->get_mod(), llvm::GlobalValue::ExternalLinkage, true);
+        generate_method(impl->target, ast, &impl->target->parent->get_mod(), true);
+
+        impl->target->undo_generic_substitution();
+        impl->has_impl = true;
     }
-    impl->target->apply_generic_substitution(impl->substituted_method_type_args, impl->substituted_target_type_args);
 
-    make_fn(*impl->target, container_module_mappings[impl->target->parent], llvm::GlobalValue::ExternalLinkage, true);
-    generate_method(impl->target, ast, container_module_mappings[impl->target->parent], true);
-
-    impl->target->undo_generic_substitution();
-    impl->has_impl = true;
-  }
-  
-  for(auto& mod : mods){
-   llvm::Linker::linkModules(*rootmod, std::move(mod));
-  }
-	return rootmod;
+    for (auto c : ast.get_containers()) {
+        if (auto mod = c->take_mod()) {
+            llvm::Linker::linkModules(*rootmod, std::move(mod));
+        }
+    }
+    return rootmod;
 }

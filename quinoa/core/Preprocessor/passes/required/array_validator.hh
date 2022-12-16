@@ -14,7 +14,7 @@ void validate_array_literals(CompilationUnit &unit) {
         for(auto code : method->content->flatten()){
             if(auto literal = dynamic_cast<ArrayLiteral*>(code)){
 
-                auto parent_node = literal->scope->parent_of(literal);
+                auto parent_node = literal->block()->parent_of(literal);
                 if(!parent_node)except(E_INTERNAL, "List literal without parent node: " + literal->str());
 
                 auto initializer = dynamic_cast<InitializeVar*>(parent_node);

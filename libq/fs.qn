@@ -3,7 +3,7 @@ import @string;
 import @lang::internal::error as Err;
 module FS is Exported{
 
-    DEFAULT_PERMISSIONS : u32 = 404;
+    pvt const DEFAULT_PERMISSIONS : u32 = 404;
 
     type OpenOptions = struct{
       read   : bool;

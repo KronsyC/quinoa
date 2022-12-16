@@ -20,7 +20,7 @@ if(DEBUG)
 endif()
 
 add_compile_options(-fdiagnostics-color=always)
-add_compile_options(-O1)
+add_compile_options(-O0)
 
 llvm_map_components_to_libnames(llvm_libs support core irreader linker mcjit native)
 
