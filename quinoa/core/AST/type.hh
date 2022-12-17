@@ -898,7 +898,7 @@ class Generic : public Type {
         if (temporarily_resolves_to)
             return temporarily_resolves_to->str();
         else
-            return "GENERIC:" + name->str();
+            return name->str();
     }
 
     std::pair<Type&, Type&> find_difference(Type& against) {

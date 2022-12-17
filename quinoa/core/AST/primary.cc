@@ -133,3 +133,33 @@ void Block::generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, C
         child->generate(qn_fn, func, vars, CFI);
     }
 }
+
+std::string Method::signature() {
+    std::string ret = name->str();
+
+    if (this->generic_params.size()) {
+        ret.push_back('<');
+        bool first = true;
+        for (auto g : generic_params) {
+            if (!first)
+                ret += ", ";
+            ret += g->name->str();
+            first = false;
+        }
+        ret.push_back('>');
+    }
+    bool first = true;
+    ret += "(";
+    for (auto p : parameters) {
+        if (!first)
+            ret += ", ";
+        ret += p->name.str() + " : " + p->type->str();
+        first = false;
+    }
+    ret += ") -> " + return_type->str();
+
+    if (acts_upon) {
+        ret += "\033[0;3m ( on " + acts_upon->str() + ")\033[0;0m";
+    }
+    return ret;
+}

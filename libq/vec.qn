@@ -1,4 +1,5 @@
 import @memory;
+import @lang::internal::error as Err;
 module Vector is Exported{
 
   type _<T> = struct{
@@ -10,7 +11,7 @@ module Vector is Exported{
       let alloc = memory::alloc::<T>(size);
 
       return Vector::<T>{
-        length : size;
+        length : 0;
         allocation: alloc;
       };
     }
@@ -32,20 +33,18 @@ module Vector is Exported{
 
     func resize_grow.Vector<T>(by : u64){
       // Grow at a rate of 2n 
-      let new_size = self.allocation.len + by;
+      let new_size = self.length + by;
 
       if(new_size <= self.allocation.len){
         self.length = new_size;
-        return;
       }
-      let new_alloc_size = new_size * 2;
+      else{
+        let new_alloc_size = new_size * 2;
 
-      /* let ns_str = strconv::from_int(new_alloc_size); */
-      /* io::println(ns_str.allocation); */
-
-      let new_alloc = memory::resize::<T>(self.allocation, new_alloc_size);
-      self.allocation = new_alloc;
-      self.length = new_size;
+        let new_alloc = memory::resize::<T>(self.allocation, new_alloc_size);
+        self.allocation = new_alloc;
+        self.length = new_size;
+      }
     }
     func resize_shrink.Vector<T>(by : u64){
 
@@ -53,5 +52,14 @@ module Vector is Exported{
   
     func append.Vector<T>(val : T){
       self.resize_grow(1);
+      self.allocation[self.length - 1] = val;
+    }
+
+    func index.Vector<T>(idx : u64) -> T{
+      // ensure idx is within the bounds of the array
+      if(idx >= self.len()){
+        Err::panic("Vector access index out of bounds");
+      }
+      return self.allocation[idx];
     }
 }

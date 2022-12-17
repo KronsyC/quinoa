@@ -174,24 +174,6 @@ class Method : public MethodSignature, public ContainerMember {
         }
         return name;
     }
-
-    bool is_equivalent_to(Method* method) {
-
-        // basic checks (extremely strict, possibly lax this in the future)
-        if (name->member->str() != method->name->member->str())
-            return false;
-        if (generic_params.size() != method->generic_params.size())
-            return false;
-        if (parameters.len() != method->parameters.len())
-            return false;
-
-        // type-related checks
-        if (return_type->distance_from(*method->return_type) < 0)
-            return false;
-        for (size_t i = 0; i < parameters.len(); i++) {
-            if (parameters[i].type->distance_from(*method->parameters[i].type) < 0)
-                return false;
-        }
-        return true;
-    }
+    // Similar to source_name, but intended for user-friendly error messages
+    std::string signature();
 };

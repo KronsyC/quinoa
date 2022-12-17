@@ -285,6 +285,10 @@ class MethodCallOnType : public CallLike {
         }
 
         auto cot = call_on->type();
+        if (auto ref = cot->get<ReferenceType>()) {
+            cot = ref->of;
+        }
+        Logger::debug("Call on expr: " + call_on->str() + " of type: " + cot->str());
         if (auto ptref = cot->get<ParameterizedTypeRef>()) {
             ptref->apply_generic_substitution();
             target->apply_generic_substitution(this->type_args, ptref->params);

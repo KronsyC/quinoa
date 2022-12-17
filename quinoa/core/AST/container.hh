@@ -124,14 +124,6 @@ class Container : public TopLevelEntity {
         return ret;
     }
 
-    bool implements_compatible_method(Method* check_against) {
-        for (auto method : this->get_methods()) {
-            auto is_equiv = method->is_equivalent_to(check_against);
-            if (is_equiv)
-                return true;
-        }
-        return false;
-    }
     llvm::Module& get_mod() {
         if (ll_mod)
             return *ll_mod;
