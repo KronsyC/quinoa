@@ -135,6 +135,7 @@ void Block::generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, C
 }
 
 std::string Method::signature() {
+    Logger::debug("IM " + std::to_string((unsigned long long)this));
     std::string ret = name->str();
 
     if (this->generic_params.size()) {

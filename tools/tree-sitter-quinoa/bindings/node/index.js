@@ -1,11 +1,11 @@
 try {
-  module.exports = require("../../build/Release/tree_sitter_Quinoa_binding");
+  module.exports = require("../../build/Release/tree_sitter_quinoa_binding");
 } catch (error1) {
   if (error1.code !== 'MODULE_NOT_FOUND') {
     throw error1;
   }
   try {
-    module.exports = require("../../build/Debug/tree_sitter_Quinoa_binding");
+    module.exports = require("../../build/Debug/tree_sitter_quinoa_binding");
   } catch (error2) {
     if (error2.code !== 'MODULE_NOT_FOUND') {
       throw error2;

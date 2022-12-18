@@ -34,18 +34,13 @@ class Conditional : public Statement {
         return ret;
     }
 
-    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars,
-                  ControlFlowInfo CFI) {
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) {
 
-        auto eval_if = condition->llvm_value(
-            vars, Primitive::get(PR_boolean)->llvm_type());
+        auto eval_if = condition->llvm_value(vars, Primitive::get(PR_boolean)->llvm_type());
         auto true_block = llvm::BasicBlock::Create(*llctx(), "if_true", func);
-        auto false_block =
-            if_false ? llvm::BasicBlock::Create(*llctx(), "if_false", func)
-                     : llvm::BasicBlock::Create(*llctx(), "if_cont", func);
-        auto cont_block =
-            if_false ? llvm::BasicBlock::Create(*llctx(), "if_cont", func)
-                     : false_block;
+        auto false_block = if_false ? llvm::BasicBlock::Create(*llctx(), "if_false", func)
+                                    : llvm::BasicBlock::Create(*llctx(), "if_cont", func);
+        auto cont_block = if_false ? llvm::BasicBlock::Create(*llctx(), "if_cont", func) : false_block;
 
         builder()->CreateCondBr(eval_if, true_block, false_block);
 
@@ -116,15 +111,11 @@ class While : public Statement {
         return ret;
     }
 
-    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars,
-                  ControlFlowInfo CFI) {
+    void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) {
 
-        auto eval_block =
-            llvm::BasicBlock::Create(*llctx(), "while_eval", func);
-        auto exec_block =
-            llvm::BasicBlock::Create(*llctx(), "while_exec", func);
-        auto cont_block =
-            llvm::BasicBlock::Create(*llctx(), "while_cont", func);
+        auto eval_block = llvm::BasicBlock::Create(*llctx(), "while_eval", func);
+        auto exec_block = llvm::BasicBlock::Create(*llctx(), "while_exec", func);
+        auto cont_block = llvm::BasicBlock::Create(*llctx(), "while_cont", func);
 
         CFI.breakTo = cont_block;
         CFI.continueTo = eval_block;
@@ -133,8 +124,7 @@ class While : public Statement {
         builder()->CreateBr(eval_block);
 
         builder()->SetInsertPoint(eval_block);
-        auto br_if = condition->llvm_value(
-            vars, Primitive::get(PR_boolean)->llvm_type());
+        auto br_if = condition->llvm_value(vars, Primitive::get(PR_boolean)->llvm_type());
         builder()->CreateCondBr(br_if, exec_block, cont_block);
 
         builder()->SetInsertPoint(exec_block);
@@ -153,9 +143,7 @@ class While : public Statement {
         return ret;
     }
 
-    std::string str() {
-        return "while( " + condition->str() + ")" + execute->str();
-    }
+    std::string str() { return "while( " + condition->str() + ")" + execute->str(); }
 
     bool is_container() { return true; }
 

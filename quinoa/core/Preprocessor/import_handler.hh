@@ -67,7 +67,9 @@ void add_prefixes(CompilationUnit& unit, std::string str_prefix) {
 void resolve_aliased_symbols(CompilationUnit& unit, LongName& alias, LongName& replace_with) {
 
     for (const auto& cont : unit.get_containers()) {
-        // if(cont->is_imported)continue;
+        if (cont->is_imported)
+            continue;
+
         cont->aliases[alias.str()] = LongName(replace_with);
     }
 }

@@ -4,7 +4,7 @@ import @lang::internal::error as Err;
 module String is Exported{
 
     type _ = struct{
-        allocation : char[];
+        allocation : []char;
         length     : u64;
     };
 
@@ -13,8 +13,9 @@ module String is Exported{
       return from_bytes(data); 
     }
 
-    func from_bytes(data : char[]) -> String{
-      let raw_bytes = memory::alloc::<char>(data.len); 
+    func from_bytes(data : []char) -> String{
+    
+    let raw_bytes = memory::alloc::<char>(data.len); 
 
       let idx : u64 = 0;
       while(idx < data.len){
@@ -46,7 +47,7 @@ module String is Exported{
     }
 
   
-    func to_cstr.String() -> char[]{
+    func to_cstr.String() -> []char{
       // Allocate a slice with one byte more than the string's
       // copy the string content into the slice
       // write a 0 into the last slot of the slice
@@ -61,7 +62,7 @@ module String is Exported{
     }
 
 
-    func copy_bytes_into.String(slice : char[]){
+    func copy_bytes_into.String(slice : []char){
       if(slice.len < self.length){
         Err::panic("Failed to copy bytes from string: target slice smaller than string content");
       }

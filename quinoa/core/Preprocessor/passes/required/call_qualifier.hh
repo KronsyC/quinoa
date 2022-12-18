@@ -51,7 +51,7 @@ struct MatchRanking {
 /*
  * Create a ranking object based on the method-call pairing
  */
-MatchRanking rank_method_against_call(Method* method, CallLike* call, bool is_static = true,
+MatchRanking rank_method_against_call(Method* method, CallLike* call, Container* call_parent, bool is_static = true,
                                       TypeVec target_type_args = {}) {
 
     if (!method)
@@ -64,6 +64,23 @@ MatchRanking rank_method_against_call(Method* method, CallLike* call, bool is_st
         return MatchRanking();
     else if (!method->acts_upon && !is_static)
         return MatchRanking();
+
+    // Ignore private methods
+    if (method->local_only && call_parent != method->parent)
+        return MatchRanking();
+
+    if (call_parent != method->parent) {
+        bool is_within_scope = false;
+        for (auto& a : call_parent->aliases) {
+            Logger::debug(a.second.str() + " vs " + method->parent->full_name().str());
+            if (a.second.str() == method->parent->full_name().str()) {
+                is_within_scope = true;
+                // break;
+            }
+        }
+        if (!is_within_scope)
+            return MatchRanking();
+    }
 
     // Compare parameter counts (if applicable)
     if (!method->is_variadic()) {
@@ -123,6 +140,8 @@ select_best_ranked_method(std::vector<MatchRanking>& ranks, SelectionStage stage
         if (suitors.size() == 0) {
             std::vector<std::string> errors;
             for (auto r : ranks) {
+                if (!r.against)
+                    continue;
                 errors.emplace_back("    Could not match with " + r.against->signature());
                 for (auto e : r.errors)
                     errors.push_back("    | " + e);
@@ -232,7 +251,7 @@ std::vector<MatchRanking> get_rankings(MethodCall* call, Container* cont) {
 
     std::vector<MatchRanking> ranks;
     for (auto method : methods) {
-        auto rank = rank_method_against_call(method, call);
+        auto rank = rank_method_against_call(method, call, cont);
         ranks.push_back(rank);
     }
     return ranks;
@@ -288,7 +307,7 @@ std::vector<MatchRanking> get_rankings(MethodCallOnType* call, Container* cont) 
     std::vector<MatchRanking> ranks;
     for (auto method : methods) {
 
-        auto rank = rank_method_against_call(method, call, false, type_args);
+        auto rank = rank_method_against_call(method, call, cont, false, type_args);
         ranks.push_back(rank);
     }
 

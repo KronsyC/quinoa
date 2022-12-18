@@ -8,7 +8,7 @@ module IO is Exported{
     
 
     func putc(ch:char){
-        posix::write_file(stdout, &ch as byte*, 1);
+        posix::write_file(stdout, &ch as *byte, 1);
     }
     func print(message : str) -> i64{
         let len = posix::write_file(

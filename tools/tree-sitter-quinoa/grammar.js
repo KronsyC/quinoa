@@ -2,29 +2,34 @@ const type_import = require("./type.js")
 const expr_import = require("./expr.js")
 const stmn_import = require("./statement.js")
 module.exports = grammar({
-  name : "Quinoa",
+  name: "quinoa",
 
-  extras : $ => [
+  extras: $ => [
     " ",
     "\t",
     "\n",
     "\r",
-    /\/\/.*\n/
+    $.comment,
   ],
 
-  word : $ => $.name,
-  rules : {
-    source_file : $ => repeat($._definition),
+  word: $ => $.name,
+  rules: {
+    source_file: $ => repeat($._definition),
 
-    _definition : $ => choice(
+    comment: $ => choice($.oneline_comment, $.multiline_comment),
+    oneline_comment: $ => /\/\/.*\n/,
+    multiline_comment: $ => /\/\*(.|\n)*\*\//,
+
+
+    _definition: $ => choice(
       $.import_definition,
       $.module_definition,
     ),
 
-    import_definition : $ => seq(
+    import_definition: $ => seq(
       "import",
-      optional( "@" ), // stdlib
-      $.long_name,
+      optional("@"), // stdlib
+      $.identifier,
       optional(
         seq(
           "as",
@@ -36,16 +41,16 @@ module.exports = grammar({
 
     module_definition: $ => seq(
       "module",
-      $.name,
+      field("mod_name", $.name),
       optional(
         seq(
           "is",
-          $.long_name,
+          $.identifier,
           optional(
             repeat(
               seq(
                 ",",
-                $.long_name
+                $.identifier
               )
             )
           )
@@ -53,23 +58,23 @@ module.exports = grammar({
       ),
 
       "{",
-      optional( $.module_content ),
+      optional($.module_content),
       "}"
     ),
-    name : $ => /[_a-zA-Z][_a-zA-Z0-9]{0,30}/,
-    
-    long_name: $ => prec( 200, seq(
-      $.name,
-        repeat(
-          seq(
-            "::",
-            $.name
-          )
+    name: $ => /[_a-zA-Z][_a-zA-Z0-9]*/,
+
+    long_name: $ => prec(200, seq(
+      field("root", $.name),
+      repeat1(
+        seq(
+          "::",
+          field("inner", $.name)
         )
+      )
 
     )),
 
-
+    identifier: $ => choice($.name, $.long_name),
     // TYPES
     ...type_import,
 
@@ -79,29 +84,43 @@ module.exports = grammar({
     // STATEMENTS
     ...stmn_import,
 
-    module_member : $ => choice(
-      $.module_field_definiton,
-      $.module_type_definition,
-      $.module_function_definition
+    module_member: $ => seq(
+      repeat($.metadata),
+      optional("pvt"),
+      choice(
+        $.module_field_definition,
+        $.module_type_definition,
+        $.module_function_definition
+
+      )
     ),
 
-    module_content : $ => seq(
+    module_content: $ => seq(
       $.module_member,
-      repeat( $.module_member )
+      repeat($.module_member)
     ),
 
+
+    metadata: $ => seq(
+      "#[",
+      $.name,
+      repeat(
+        $._literal
+      ),
+      "]"
+    ),
 
     module_type_definition: $ => seq(
       "type",
-      $.name,
+      field("type_name", $.name),
       optional(
         seq(
           "<",
           $.type,
           repeat(
             seq(
-            ",",
-            $.type
+              ",",
+              $.type
             )
           ),
           ">"
@@ -111,9 +130,9 @@ module.exports = grammar({
       $.type,
       ";"
     ),
-    module_field_definiton: $ => seq(
+    module_field_definition: $ => seq(
       optional("const"),
-      $.name,
+      field("field_name", $.name),
       ":",
       $.type,
       "=",
@@ -121,7 +140,7 @@ module.exports = grammar({
       ";"
     ),
 
-    function_parameter : $ => seq(
+    function_parameter: $ => seq(
       $.name,
       ":",
       $.type
@@ -129,7 +148,21 @@ module.exports = grammar({
 
     function_signature: $ => seq(
       "func",
-      $.name,
+      field("name", $.name),
+      optional(
+        seq(
+          "<",
+          optional(
+            seq(
+              $.id_type,
+              repeat(
+                seq(
+                  ",",
+                  $.id_type,)
+              )
+            )),
+          ">",)
+      ),
       optional(
         seq(
           ".",
@@ -139,21 +172,21 @@ module.exports = grammar({
       "(",
       optional(
         seq(
-          $.function_parameter,
+          field("parameter", $.function_parameter),
           repeat(
             seq(
-            ",",
-            $.function_parameter
-          ))
+              ",",
+              field("parameter", $.function_parameter)
+            ))
         )
       ),
       ")",
-      optional(
+      field("return_type", optional(
         seq(
           "->",
           $.type,
         )
-      )
+      ))
     ),
 
     module_function_definition: $ => choice(

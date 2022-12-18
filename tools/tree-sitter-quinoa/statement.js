@@ -5,14 +5,15 @@ module.exports = {
     seq($.return, ";"),
     seq($.declaration, ";"),
     $.if_loop,
-    $.while_loop
-    
+    $.while_loop,
+    $.control_flow
+
   ),
 
-
-  return : $ => seq(
+  control_flow: $ => choice("break", "continue"),
+  return: $ => seq(
     "return",
-    optional( $.expr ),
+    optional($.expr),
   ),
 
   declaration: $ => seq(
@@ -32,16 +33,24 @@ module.exports = {
     )
   ),
 
-  if_loop : $ => seq(
+  if_loop: $ => seq(
     "if",
     "(",
     $.expr,
     ")",
     "{",
     repeat($.statement),
-    "}"
+    "}",
+    optional(
+      seq(
+        "else",
+        "{",
+        repeat($.statement),
+        "}"
+      )
+    )
   ),
-  while_loop : $ => seq(
+  while_loop: $ => seq(
     "while",
     "(",
     $.expr,

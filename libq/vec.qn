@@ -4,7 +4,7 @@ module Vector is Exported{
 
   type _<T> = struct{
     length     : u64;
-    allocation : T[];
+    allocation : []T;
   };
 
     func new<T>(size : u64) -> Vector<T>{

@@ -26,7 +26,8 @@ module Posix is Exported{
   type blksize_t = i64;
   type blkcnt_t  = i64;
   type time_t    = i64;
-  type cstr      = char*;
+  type cstr      = *char;
+  type buf       = *byte;
 
   //
   // FILE AND DIRECTORY RELATED FUNCTIONS
@@ -42,7 +43,7 @@ module Posix is Exported{
   type File      = struct{};
 
   #[link_extern "getcwd"]
-  func get_cwd(buf: cstr, buf_len: u64) -> char*;
+  func get_cwd(buf: cstr, buf_len: u64) -> cstr;
 
   #[link_extern "mkdir"]
   func make_dir(path_name: cstr, mode: mode_t) -> i32;
@@ -63,7 +64,7 @@ module Posix is Exported{
   func rename_file(old_path : cstr, new_path : cstr) -> i32;
 
   #[link_extern "stat"]
-  func file_stat(file_name : cstr, buf : FileStats*) -> i32;
+  func file_stat(file_name : cstr, buf : *FileStats) -> i32;
 
   #[link_extern "chmod"]
   func file_chmod(file_name : cstr, mode : mode_t) -> i32;
@@ -72,16 +73,16 @@ module Posix is Exported{
   func file_chown(file_name : cstr, owner : uid_t, group : gid_t) -> i32;
 
   #[link_extern "utime"]
-  func utime(file_name : cstr, buf : UTimeBuf*) -> i32;
+  func utime(file_name : cstr, buf : *UTimeBuf) -> i32;
 
   #[link_extern "opendir"]
-  func open_dir(name : cstr) -> Directory*;
+  func open_dir(name : cstr) -> *Directory;
 
   #[link_extern "closedir"]
-  func close_dir(dir : Directory*) -> i32;
+  func close_dir(dir : *Directory) -> i32;
 
   #[link_extern "rewinddir"]
-  func rewind_dir(dir : Directory*);
+  func rewind_dir(dir : *Directory);
 
 
   //
@@ -101,16 +102,16 @@ module Posix is Exported{
   func close_file(fd : i32) -> i32;
 
   #[link_extern "read"]
-  func read_file(fd : i32, buffer : byte*, read_count : u64) -> i64;
+  func read_file(fd : i32, buffer : buf, read_count : u64) -> i64;
 
   #[link_extern "write"]
-  func write_file(fd : i32, buffer : byte*, write_count : u64) -> i64;
+  func write_file(fd : i32, buffer : buf, write_count : u64) -> i64;
 
   #[link_extern "fcntl"]
   func fcntl(fd : i32, cmd : i32) -> i32;
 
   #[link_extern "fstat"]
-  func file_stat(fd : i32, buf : FileStats*) -> i32;
+  func file_stat(fd : i32, buf : *FileStats) -> i32;
 
   #[link_extern "lseek"]
   func file_rw_offset(fd : i32, offset : off_t, whence : i32) -> off_t;
@@ -122,7 +123,7 @@ module Posix is Exported{
   func dup_file(old_fd : i32, new_fd : i32) -> i32;
 
   #[link_extern "pipe"]
-  func create_pipe(filedes : i32[2]) -> i32;
+  func create_pipe(filedes : [2]i32) -> i32;
 
   #[link_extern "mkfifo"]
   func create_fifo_pipe(path_name : cstr, mode : mode_t) -> i32;
@@ -132,10 +133,10 @@ module Posix is Exported{
 
 
   #[link_extern "fdopen"]
-  func open_fd(fd : i32, mode : cstr) -> File*;
+  func open_fd(fd : i32, mode : cstr) -> *File;
 
   #[link_extern "fileno"]
-  func get_file_fd(stream : File*) -> i32;
+  func get_file_fd(stream : *File) -> i32;
 
   //
   // PROCESSES
@@ -147,19 +148,19 @@ module Posix is Exported{
   // since quinoa does not support c-style var-args
   
   #[link_extern "execv"]
-  func exec(path : cstr, args : cstr*) -> i32;
+  func exec(path : cstr, args : *cstr) -> i32;
 
   #[link_extern "execve"]
-  func exec_env(path_name : cstr, argv : cstr*, envp : cstr*) -> i32;
+  func exec_env(path_name : cstr, argv : *cstr, envp : *cstr) -> i32;
 
   #[link_extern "execvp"]
-  func exec_path(path_name : cstr, argv : cstr*) -> i32;
+  func exec_path(path_name : cstr, argv : *cstr) -> i32;
 
   #[link_extern "execvpe"]
-  func exec_path_env(file : cstr, argv : cstr*, envp : cstr*) -> i32;
+  func exec_path_env(file : cstr, argv : *cstr, envp : *cstr) -> i32;
 
   #[link_extern "waitpid"]
-  func process_wait(pid : pid_t, status : i32*, options : i32) -> pid_t;
+  func process_wait(pid : pid_t, status : *i32, options : i32) -> pid_t;
 
   #[link_extern "_exit"]
   func process_exit(status : i32);
@@ -182,6 +183,5 @@ module Posix is Exported{
   #[link_extern "setgid"]
   func set_gid(gid : gid_t) -> i32;
 
-  // TODO: Implement the "Long Jumps"
 
 }

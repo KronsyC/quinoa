@@ -425,9 +425,8 @@ class MemberAccess : public Expr {
                 except(E_BAD_MEMBER_ACCESS, "slices only have the properties 'len' and 'ptr'");
         }
 
-        except(
-            E_INTERNAL,
-            "You may only access members of a container type (structs, slices, arrays), but the type was found to be: " +
-                left_t->str());
+        except(E_INTERNAL,
+               "You may only access members of a container type (structs, slices, arrays), but the operand '" +
+                   member_of->str() + "' was found to be of type: " + left_t->str());
     }
 };
