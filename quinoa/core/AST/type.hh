@@ -65,17 +65,10 @@ class Type : public ANode {
         // so we do not have to impl a
         // custom hashing fn for each type
         // TODO: optimize
-        static std::vector<T> keys;
-        static std::vector<std::shared_ptr<T>> values;
-        auto idx = indexof(keys, obj);
-        if (idx == -1) {
-            auto alloc = std::make_shared<T>(obj);
-            keys.push_back(obj);
-            values.push_back(alloc);
-            alloc->self = alloc;
-            return alloc;
-        }
-        return values[idx];
+
+        auto ref = std::make_shared<T>(obj);
+        ref->self = ref;
+        return ref;
     }
 };
 
@@ -207,7 +200,7 @@ class Ptr : public Type {
 
     bool operator==(Type& against) {
         if (auto k = against.get<Ptr>()) {
-            return k->of == of;
+            return *k->of == *of;
         }
         return false;
     }
@@ -260,7 +253,7 @@ class ReferenceType : public Type {
 
     bool operator==(Type& against) {
         if (auto k = against.get<ReferenceType>()) {
-            return k->of == of;
+            return *k->of == *of;
         }
         return false;
     }
@@ -325,19 +318,11 @@ class DynListType : public Type {
 
     static std::shared_ptr<DynListType> get(_Type of) { return create_heaped(DynListType(of)); }
 
-    LLVMType llvm_type(GenericTable gen_table = {}) {
-        auto struct_ty = llvm::StructType::get(
-            *llctx(),
-            {
-                builder()->getInt64Ty(),                                                // Size of the slice
-                llvm::ArrayType::get(this->of->llvm_type(gen_table), 0)->getPointerTo() // Slice Elements
-            });
-        return {struct_ty, this->self};
-    }
+    LLVMType llvm_type(GenericTable gen_table = {});
 
     bool operator==(Type& against) {
         if (auto k = against.get<DynListType>()) {
-            return k->of == of;
+            return *k->of == *of;
         }
         return false;
     }
@@ -484,17 +469,27 @@ class TupleType : public Type {
 //
 class UnionType : public ParentAwareType {
   public:
-    // TODO: Implement this
+    std::map<std::string, _Type> members;
+
+    // UnionType(std::map<std::string, _Type> members) { this->members = members; }
+    // // TODO: Implement this
+
+    // static std::shared_ptr<UnionType> get(std::map<std::string, _Type> members) {
+    //     return create_heaped<UnionType>(members);
+    // }
+
+    // std::string str() { return "union:" + this->get_name(); }
 };
 
 class StructType : public ParentAwareType {
   public:
     std::map<std::string, _Type> members;
-
-    StructType(std::map<std::string, _Type> members, Container* cont) {
+    std::vector<std::string> ordered_members;
+    StructType(std::map<std::string, _Type> members, std::vector<std::string> ordered_members, Container* cont) {
 
         this->members = members;
         this->parent = cont;
+        this->ordered_members = ordered_members;
     }
 
     bool is_generic() {
@@ -522,33 +517,26 @@ class StructType : public ParentAwareType {
 
     int member_idx(std::string name) {
         int i = 0;
-        for (auto m : members) {
-            if (m.first == name)
+        for (auto m : ordered_members) {
+            if (m == name)
                 return i;
             i++;
         }
         return -1;
     }
 
-    static std::shared_ptr<StructType> get(std::map<std::string, _Type> members, Container* cont) {
-        return create_heaped(StructType(members, cont));
+    static std::shared_ptr<StructType> get(std::map<std::string, _Type> members,
+                                           std::vector<std::string> ordered_members, Container* cont) {
+        return create_heaped(StructType(members, ordered_members, cont));
     }
 
-    int distance_from(Type& target) {
-        auto tstruc = target.get<StructType>();
-        if (!tstruc)
-            return -1;
-        if (tstruc == this)
-            return 0;
-
-        except(E_INTERNAL, "distance between: " + str() + " and " + target.str());
-    }
+    int distance_from(Type& target) { return *this == target ? 0 : -1; }
 
     bool operator==(Type& against) {
         auto st = against.get<StructType>();
         if (!st)
             return false;
-        return st->members == members && parent == st->parent;
+        return getself() == st->getself();
     }
     std::map<std::vector<llvm::Type*>, llvm::StructType*> type_cache;
 
@@ -560,7 +548,7 @@ class StructType : public ParentAwareType {
             cloned_members[m_name] = m_ty->clone();
         }
 
-        auto strct = StructType::get(cloned_members, parent);
+        auto strct = StructType::get(cloned_members, this->ordered_members, parent);
         strct->self_ptr = this->getself();
         return strct;
     }
@@ -749,7 +737,10 @@ class ParameterizedTypeRef : public Type {
             if (p->is_generic())
                 return true;
         }
-        return resolves_to->is_generic();
+        this->apply_generic_substitution();
+        auto is_g = this->resolves_to->is_generic();
+        this->undo_generic_substitution();
+        return is_g;
     }
 
     _Type clone() {
@@ -789,12 +780,15 @@ class ParameterizedTypeRef : public Type {
     _Type pointee() { return resolves_to ? resolves_to->pointee() : _Type(nullptr); }
 
     static std::shared_ptr<ParameterizedTypeRef> get(_Type resolves_to, TypeVec params) {
-        return create_heaped(ParameterizedTypeRef(resolves_to, params));
+        auto ref = std::make_shared<ParameterizedTypeRef>(resolves_to, params);
+        ref->self = ref;
+        return ref;
     }
     LLVMType llvm_type(GenericTable generics) {
         // return the substituted version of the child
         this->apply_generic_substitution();
         auto ll_ty = resolves_to->clone()->llvm_type();
+        ll_ty.qn_type = self->clone();
         this->undo_generic_substitution();
         return ll_ty;
     }
@@ -803,16 +797,9 @@ class ParameterizedTypeRef : public Type {
         auto apt = against.get<ParameterizedTypeRef>();
         if (!apt)
             return false;
-        if (apt->resolves_to != this->resolves_to)
-            return false;
-        if (apt->params.size() != this->params.size())
-            return false;
 
-        for (unsigned int i = 0; i < apt->params.size(); i++) {
-            if (apt->params[i] != this->params[i])
-                return false;
-        }
-        return true;
+        // FIXME: This is awful comparison
+        return this->params.size() == apt->params.size();
     }
 
     std::pair<Type&, Type&> find_difference(Type& against) {
@@ -822,14 +809,7 @@ class ParameterizedTypeRef : public Type {
         return {*this, against};
     }
 
-    int distance_from(Type& target) {
-        auto tptr = target.get<ParameterizedTypeRef>();
-        if (!tptr)
-            return -1;
-        if (resolves_to->distance_from(*tptr->resolves_to) == -1)
-            return -1;
-        return 0;
-    }
+    int distance_from(Type& target) { return *this == target ? 0 : -1; }
 
     void apply_generic_substitution();
     void undo_generic_substitution();
@@ -856,7 +836,6 @@ class Generic : public Type {
         else {
 
             if (auto ret = gen_table[this->name->str()]) {
-                Logger::debug("Load generic type from gen_table");
                 return ret->llvm_type(gen_table);
             }
 

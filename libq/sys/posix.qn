@@ -15,7 +15,7 @@ module Posix is Exported{
   // Commonly used aliases in libc
   // nolibc/std.h
   //
-  type dev_t     = u32;
+  type dev_t     = u64;
   type ino_t     = u64;
   type mode_t    = u32;
   type pid_t     = i32;
@@ -29,15 +29,37 @@ module Posix is Exported{
   type cstr      = *char;
   type buf       = *byte;
 
+  const SEEK_SET : i32 = 0;
+  const SEEK_END : i32 = 1;
+  const SEEK_CUR : i32 = 2;
+
   //
   // FILE AND DIRECTORY RELATED FUNCTIONS
   //
 
-  // POSIX does not ensure any
-  // struct ordering, so they
-  // must be accessed through
-  // opaque pointers
-  type FileStats = struct{};
+
+  type timespec = struct{
+    sec  : i64;
+    usec : i64;
+  };
+
+  type FileStats = struct{
+    dev : u64;
+    ino : u64;
+    nlink: u64;
+    mode: u32;
+    uid: u32;
+    gid: u32;
+    __pad0: i32;
+    rdev: u64;
+    size: i64;
+    blksize: i64;
+    blocks: i64;
+    atim  : timespec;
+    mtim  : timespec;
+    ctim  : timespec;
+    __glibc_reserved : [3]i64; 
+  };
   type UTimeBuf  =  struct{};
   type Directory = struct{};
   type File      = struct{};
@@ -114,7 +136,7 @@ module Posix is Exported{
   func file_stat(fd : i32, buf : *FileStats) -> i32;
 
   #[link_extern "lseek"]
-  func file_rw_offset(fd : i32, offset : off_t, whence : i32) -> off_t;
+  func seek_file(fd : i32, offset : off_t, whence : i32) -> off_t;
 
   #[link_extern "dup"]
   func dup_file(fd : i32) -> i32;

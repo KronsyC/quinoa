@@ -92,10 +92,7 @@ class SourceVariable : public Name, public Expr {
         return cast(value, expected_type);
     }
 
-    LLVMValue assign_ptr(VariableTable& vars) {
-        auto& var = scope->get_var(name->str());
-        return var.as_value();
-    }
+    LLVMValue assign_ptr(VariableTable& vars);
 
     _Type get_type() {
         if (!scope)
@@ -135,8 +132,9 @@ class ContainerMemberRef : public Reference {
     }
     std::string mangle_str() {
         auto mem_name = member->str();
-        if (trunc || !container)
+        if (trunc || !container) {
             return mem_name;
+        }
         auto con_name = container->mangle_str();
         return con_name + "::" + mem_name;
     }

@@ -1,6 +1,8 @@
 import @sys::file as File;
 import @string;
 import @lang::internal::error as Err;
+
+
 module FS is Exported{
 
     pvt const DEFAULT_PERMISSIONS : u32 = 404;
@@ -75,17 +77,17 @@ module FS is Exported{
       
       let cstr = path.to_cstr();
       
-      let fd = libc_open_file(cstr.ptr, flags, options.permissions);
+      let fd = posix::open_file(cstr.ptr, flags, options.permissions);
 
       if(fd < 0){
-        Err::panic("Failed to open file");
+        let msg = string::from("Failed to open file: ");
+        msg.append(path);
+        Err::panic(msg.allocation);
       } 
 
       return File::from_descriptor(fd as u32);
     }
 
 
-    #[link_extern "open"]
-    func libc_open_file(name: char*, flags: u32, mode: u32) -> i32;
 
 }

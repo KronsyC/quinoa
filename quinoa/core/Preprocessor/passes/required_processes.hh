@@ -5,6 +5,7 @@
 #include "./required/array_validator.hh"
 #include "./required/call_qualifier.hh"
 #include "./required/compositor_resolver.hh"
+#include "./required/identifier_resolver.hh"
 #include "./required/type_checker.hh"
 #include "./required/type_ref_resolver.hh"
 #include "./required/type_resolver.hh"
@@ -72,6 +73,7 @@ MaybeError apply_method_processes(Method& fn) {
 void process_required(CompilationUnit* unit) {
     resolve_compositors(*unit);
     resolve_type_references(*unit);
+    resolve_identifiers(*unit);
     build_type_table(*unit);
     std::vector<std::string> error_messages;
 

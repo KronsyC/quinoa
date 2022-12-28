@@ -91,8 +91,6 @@ class UnaryOperation : public Expr {
         case PRE_bitwise_not:
             ret(Not, none);
         case PRE_star: {
-            if (!operand->type()->get<Ptr>())
-                except(E_BAD_OPERAND, "Cannot dereference non-ptr operand");
             auto value = operand->llvm_value(vars);
             return value.load();
         }
@@ -359,7 +357,6 @@ class MemberAccess : public Expr {
                    "Cannot access members of non-struct: " + retrv_t.qn_type->str() + "\n\t\tIn Expression: " + str());
 
         auto idx = strct_t->member_idx(member_name->str());
-
         auto ptr = builder()->CreateStructGEP(strct_t->llvm_type(), strct, idx);
         return {ptr, LLVMType(Ptr::get(type()))};
     }

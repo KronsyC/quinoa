@@ -38,7 +38,7 @@ class LLVMType {
 
     operator bool() const { return is_explicitly_constructed; }
 
-    operator llvm::Type*() const;
+    operator llvm::Type*();
     llvm::Type* get_type() const;
 
   private:
@@ -205,7 +205,7 @@ class Scope {
     }
     virtual ~Scope() = default;
     void decl_new_variable(std::string name, _Type type, bool is_constant = false);
-    Variable& get_var(std::string name);
+    Variable* get_var(std::string name);
 
     std::map<std::string, Variable> vars;
     std::map<std::string, _Type> type_table;

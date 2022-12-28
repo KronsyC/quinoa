@@ -1,7 +1,7 @@
-// #include "./type.hh"
-#include "type.hh"
+#include "./type.hh"
 #include "./container.hh"
 #include "./container_member.hh"
+#include "type.hh"
 #include <memory>
 
 LLVMType get_common_type(LLVMType t1, LLVMType t2, bool repeat) {
@@ -88,33 +88,38 @@ GenericTable ParameterizedTypeRef::get_mapped_params() {
 
         table[arg_name] = arg_type;
     }
-
-    for (auto entry : table) {
-        Logger::debug(entry.first + " => " + entry.second->str());
-    }
     return table;
 }
-
-static std::map<std::vector<llvm::Type*>, LLVMType> struct_cache;
 LLVMType StructType::llvm_type(GenericTable gen_table) {
+
+    static std::map<std::pair<std::string, Container*>, LLVMType> type_cache;
+    auto& mod = get_active_container();
     auto substituted_struct = self->get<StructType>();
+    auto name = "struct:" + substituted_struct->get_name();
+    if (type_cache.contains({name, nullptr}))
+        return type_cache[{name, nullptr}];
 
     if (!substituted_struct)
         except(E_INTERNAL, "(bug) substituted variant of a struct was found to NOT be a struct");
 
-    std::vector<llvm::Type*> member_types;
-    for (auto member : substituted_struct->members) {
-        auto ll_ty = member.second->llvm_type(gen_table);
+    if (substituted_struct->members.empty()) {
+        return LLVMType{llvm::PointerType::getUnqual(*llctx()), substituted_struct->self};
+    }
+    std::vector<LLVMType> member_types;
+    for (auto member : substituted_struct->ordered_members) {
+        auto type = substituted_struct->members[member];
+        auto ll_ty = type->llvm_type(gen_table);
         member_types.push_back(ll_ty);
     }
 
-    if (auto& st = struct_cache[member_types])
-        return st;
+    std::vector<llvm::Type*> conv_mems;
+    for (auto m : member_types) {
+        conv_mems.push_back(m);
+    }
 
-    auto ll_ty = llvm::StructType::create(*llctx(), member_types, "struct:" + substituted_struct->get_name());
-
+    auto ll_ty = llvm::StructType::create(*llctx(), conv_mems, name);
     LLVMType ret{ll_ty, substituted_struct->self};
-    struct_cache[member_types] = ret;
+    type_cache[{name, nullptr}] = ret;
     return ret;
 }
 
@@ -200,4 +205,21 @@ int ListType::distance_from(Type& target) {
     if (lt->size->value != this->size->value)
         return -1;
     return this->of->distance_from(*lt->of);
+}
+
+LLVMType DynListType::llvm_type(GenericTable gen_table) {
+    auto src_name = "slice:" + this->of->str();
+    auto& cont = get_active_container();
+    for (auto t : cont.get_mod().getIdentifiedStructTypes()) {
+        if (t->getName() == src_name) {
+            return {t, self};
+        }
+    }
+    auto struct_ty = llvm::StructType::get(
+        *llctx(),
+        {
+            builder()->getInt64Ty(),                                                // Size of the slice
+            llvm::ArrayType::get(this->of->llvm_type(gen_table), 0)->getPointerTo() // Slice Elements
+        });
+    return {struct_ty, this->self};
 }

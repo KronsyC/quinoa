@@ -4,7 +4,7 @@
 #include <llvm/IR/GlobalVariable.h>
 
 void declare(Container& cont, std::string name, _Type type, bool is_global) {
-    auto long_name = cont.name->str() + "::" + name;
+    auto long_name = cont.full_name().str() + "::" + name;
     cont.scope->set_type(name, type);
 
     if (is_global) {
@@ -38,6 +38,7 @@ void build_method_type_table(Method& fn) {
 
 void build_container_type_table(Container& cont) {
     // Properties
+    set_active_container(cont);
     for (auto prop : cont.get_properties()) {
         Logger::debug("Init prop: " + prop->name->str());
         auto init = prop->initializer->const_value(prop->type->llvm_type());

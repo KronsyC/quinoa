@@ -9,8 +9,7 @@
 class Method;
 
 llvm::Function* make_fn(Method& f, llvm::Module* mod,
-                        llvm::Function::LinkageTypes linkage =
-                            llvm::Function::LinkageTypes::ExternalLinkage,
+                        llvm::Function::LinkageTypes linkage = llvm::Function::LinkageTypes::ExternalLinkage,
                         bool explicitly_generic = false);
 
 llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* fn);
@@ -67,3 +66,6 @@ LLVMValue cast_explicit(LLVMValue val, LLVMType type);
 LLVMType getCommonType(LLVMType t1, LLVMType t2);
 
 bool isInt(LLVMType t);
+class Container;
+void set_active_container(Container& cont);
+Container& get_active_container();

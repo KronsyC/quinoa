@@ -7,6 +7,10 @@ import @string;
 module StrConv is Exported{
 
   func from_int(number : u64) -> string{
+    if(number == 0){
+      return string::from("0");
+    }
+    const ASCII_ZERO = 48;
     let char_count = @log10(number as f64) as u64 + 1;
     let val = string::new(char_count);
 
@@ -15,7 +19,7 @@ module StrConv is Exported{
       let divisor = @pow(10, char_count - 1 as u32) as u64;
 
       let digit = number % (divisor * 10) / divisor;
-      val.append_char(48 + (digit as char));
+      val.append_char(ASCII_ZERO + (digit as char));
 
       char_count--;
     }

@@ -4,10 +4,12 @@ module Error is Exported{
 
     #[link_extern "exit"]
     func exit(code : u8);
-
+    #[link_extern "abort"]
+    func abort();
     func panic(message : str){
         io::print("\x1B[0;31mpanic: \x1B[0;0m");
         io::println(message);
+        abort();
         exit(22);
     }
 

@@ -32,7 +32,7 @@ module.exports = {
   literal_str: $ => /\"(\\.|[^"\\])*\"/,
 
   entity: $ => choice(
-    seq("(", $.expr, ")", ".", $.name),
+    seq("(", $.expr, ")"),
     seq($.entity, ".", $.name),
     $.identifier,
     seq($.entity, "[", $.expr, "]"),

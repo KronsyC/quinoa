@@ -1,25 +1,10 @@
 #include "./codegen.hh"
-
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Linker/Linker.h"
 #include <string>
-
-llvm::GlobalValue*
-make_global(Property* prop, llvm::Module* mod,
-            llvm::GlobalValue::LinkageTypes linkage = llvm::GlobalValue::LinkageTypes::LinkOnceAnyLinkage) {
-    auto type = prop->type->llvm_type();
-    llvm::Constant* const_initializer = nullptr;
-    if (prop->initializer)
-        const_initializer = prop->initializer->const_value(type);
-    else {
-        except(E_ERR, "Property " + prop->name->str() + " must have an initializer");
-    }
-
-    auto global = new llvm::GlobalVariable(*mod, type, false, linkage, const_initializer, prop->name->str());
-    return global;
-}
 
 void inject_variable_definitions(Method& fn, llvm::Function* ll_fn) {
 
@@ -28,7 +13,7 @@ void inject_variable_definitions(Method& fn, llvm::Function* ll_fn) {
         auto alloc = builder()->CreateAlloca(arg->getType(), nullptr, "self");
         builder()->CreateStore(arg, alloc);
         fn.scope->decl_new_variable("self", ReferenceType::get(ty), false);
-        fn.scope->get_var("self").value = alloc;
+        fn.scope->get_var("self")->value = alloc;
     }
 
     int diff = fn.acts_upon ? 1 : 0;
@@ -43,7 +28,7 @@ void inject_variable_definitions(Method& fn, llvm::Function* ll_fn) {
         builder()->CreateStore(arg, alloc);
 
         fn.scope->decl_new_variable(param.name.str(), param.type, true);
-        fn.scope->get_var(param.name.str()).value = alloc;
+        fn.scope->get_var(param.name.str())->value = alloc;
     }
 }
 
@@ -68,21 +53,19 @@ void inject_module_definitions(Container& cont) {
         for (auto dec : m->member_decls) {
             if (!dec.is_public)
                 continue;
-            auto name = m->name->str() + "::" + dec.name;
-            Logger::debug("Declaring " + name);
+            auto name = m->full_name().str() + "::" + dec.name;
 
             auto global = new llvm::GlobalVariable(cont.get_mod(), dec.type->llvm_type(), dec.is_constant,
                                                    llvm::GlobalValue::LinkOnceODRLinkage, nullptr, name);
             cont.scope->decl_new_variable(name, dec.type);
-            cont.scope->get_var(name).value = (llvm::AllocaInst*)global;
+            cont.scope->get_var(name)->value = (llvm::AllocaInst*)global;
         }
     }
 
     // Create local defintions
     for (auto def : cont.member_decls) {
-        Logger::debug("Declaring " + def.name + " locally");
         auto name = def.name;
-        auto global_name = cont.name->str() + "::" + name;
+        auto global_name = cont.full_name().str() + "::" + name;
 
         auto glob = new llvm::GlobalVariable(cont.get_mod(), def.type->llvm_type(), def.is_constant,
                                              def.is_public ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
@@ -91,8 +74,8 @@ void inject_module_definitions(Container& cont) {
 
         cont.scope->decl_new_variable(name, def.type);
         cont.scope->decl_new_variable(global_name, def.type);
-        cont.scope->get_var(name).value = (llvm::AllocaInst*)glob;
-        cont.scope->get_var(global_name).value = (llvm::AllocaInst*)glob;
+        cont.scope->get_var(name)->value = (llvm::AllocaInst*)glob;
+        cont.scope->get_var(global_name)->value = (llvm::AllocaInst*)glob;
     }
 }
 
@@ -100,6 +83,7 @@ void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, boo
     if (fn->is_generic() && !allow_generic)
         return;
 
+    set_active_container(*fn->parent);
     auto fname = fn->source_name();
     auto ll_fn = ll_mod->getFunction(fname);
     if (ll_fn == nullptr) {
@@ -117,24 +101,19 @@ void generate_method(Method* fn, CompilationUnit& ast, llvm::Module* ll_mod, boo
     fn->content->generate(fn, ll_fn, tmp, {});
 
     auto retc = fn->content->returns();
-    if (ll_fn->getReturnType()->isVoidTy() &&
-        (retc == ReturnChance::NEVER || retc == ReturnChance::MAYBE || fn->must_parameterize_return_val()))
+    if (ll_fn->getReturnType()->isVoidTy() && (retc == ReturnChance::NEVER || retc == ReturnChance::MAYBE))
         builder()->CreateRetVoid();
 }
 void generate_module(Container& mod, CompilationUnit& ast) {
-    Logger::debug("GENERATE MODULE: " + mod.full_name().str());
+    set_active_container(mod);
     inject_module_definitions(mod);
     if (mod.type != CT_MODULE)
         except(E_INTERNAL, "cannot generate non-module container");
-
     // Write hoisted definitions
     for (auto hoist : ast.get_hoists()) {
         if (auto method = dynamic_cast<Method*>(hoist)) {
             make_fn(*method, &mod.get_mod());
-        } else if (auto prop = dynamic_cast<Property*>(hoist)) {
-            make_global(prop, &mod.get_mod());
-        } else
-            except(E_INTERNAL, "Attempt to hoist unrecognized node");
+        }
     }
 
     // Pass one: concrete functions
@@ -175,5 +154,6 @@ llvm::Module* Codegen::codegen(CompilationUnit& ast) {
             llvm::Linker::linkModules(*rootmod, std::move(mod));
         }
     }
+    llvm::verifyModule(*rootmod);
     return rootmod;
 }

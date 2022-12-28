@@ -555,7 +555,7 @@ CodegenRule(intr_assign) {
     auto& value = args[1];
     // Assert that the variable type and value type are equal
 
-    if (value.type()->llvm_type() != variable_type)
+    if (*value.type()->llvm_type().qn_type != *variable_type.qn_type)
         except(E_BAD_ASSIGNMENT, "Assigned type: " + value.type()->str() +
                                      " does not match the container type: " + variable_type.qn_type->str());
 
@@ -579,8 +579,6 @@ CodegenRule(intr_size_of) {
 
 MakesA(intr_make_slice, DynListType::get(this->type_args[0]));
 CodegenRule(intr_make_slice) {
-    Logger::debug("Make Slice: " + str() + " of type " + this->type()->str());
-    Logger::debug("ty: " + this->type_args[0]->str());
     auto internal_ptr = this->args[0].llvm_value(vars, Ptr::get(this->type_args[0])->llvm_type());
     auto element_count = this->args[1].llvm_value(vars, Primitive::get(PR_uint64)->llvm_type());
 

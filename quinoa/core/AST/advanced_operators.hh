@@ -115,7 +115,6 @@ class MethodCall : public CallLike {
         target->apply_generic_substitution(this->type_args, {});
         auto call = create_call(vars, {});
 
-        Logger::debug("Created Call, casting to: " + (expected_type ? expected_type.qn_type->str() : "?"));
         auto result = cast(call, expected_type);
         target->undo_generic_substitution();
         return result;
@@ -232,7 +231,6 @@ class MethodCallOnType : public CallLike {
 
     LLVMValue llvm_value(VariableTable& vars, LLVMType expected_type = {}) {
 
-        Logger::debug("Calling method of type: " + this->call_on->type()->str());
         auto ptr = call_on->assign_ptr(vars);
         auto tmp_ref_count = deref_count;
         while (tmp_ref_count) {
@@ -288,7 +286,6 @@ class MethodCallOnType : public CallLike {
         if (auto ref = cot->get<ReferenceType>()) {
             cot = ref->of;
         }
-        Logger::debug("Call on expr: " + call_on->str() + " of type: " + cot->str());
         if (auto ptref = cot->get<ParameterizedTypeRef>()) {
             ptref->apply_generic_substitution();
             target->apply_generic_substitution(this->type_args, ptref->params);
@@ -310,13 +307,12 @@ class Return : public Statement {
 
     void generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, ControlFlowInfo CFI) {
         if (value) {
-            Logger::debug("fn returns: " + qn_fn->return_type->str());
-            Logger::debug("Return: " + value->type()->str());
             auto return_value = value->llvm_value(vars, qn_fn->return_type);
 
             if (qn_fn->must_parameterize_return_val()) {
                 auto write_to = func->getArg(0);
                 builder()->CreateStore(return_value, write_to);
+                builder()->CreateRetVoid();
             } else {
                 builder()->CreateRet(return_value);
             }
@@ -381,7 +377,7 @@ class InitializeVar : public Statement {
         auto alloc = create_allocation(ll_type, func);
         alloc->setName(name);
         scope->decl_new_variable(name, type);
-        scope->get_var(name).value = alloc;
+        scope->get_var(name)->value = alloc;
 
         // vars[name] = Variable(type, alloc, is_constant);
     }
@@ -542,7 +538,6 @@ class StructInitialization : public AllocatingExpr {
             auto init_ll_value = init_value->llvm_value(vars, key_type);
 
             auto idx = struct_ty->member_idx(key_name);
-
             auto member_ptr = builder()->CreateStructGEP(struct_ty->llvm_type(), alloc, idx);
 
             builder()->CreateStore(init_ll_value, member_ptr);
@@ -615,6 +610,7 @@ class Subscript : public Expr {
             return {ep, ptr_to_element};
 
         } else if (tgt_ty->get<DynListType>()) {
+            tgt_ll_ty->print(llvm::outs());
             auto len_ptr = builder()->CreateStructGEP(tgt_ll_ty, ptr, 0);
             auto len = builder()->CreateLoad(builder()->getInt64Ty(), len_ptr);
 
@@ -625,7 +621,6 @@ class Subscript : public Expr {
 
             auto item_ptr = builder()->CreateGEP(arr->getType()->getPointerElementType(), arr, {zero, idx});
 
-            item_ptr->print(llvm::outs());
             return {item_ptr, ptr_to_element};
 
         } else if (ptr->getType()->getPointerElementType()->isPointerTy()) {

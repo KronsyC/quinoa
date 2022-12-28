@@ -127,35 +127,15 @@ _Type parse_type(std::vector<Token>& toks, Container* container) {
         auto entries = parse_tst(struct_content, TT_semicolon);
 
         std::map<std::string, _Type> fields;
+        std::vector<std::string> field_order;
         for (auto entry : entries) {
             auto field_name = pope(entry, TT_identifier).value;
             pope(entry, TT_colon);
             auto field_type = parse_type(entry);
-
+            field_order.push_back(field_name);
             fields[field_name] = field_type;
         }
-        return wrapify(StructType::get(fields, container));
-    } else if (first.is(TT_trait)) {
-
-        if (!container)
-            except(E_BAD_TYPE, "Struct types may only be declared as members of a container");
-        auto struct_content = read_block(toks, IND_braces);
-        if (struct_content.size()) {
-            expects(struct_content[struct_content.size() - 1], TT_semicolon);
-            struct_content.pop_back();
-        }
-
-        auto entries = parse_tst(struct_content, TT_semicolon);
-
-        std::map<std::string, _Type> fields;
-        for (auto entry : entries) {
-            auto field_name = pope(entry, TT_identifier).value;
-            pope(entry, TT_colon);
-            auto field_type = parse_type(entry);
-
-            fields[field_name] = field_type;
-        }
-        return wrapify(StructType::get(fields, container));
+        return wrapify(StructType::get(fields, field_order, container));
     } else if (first.is(TT_enum)) {
         if (!container)
             except(E_BAD_TYPE, "Enum types may only be declared as members of a container");

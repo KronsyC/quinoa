@@ -24,13 +24,24 @@ bool LLVMType::is_signed() {
     return false;
 }
 
-LLVMType::operator llvm::Type*() const { return get_type(); }
+LLVMType::operator llvm::Type*() { return get_type(); }
+
+LLVMValue SourceVariable::assign_ptr(std::map<std::string, Variable>& vars) {
+    auto var = scope->get_var(name->str());
+    if (!var)
+        except(E_ERR, "Failed to read variable: " + name->str());
+    return var->as_value();
+}
 
 llvm::Type* LLVMType::get_type() const {
     if (!is_explicitly_constructed)
         except(E_INTERNAL, "Attempted to get type of implcitly constructed LLVMType");
-    if (!cached_type)
-        return qn_type->llvm_type();
+    if (!cached_type) {
+        auto llty = qn_type->llvm_type();
+        if (!llty)
+            except(E_INTERNAL, "Failed to get llvm_type for type: " + qn_type->str());
+        return llty;
+    }
     return cached_type;
 }
 LLVMValue LLVMValue::load() {
@@ -66,7 +77,7 @@ std::string ContainerRef::mangle_str() {
         except(E_INTERNAL, "cannot generate mangle_str from unresolved module member");
     return this->refers_to->full_name().str();
 }
-bool LLVMType::operator==(LLVMType& other) const { return other.qn_type->drill() == qn_type->drill(); }
+bool LLVMType::operator==(LLVMType& other) const { return *other.qn_type->drill() == *qn_type->drill(); }
 
 std::vector<Type*> Block::flatten_types() {
     std::vector<Type*> ret;
@@ -85,13 +96,13 @@ void Scope::decl_new_variable(std::string name, _Type type, bool is_constant) {
     this->type_table[name] = type;
 }
 
-Variable& Scope::get_var(std::string name) {
+Variable* Scope::get_var(std::string name) {
     if (vars.contains(name))
-        return vars[name];
+        return &vars[name];
     else if (parent_scope)
         return parent_scope->get_var(name);
     else
-        except(E_BAD_VAR, "Failed to read variable: " + name);
+        return nullptr;
 }
 
 _Type Container::get_type(std::string name) {
@@ -135,7 +146,6 @@ void Block::generate(Method* qn_fn, llvm::Function* func, VariableTable& vars, C
 }
 
 std::string Method::signature() {
-    Logger::debug("IM " + std::to_string((unsigned long long)this));
     std::string ret = name->str();
 
     if (this->generic_params.size()) {

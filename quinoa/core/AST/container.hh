@@ -14,6 +14,8 @@
 #include "./include.hh"
 #include "./reference.hh"
 #include "./type.hh"
+#include <llvm/IR/LLVMContext.h>
+#include <memory>
 
 class CompilationUnit;
 
@@ -125,9 +127,12 @@ class Container : public TopLevelEntity {
     }
 
     llvm::Module& get_mod() {
+        if (!ll_ctx)
+            ll_ctx = std::make_unique<llvm::LLVMContext>();
         if (ll_mod)
             return *ll_mod;
-        auto mod = std::make_unique<llvm::Module>(this->full_name().str(), *llctx());
+        auto ctx = std::make_unique<llvm::LLVMContext>();
+        auto mod = std::make_unique<llvm::Module>(this->full_name().str(), *ll_ctx);
         this->ll_mod = std::move(mod);
         return *ll_mod;
     }
@@ -138,8 +143,17 @@ class Container : public TopLevelEntity {
             except(E_INTERNAL, "Container has no llvm module");
         }
     }
+    llvm::IRBuilder<>& get_builder() {
+        this->get_mod();
+        if (builder)
+            return *builder;
+        this->builder = std::make_unique<llvm::IRBuilder<>>(*ll_ctx);
+        return *this->builder;
+    }
 
   private:
     std::shared_ptr<ContainerRef> self_ref;
     std::unique_ptr<llvm::Module> ll_mod;
+    static inline std::unique_ptr<llvm::LLVMContext> ll_ctx;
+    std::unique_ptr<llvm::IRBuilder<>> builder;
 };

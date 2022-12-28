@@ -20,17 +20,13 @@ class ArrayLiteral : public Expr {
     }
     void write_to(LLVMValue alloc, VariableTable& vars) {
         if (!alloc->getType()->getPointerElementType()->isArrayTy())
-            except(
-                E_BAD_ASSIGNMENT,
-                "You can only write an array literal to a list typed variable");
+            except(E_BAD_ASSIGNMENT, "You can only write an array literal to a list typed variable");
 
-        auto tgt_member_t =
-            LLVMType(alloc.type.qn_type->pointee()->get<ListType>()->of);
+        auto tgt_member_t = LLVMType(alloc.type.qn_type->pointee()->get<ListType>()->of);
 
         int idx = 0;
         for (auto member : members) {
-            auto ep = builder()->CreateConstGEP2_32(
-                alloc->getType()->getPointerElementType(), alloc, 0, idx);
+            auto ep = builder()->CreateConstGEP2_32(alloc->getType()->getPointerElementType(), alloc, 0, idx);
             auto val = member->llvm_value(vars, tgt_member_t);
             builder()->CreateStore(val, ep);
             idx++;
@@ -40,8 +36,7 @@ class ArrayLiteral : public Expr {
     LLVMValue llvm_value(VariableTable& vars, LLVMType expected_type = {}) {
 
         auto my_type = expected_type ? expected_type : type()->llvm_type();
-        auto alloca = LLVMValue{builder()->CreateAlloca(my_type),
-                                LLVMType(Ptr::get(my_type.qn_type))};
+        auto alloca = LLVMValue{builder()->CreateAlloca(my_type), LLVMType(Ptr::get(my_type.qn_type))};
         if (expected_type && !expected_type->isArrayTy())
             except(E_BAD_CAST, "Cannot cast an array to a non-array type");
         this->write_to(alloca, vars);
@@ -49,9 +44,7 @@ class ArrayLiteral : public Expr {
         return alloca.load();
     }
 
-    LLVMValue assign_ptr(VariableTable& vars) {
-        except(E_BAD_ASSIGNMENT, "Array Literals are not assignable");
-    }
+    LLVMValue assign_ptr(VariableTable& vars) { except(E_BAD_ASSIGNMENT, "Array Literals are not assignable"); }
 
     std::string str() {
         std::string ret = "[ ";

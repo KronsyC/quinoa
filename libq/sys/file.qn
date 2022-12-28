@@ -1,4 +1,4 @@
-import @sys::posix;
+import @sys::posix as posix;
 import @lang::internal::error as Err;
 module File is Exported{
 
@@ -8,7 +8,7 @@ module File is Exported{
     };
 
 
-    func write.File(data : byte[]) -> u64{
+    func write.File(data : []byte) -> u64{
 
         if(!(self.is_open)){
             return -1;
@@ -28,7 +28,7 @@ module File is Exported{
         posix::close_file(self.fd);
     }
 
-    func read.File(buffer : byte[]){
+    func read.File(buffer : []byte){
       let read_count = posix::read_file(self.fd, buffer.ptr, buffer.len); 
     }
 
@@ -37,6 +37,34 @@ module File is Exported{
             fd : fd;
             is_open : true;
         };
+    }
+
+    func stats.File() -> posix::FileStats{
+      let stats_struct : posix::FileStats;
+      let stat = posix::file_stat(self.fd, &stats_struct);
+      if(stat < 0){
+        Err::panic("stat failed");
+      }
+      return stats_struct;
+    }
+
+    func seek_start.File() -> u64{
+      return posix::seek_file(self.fd, 0, posix::SEEK_SET) as u64;
+    }
+    func seek_end.File() -> u64{
+      return posix::seek_file(self.fd, 0, posix::SEEK_END) as u64;
+    }
+    func current_pos.File() -> u64{
+      let pos = posix::seek_file(self.fd, 0, posix::SEEK_CUR);
+      return pos as u64;
+    }
+    func size.File() -> u64{
+      let s = self.stats();
+      let len = s.size;
+      if(len < 0){
+        Err::panic("Bad file length");
+      }
+      return len as u64;
     }
 
 }

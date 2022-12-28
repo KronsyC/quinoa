@@ -5,8 +5,6 @@
 #include "./AST/type.hh"
 #include <optional>
 #include <variant>
-static llvm::LLVMContext _ctx;
-static llvm::IRBuilder<> _builder(_ctx);
 
 llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* func) {
     auto& entry_block = func->getEntryBlock();
@@ -19,9 +17,6 @@ llvm::AllocaInst* create_allocation(llvm::Type* type, llvm::Function* func) {
 
     return alloc;
 }
-
-llvm::LLVMContext* llctx() { return &_ctx; }
-llvm::IRBuilder<>* builder() { return &_builder; }
 
 bool isInt(LLVMType t) { return t->isIntegerTy(); }
 LLVMValue Variable::as_value() { return {this->value, LLVMType(Ptr::get(this->type))}; }
@@ -85,7 +80,7 @@ std::variant<LLVMValue, std::string> try_cast(LLVMValue _val, const LLVMType& _t
 
     auto val_ty = val.type;
 
-    if (val_ty == to) {
+    if (*val_ty.qn_type == *to.qn_type) {
 
         return val;
     }
@@ -248,3 +243,16 @@ LLVMValue cast(LLVMValue val, LLVMType type) {
         except(E_BAD_CAST, std::get<std::string>(cast_result));
     }
 }
+
+static Container* __active_container = nullptr;
+
+#include "./AST/container.hh"
+void set_active_container(Container& cont) { __active_container = &cont; }
+Container& get_active_container() {
+    if (!__active_container)
+        except(E_INTERNAL, "get_active_module with no mod");
+    return *__active_container;
+}
+
+llvm::LLVMContext* llctx() { return &get_active_container().get_mod().getContext(); }
+llvm::IRBuilder<>* builder() { return &get_active_container().get_builder(); }

@@ -1,0 +1,15 @@
+{
+  "prefix": "__std__",
+  "modules": {
+    "io": "io.qn",
+    "fs": "fs.qn",
+    "math": "math.qn",
+    "strconv": "strconv.qn",
+    "string": "string.qn",
+    "vec": "vec.qn",
+    "memory": "memory.qn",
+    "sys::file": "sys/file.qn",
+    "sys::posix": "sys/posix.qn",
+    "lang::internal::error": "lang/internal/error.qn"
+  }
+}

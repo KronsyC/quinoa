@@ -74,8 +74,6 @@ void resolve_aliased_symbols(CompilationUnit& unit, LongName& alias, LongName& r
     }
 }
 
-void handle_imports(CompilationUnit& unit);
-
 ExportTable generate_export_table(CompilationUnit& unit) {
     ExportTable exports;
     for (auto mod : unit.get_containers()) {
@@ -88,9 +86,10 @@ ExportTable generate_export_table(CompilationUnit& unit) {
     return exports;
 }
 
+void handle_imports(CompilationUnit& unit, std::map<std::string, std::string> includes);
 static std::map<std::string, ExportTable> all_exports;
 
-CompilationUnit* construct_ast_from_path(std::string path) {
+CompilationUnit* construct_ast_from_path(std::string path, std::map<std::string, std::string> includes) {
     static std::map<std::string, std::unique_ptr<CompilationUnit>> import_cache;
 
     auto& cached = import_cache[path];
@@ -107,7 +106,7 @@ CompilationUnit* construct_ast_from_path(std::string path) {
         auto exports = generate_export_table(*cached);
         all_exports[path] = exports;
 
-        handle_imports(*cached);
+        handle_imports(*cached, includes);
     }
 
     return cached.get();
@@ -125,9 +124,7 @@ void merge_units(CompilationUnit& tgt, CompilationUnit donor) {
     }
 }
 
-void handle_imports(CompilationUnit& unit) {
-
-    static const std::string libq_dir = std::string(QUINOA_DIR) + "/libq";
+void handle_imports(CompilationUnit& unit, std::map<std::string, std::string> includes) {
 
     // Hack for local modules in the entrypoint file
     for (auto cont : unit.get_containers()) {
@@ -150,29 +147,18 @@ void handle_imports(CompilationUnit& unit) {
             //      This process also singles out the exported module
             // 6. Inlines the AST into the parent
             //
-
+            std::string import_name = import->target.str();
             if (import->is_stdlib) {
-                string rpath = std::regex_replace(import->target.str(), std::regex("::"), "/");
-                rpath = libq_dir + "/" + rpath + ".qn";
-
-                auto ast = construct_ast_from_path(rpath);
-
-                auto alias = import->alias;
-
-                // Get the name of the target module (it is in the global export table)
-                Container* target_module = all_exports[rpath]["__default__"];
-
-                if (!target_module)
-                    except(E_BAD_IMPORT, "Failed to locate default export from " + rpath);
-
-                auto full_name = target_module->full_name();
-
-                resolve_aliased_symbols(unit, alias, full_name);
-
-                merge_units(unit, std::move(*ast));
-
-            } else
-                except(E_INTERNAL, "Non-stdlib imports are an unsupported feature");
+                import_name = "__std__::" + import_name;
+            }
+            auto import_path = includes[import_name];
+            auto ast = construct_ast_from_path(import_path, includes);
+            auto target_mod = all_exports[import_path]["__default__"];
+            if (!target_mod)
+                except(E_BAD_IMPORT, "Failed to locate default exported module from file: " + import_path);
+            auto fullname = target_mod->full_name();
+            resolve_aliased_symbols(unit, import->alias, fullname);
+            merge_units(unit, std::move(*ast));
         }
     }
 }

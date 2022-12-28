@@ -33,9 +33,7 @@ template <typename T, typename U> class Constant : public ConstantValue {
 
     std::vector<Statement*> flatten() { return {this}; }
 
-    LLVMValue assign_ptr(VariableTable& vars) {
-        except(E_BAD_ASSIGNMENT, "Constant values are not assignable");
-    }
+    LLVMValue assign_ptr(VariableTable& vars) { except(E_BAD_ASSIGNMENT, "Constant values are not assignable"); }
 };
 
 class String : public AllocatingExpr, public Constant<std::string, String> {
@@ -46,9 +44,7 @@ class String : public AllocatingExpr, public Constant<std::string, String> {
     std::vector<Type*> flatten_types() { return {}; }
     std::vector<Statement*> flatten() { return Constant::flatten(); }
 
-    LLVMValue assign_ptr(VariableTable& vars) {
-        return Constant::assign_ptr(vars);
-    }
+    LLVMValue assign_ptr(VariableTable& vars) { return Constant::assign_ptr(vars); }
 
     std::string str() { return "\"" + value + "\""; }
 
@@ -65,23 +61,17 @@ class String : public AllocatingExpr, public Constant<std::string, String> {
             chars.push_back(builder()->getInt8(_char));
         }
 
-        auto global_str_bytes_ty =
-            llvm::ArrayType::get(builder()->getInt8Ty(), chars.size());
-        auto global_str_initializer =
-            llvm::ConstantArray::get(global_str_bytes_ty, chars);
-        auto global_str_var = new llvm::GlobalVariable(
-            *mod, global_str_bytes_ty, true,
-            llvm::GlobalValue::LinkageTypes::PrivateLinkage,
-            global_str_initializer, ".print");
+        auto global_str_bytes_ty = llvm::ArrayType::get(builder()->getInt8Ty(), chars.size());
+        auto global_str_initializer = llvm::ConstantArray::get(global_str_bytes_ty, chars);
+        auto global_str_var =
+            new llvm::GlobalVariable(*mod, global_str_bytes_ty, true, llvm::GlobalValue::LinkageTypes::PrivateLinkage,
+                                     global_str_initializer, ".l_str");
         auto len = builder()->getInt64(chars.size());
-        auto cast_arr = builder()->CreateBitCast(
-            global_str_var,
-            llvm::ArrayType::get(builder()->getInt8Ty(), 0)->getPointerTo());
+        auto cast_arr =
+            builder()->CreateBitCast(global_str_var, llvm::ArrayType::get(builder()->getInt8Ty(), 0)->getPointerTo());
 
-        auto len_ptr = builder()->CreateStructGEP(
-            alloc->getType()->getPointerElementType(), alloc, 0);
-        auto arr_ptr = builder()->CreateStructGEP(
-            alloc->getType()->getPointerElementType(), alloc, 1);
+        auto len_ptr = builder()->CreateStructGEP(alloc->getType()->getPointerElementType(), alloc, 0);
+        auto arr_ptr = builder()->CreateStructGEP(alloc->getType()->getPointerElementType(), alloc, 1);
 
         builder()->CreateStore(len, len_ptr);
         builder()->CreateStore(cast_arr, arr_ptr);
@@ -89,10 +79,7 @@ class String : public AllocatingExpr, public Constant<std::string, String> {
 
     _Type get_type() { return DynListType::get(Primitive::get(PR_uint8)); }
 
-    llvm::Constant* const_value(LLVMType expected) {
-
-        except(E_INTERNAL, "Constant Strings are illegal");
-    }
+    llvm::Constant* const_value(LLVMType expected) { except(E_INTERNAL, "Constant Strings are illegal"); }
 };
 
 class Boolean : public Constant<bool, Boolean> {
@@ -133,8 +120,7 @@ class Integer : public Constant<long long, Integer> {
         if (!expected) {
             return val;
         }
-        auto cast =
-            llvm::ConstantExpr::getIntegerCast(val, expected, value < 0);
+        auto cast = llvm::ConstantExpr::getIntegerCast(val, expected, value < 0);
         return cast;
     }
 
@@ -156,8 +142,7 @@ class Integer : public Constant<long long, Integer> {
                 return Primitive::get(PR_int32);
             if (value >= X(64))
                 return Primitive::get(PR_int64);
-            except(E_BAD_EXPRESSION,
-                   "Cannot infer type for integer larger than 64 bits");
+            except(E_BAD_EXPRESSION, "Cannot infer type for integer larger than 64 bits");
 #undef X
         } else {
             unsigned long long v = value;
@@ -169,8 +154,7 @@ class Integer : public Constant<long long, Integer> {
                 return Primitive::get(PR_uint32);
             if (v <= maxVal(64))
                 return Primitive::get(PR_uint64);
-            except(E_BAD_EXPRESSION,
-                   "Cannot infer type for integer larger than 64 bits");
+            except(E_BAD_EXPRESSION, "Cannot infer type for integer larger than 64 bits");
         }
     }
 

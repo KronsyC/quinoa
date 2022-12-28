@@ -72,7 +72,6 @@ MatchRanking rank_method_against_call(Method* method, CallLike* call, Container*
     if (call_parent != method->parent) {
         bool is_within_scope = false;
         for (auto& a : call_parent->aliases) {
-            Logger::debug(a.second.str() + " vs " + method->parent->full_name().str());
             if (a.second.str() == method->parent->full_name().str()) {
                 is_within_scope = true;
                 // break;
@@ -358,10 +357,8 @@ proc_result qualify_calls(Method& code) {
         if (auto call = dynamic_cast<CallLike*>(item)) {
             if (call->target)
                 continue;
-            Logger::debug("Resolving call: " + call->str());
             auto errs = resolve_call(call, code.parent);
             if (errs.has_value()) {
-                Logger::debug("Failure " + std::to_string(errors.size()));
                 for (auto e : errs.value())
                     errors.push_back(e);
             } else

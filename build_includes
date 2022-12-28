@@ -1,0 +1,74 @@
+#!/usr/bin/python3
+import sys
+import json
+import os
+"""
+TEMPORARY SOLUTION (this will be replaced by a proper dependency manager in the future):
+
+Convert a json object representing the dependencies of a project into the binary format accepted by quinoa
+
+FORMAT:
+
+{
+    prefix? : str,
+    modules : { name -> path },
+    deps? : [ list of paths to qpk.json files ]
+}
+
+
+"""
+
+def err(message : str):
+    print("error: " + message)
+    exit(1)
+
+
+assert(len(sys.argv) == 2)
+
+incl_file = sys.argv[1];
+
+incl_file = os.path.abspath(incl_file)
+def grab_modules(fpath : str):
+    fpath = os.path.abspath(fpath)
+    _dir = os.path.dirname(fpath)
+    f = open(fpath, "r")
+    incl_json = json.load(f)
+    f.close()
+
+    if not "modules" in incl_json:
+        err("Expected a 'modules' entry in " + incl_file);
+
+    modules = {}
+
+    if "prefix" in incl_json:
+        pfx = incl_json["prefix"]
+        for m in incl_json["modules"].items():
+            modules[f"{pfx}::{m[0]}"] = m[1]
+    else:
+        modules = incl_json["modules"]
+
+    if "deps" in incl_json:
+        for d in incl_json["deps"]:
+            path = os.path.abspath(d)
+            mods = grab_modules(path)
+            for k, v in mods.items():
+                modules[k] = v
+
+    for k,v in modules.items():
+        modules[k] = os.path.join(_dir, v)
+    return modules
+
+mods = grab_modules(incl_file)
+
+# Quinoa takes the format name#path;
+
+output = []
+
+null = chr(0x0)
+for name, path in mods.items():
+    output.append(f"{name}#{path}")
+
+res = ";".join(output)
+# for k, v in mods.items():
+    # print(k, v)
+print(res, end="")

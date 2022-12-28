@@ -22,7 +22,7 @@ endif()
 add_compile_options(-fdiagnostics-color=always)
 add_compile_options(-O0)
 
-llvm_map_components_to_libnames(llvm_libs support core irreader linker mcjit native)
+llvm_map_components_to_libnames(llvm_libs core linker native)
 
 add_definitions(-DQUINOA_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
@@ -31,5 +31,5 @@ file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 
 add_executable(quinoa ${sources})
 target_link_libraries(quinoa PRIVATE ${llvm_libs})
-target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -g)
+target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator)
 

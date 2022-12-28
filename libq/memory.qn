@@ -15,7 +15,7 @@ module Memory is Exported{
     func malloc<T>(length : u64) -> *T{
 
         let result = malloc_unsafe(@size_of::<T>() * length) as *T; 
-        if((result as u64) == 0){
+        if(result as u64 == 0){
             Err::panic("Failed memory allocation");
         }
 
