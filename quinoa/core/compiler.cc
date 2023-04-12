@@ -52,7 +52,9 @@ OutputType get_output_type(std::string output_name) {
 std::string llmod_to_str(llvm::Module* llmod) {
     std::string Str;
     llvm::raw_string_ostream OS(Str);
+    Logger::debug("Preprint");
     llmod->print(OS, nullptr);
+    Logger::debug("WRITTEN");
     return Str;
 }
 

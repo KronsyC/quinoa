@@ -64,6 +64,8 @@ class CallLike : public Expr {
             auto param = target->get_parameter(i);
 
             auto expected_type = param->type->llvm_type();
+            Logger::debug("Casting arg: " + arg.str() + " of type: " + arg.type()->str() + " -> " +
+                          expected_type.qn_type->str());
             auto arg_val = cast(arg.llvm_value(vars, expected_type), expected_type);
             args.push_back(arg_val);
         }
@@ -610,7 +612,6 @@ class Subscript : public Expr {
             return {ep, ptr_to_element};
 
         } else if (tgt_ty->get<DynListType>()) {
-            tgt_ll_ty->print(llvm::outs());
             auto len_ptr = builder()->CreateStructGEP(tgt_ll_ty, ptr, 0);
             auto len = builder()->CreateLoad(builder()->getInt64Ty(), len_ptr);
 
@@ -625,7 +626,7 @@ class Subscript : public Expr {
 
         } else if (ptr->getType()->getPointerElementType()->isPointerTy()) {
             auto val = builder()->CreateLoad(ptr->getType()->getPointerElementType(), ptr);
-            auto ep = builder()->CreateGEP(val->getType()->getPointerElementType(), val, idx);
+            auto ep = builder()->CreateGEP(val->getType()->getPointerElementType(), val, idx.val);
             return {ep, ptr_to_element};
         } else {
             ptr.print();

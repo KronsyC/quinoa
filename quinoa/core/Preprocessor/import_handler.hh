@@ -151,7 +151,17 @@ void handle_imports(CompilationUnit& unit, std::map<std::string, std::string> in
             if (import->is_stdlib) {
                 import_name = "__std__::" + import_name;
             }
-            auto import_path = includes[import_name];
+            auto import_path_ref = includes.find(import_name);
+
+            if(import_path_ref == includes.end()){
+                Logger::error("Failed to resolve a path for the library: " + import_name);
+                exit(1);
+            }
+
+            auto import_path = import_path_ref->second;
+
+
+
             auto ast = construct_ast_from_path(import_path, includes);
             auto target_mod = all_exports[import_path]["__default__"];
             if (!target_mod)

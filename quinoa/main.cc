@@ -1,4 +1,5 @@
 #include "./core/compiler.h"
+#include "core/llvm_utils.h"
 #include "lib/error.h"
 #include "lib/logger.h"
 #include "stdio.h"
@@ -15,9 +16,7 @@ using namespace std;
 void segfault(int sig) { error("Segfault", true); }
 void ill(int sig) { error("SigIll", true); }
 
-void abort(int sig) {
-    //    error("SigAbrt", true);
-}
+void abort(int sig) { error("SigAbrt", true); }
 
 void assert_create_dirs(std::initializer_list<std::string> paths) {
     struct stat st = {0};
@@ -90,6 +89,7 @@ int main(int argc, char** argv) {
             except(E_BAD_ARGS, "The 'build' command expects a target file path");
         }
         string file_path = argv[2];
+        Logger::debug("Compiling file: " + file_path);
         auto includes = parser.get_clarg<std::string>("i");
         std::map<std::string, std::string> imports;
         if (includes != "<none>") {

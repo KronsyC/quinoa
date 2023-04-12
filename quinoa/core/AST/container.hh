@@ -127,8 +127,11 @@ class Container : public TopLevelEntity {
     }
 
     llvm::Module& get_mod() {
-        if (!ll_ctx)
+        if (!ll_ctx) {
             ll_ctx = std::make_unique<llvm::LLVMContext>();
+            ll_ctx->setOpaquePointers(false);
+        }
+
         if (ll_mod)
             return *ll_mod;
         auto ctx = std::make_unique<llvm::LLVMContext>();

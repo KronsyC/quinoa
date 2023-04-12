@@ -122,6 +122,7 @@ void generate_module(Container& mod, CompilationUnit& ast) {
             continue;
         if (!method->content || !method->content->content.len())
             continue;
+        Logger::debug("Generating concrete function: " + method->signature());
         generate_method(method, ast, &mod.get_mod());
     }
 }
@@ -134,14 +135,19 @@ llvm::Module* Codegen::codegen(CompilationUnit& ast) {
     for (auto container : ast.get_containers()) {
         if (container->type != CT_MODULE)
             continue;
+        Logger::debug("Generating module: " + container->full_name().str());
         generate_module(*container, ast);
     }
 
+    // Generic function generation loop
+    // we need to loop until all implementations are handled
+    // generics may generate more generics
     while (auto impl = ast.get_next_impl()) {
 
         impl->target->apply_generic_substitution(impl->substituted_method_type_args,
                                                  impl->substituted_target_type_args);
 
+        Logger::debug("Generating function: " + impl->target->signature());
         make_fn(*impl->target, &impl->target->parent->get_mod(), llvm::GlobalValue::ExternalLinkage, true);
         generate_method(impl->target, ast, &impl->target->parent->get_mod(), true);
 

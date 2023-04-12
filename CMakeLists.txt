@@ -6,7 +6,7 @@ find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM " ${LLVM_PACKAGE_VERSION})
 
-include_directories(${LLVM_INCLUDE_DIRS} remote/tomlplusplus/include)
+include_directories(${LLVM_INCLUDE_DIRS} )
 
 add_definitions(${LLVM_DEFINITIONS})
 
@@ -22,7 +22,9 @@ endif()
 add_compile_options(-fdiagnostics-color=always)
 add_compile_options(-O0)
 
-llvm_map_components_to_libnames(llvm_libs core linker native)
+llvm_map_components_to_libnames(llvm_libs core linker x86 target support)
+
+message(STATUS "Linking LLVM libraries: ${llvm_libs}")
 
 add_definitions(-DQUINOA_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
@@ -30,6 +32,6 @@ file(GLOB_RECURSE sources quinoa/*.cc quinoa/*.h quinoa/*.cpp quinoa/*.hh)
 
 
 add_executable(quinoa ${sources})
-target_link_libraries(quinoa PRIVATE ${llvm_libs})
+target_link_libraries(quinoa PRIVATE LLVM)
 target_compile_options(quinoa PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator)
 

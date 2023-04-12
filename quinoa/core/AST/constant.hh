@@ -49,10 +49,15 @@ class String : public AllocatingExpr, public Constant<std::string, String> {
     std::string str() { return "\"" + value + "\""; }
 
     LLVMValue llvm_value(VariableTable& vars, LLVMType expected = {}) {
-        return AllocatingExpr::llvm_value(vars, expected);
+        auto v = AllocatingExpr::llvm_value(vars, expected);
+        return v;
     }
 
     void write_direct(LLVMValue alloc, VariableTable& vars, LLVMType expected) {
+        Logger::debug("String write_direct in");
+
+        Logger::debug("write_direct to allocation of type: " + alloc.type.qn_type->str());
+
         auto mod = builder()->GetInsertBlock()->getModule();
 
         // Generate the string bytes
@@ -75,6 +80,8 @@ class String : public AllocatingExpr, public Constant<std::string, String> {
 
         builder()->CreateStore(len, len_ptr);
         builder()->CreateStore(cast_arr, arr_ptr);
+
+        Logger::debug("String write_direct out");
     }
 
     _Type get_type() { return DynListType::get(Primitive::get(PR_uint8)); }
