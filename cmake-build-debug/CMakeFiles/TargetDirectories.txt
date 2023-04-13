@@ -1,6 +1,0 @@
-/home/casey/quinoa/cmake-build-debug/CMakeFiles/intrinsics_gen.dir
-/home/casey/quinoa/cmake-build-debug/CMakeFiles/omp_gen.dir
-/home/casey/quinoa/cmake-build-debug/CMakeFiles/acc_gen.dir
-/home/casey/quinoa/cmake-build-debug/CMakeFiles/quinoa.dir
-/home/casey/quinoa/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/casey/quinoa/cmake-build-debug/CMakeFiles/rebuild_cache.dir
