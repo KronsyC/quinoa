@@ -5,6 +5,8 @@ module HelloWorldExample is Entry{
     func main() -> int{
 
         io::println("Hello, World!");
+        let message = "Hello, World";
+        posix::write_file(1, message.ptr, message.len);
         return 0;
     } 
 

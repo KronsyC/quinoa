@@ -11,7 +11,7 @@
 
 ## Dependencies
 - CMake
-- LLVM (llvm-devel)
+- LLVM (llvm-devel) version 15
 - Clang
 
 ## How To Build:

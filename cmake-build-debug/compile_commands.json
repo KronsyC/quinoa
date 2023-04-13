@@ -1,0 +1,92 @@
+[
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/AST/intrinsic.cc.o -c /home/casey/quinoa/quinoa/core/AST/intrinsic.cc",
+  "file": "/home/casey/quinoa/quinoa/core/AST/intrinsic.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/AST/intrinsic.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/AST/primary.cc.o -c /home/casey/quinoa/quinoa/core/AST/primary.cc",
+  "file": "/home/casey/quinoa/quinoa/core/AST/primary.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/AST/primary.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/AST/type.cc.o -c /home/casey/quinoa/quinoa/core/AST/type.cc",
+  "file": "/home/casey/quinoa/quinoa/core/AST/type.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/AST/type.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/Codegen/codegen.cc.o -c /home/casey/quinoa/quinoa/core/Codegen/codegen.cc",
+  "file": "/home/casey/quinoa/quinoa/core/Codegen/codegen.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/Codegen/codegen.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/Lexer/lexer.cc.o -c /home/casey/quinoa/quinoa/core/Lexer/lexer.cc",
+  "file": "/home/casey/quinoa/quinoa/core/Lexer/lexer.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/Lexer/lexer.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/Parser/expression_parser.cc.o -c /home/casey/quinoa/quinoa/core/Parser/expression_parser.cc",
+  "file": "/home/casey/quinoa/quinoa/core/Parser/expression_parser.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/Parser/expression_parser.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/Parser/parser.cc.o -c /home/casey/quinoa/quinoa/core/Parser/parser.cc",
+  "file": "/home/casey/quinoa/quinoa/core/Parser/parser.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/Parser/parser.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/Parser/parser_utils.cc.o -c /home/casey/quinoa/quinoa/core/Parser/parser_utils.cc",
+  "file": "/home/casey/quinoa/quinoa/core/Parser/parser_utils.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/Parser/parser_utils.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/Parser/type_parser.cc.o -c /home/casey/quinoa/quinoa/core/Parser/type_parser.cc",
+  "file": "/home/casey/quinoa/quinoa/core/Parser/type_parser.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/Parser/type_parser.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/compiler.cc.o -c /home/casey/quinoa/quinoa/core/compiler.cc",
+  "file": "/home/casey/quinoa/quinoa/core/compiler.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/compiler.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/core/llvm_utils.cc.o -c /home/casey/quinoa/quinoa/core/llvm_utils.cc",
+  "file": "/home/casey/quinoa/quinoa/core/llvm_utils.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/core/llvm_utils.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/lib/error.cc.o -c /home/casey/quinoa/quinoa/lib/error.cc",
+  "file": "/home/casey/quinoa/quinoa/lib/error.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/lib/error.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/lib/list.cc.o -c /home/casey/quinoa/quinoa/lib/list.cc",
+  "file": "/home/casey/quinoa/quinoa/lib/list.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/lib/list.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/lib/logger.cc.o -c /home/casey/quinoa/quinoa/lib/logger.cc",
+  "file": "/home/casey/quinoa/quinoa/lib/logger.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/lib/logger.cc.o"
+},
+{
+  "directory": "/home/casey/quinoa/cmake-build-debug",
+  "command": "/usr/bin/clang++ -DQUINOA_DIR=\\\"/home/casey/quinoa\\\" -g -std=gnu++20 -fcolor-diagnostics   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fdiagnostics-color=always -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-field-initializers -Wno-ambiguous-reversed-operator -o CMakeFiles/quinoa.dir/quinoa/main.cc.o -c /home/casey/quinoa/quinoa/main.cc",
+  "file": "/home/casey/quinoa/quinoa/main.cc",
+  "output": "CMakeFiles/quinoa.dir/quinoa/main.cc.o"
+}
+]
