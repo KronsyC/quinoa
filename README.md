@@ -4,9 +4,8 @@
 
 ---
 
-## Disclaimer:
+## This project is now deprecated, it served as a wonderful C++ learning experience for me, but I am now working on other stuff.
 
-### This project is only verified to work on x86-64 linux based systems
 ---
 
 ## Dependencies
@@ -18,7 +17,7 @@
 
 1. Clone the repo
     ```bash
-    git clone https://github.com/CaseyAllen/quinoa.git
+    git clone https://github.com/KronsyC/quinoa.git
     cd quinoa
     ```
 2. Build the project
